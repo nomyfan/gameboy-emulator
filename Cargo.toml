@@ -1,5 +1,6 @@
 [workspace]
 members = [
   "crates/cpu_sm83",
-  "crates/gb"
+  "crates/gb",
+  "crates/cartridge"
 ]
