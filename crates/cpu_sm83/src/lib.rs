@@ -1,3 +1,7 @@
+pub mod instruction;
+
+use instruction::Instr;
+
 pub struct Cpu {
     /// Accumulator register
     pub reg_a: u8,
@@ -38,46 +42,56 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
 }
 
 impl Cpu {
-    pub fn bc(&self) -> u16 {
+    pub fn new() -> Self {
+        // TODO init
+        Self {
+            reg_a: 0,
+            reg_f: 0,
+            reg_b: 0,
+            reg_c: 0,
+            reg_d: 0,
+            reg_e: 0,
+            reg_h: 0,
+            reg_l: 0,
+            sp: 0,
+            pc: 0,
+        }
+    }
+
+    fn bc(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_b, self.reg_c)
     }
 
-    pub fn set_bc(&mut self, value: u16) {
+    fn set_bc(&mut self, value: u16) {
         let (hi, lo) = convert_u16_to_u8_tuple(value);
 
         self.reg_b = hi;
         self.reg_c = lo;
     }
 
-    pub fn de(&self) -> u16 {
+    fn de(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_d, self.reg_e)
     }
 
-    pub fn set_de(&mut self, value: u16) {
+    fn set_de(&mut self, value: u16) {
         let (hi, lo) = convert_u16_to_u8_tuple(value);
 
         self.reg_d = hi;
         self.reg_e = lo;
     }
 
-    pub fn hl(&self) -> u16 {
+    fn hl(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_h, self.reg_l)
     }
 
-    pub fn set_hl(&mut self, value: u16) {
+    fn set_hl(&mut self, value: u16) {
         let (hi, lo) = convert_u16_to_u8_tuple(value);
 
         self.reg_h = hi;
         self.reg_l = lo;
     }
 
-    pub fn set_flags(
-        &mut self,
-        z: Option<bool>,
-        n: Option<bool>,
-        h: Option<bool>,
-        c: Option<bool>,
-    ) {
+    fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
         /// Turn on or off for specific bit.
         fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
             debug_assert!(bit <= 8 && bit >= 1);
@@ -93,5 +107,9 @@ impl Cpu {
         let v = set_flag(v, h, 5);
         let v = set_flag(v, n, 6);
         self.reg_f = set_flag(v, z, 7);
+    }
+
+    pub fn exec_instr<T: Instr>(&mut self, instr: T) {
+        instr.exec(self);
     }
 }
