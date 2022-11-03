@@ -1,7 +1,3 @@
-pub mod instruction;
-
-use instruction::Instr;
-
 pub struct Cpu {
     /// Accumulator register
     pub reg_a: u8,
@@ -25,7 +21,11 @@ pub struct Cpu {
     pub sp: u16,
     /// Program counter
     pub pc: u16,
-    // TODO ticks
+
+    pub interrupt_master_enable: bool,
+    pub interrupt_enable: bool,
+    pub interrupt_flags: u8,
+    // TODO
 }
 
 #[inline]
@@ -41,20 +41,32 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
     ((hi as u16) << 8) | (lo as u16)
 }
 
+fn bus_read(addr: u16) -> u8 {
+    todo!()
+}
+
+fn bus_write(addr: u16, value: u8) {
+    todo!()
+}
+
 impl Cpu {
     pub fn new() -> Self {
         // TODO init
         Self {
-            reg_a: 0,
-            reg_f: 0,
-            reg_b: 0,
+            reg_a: 0xB0,
+            reg_f: 0x01,
+            reg_b: 0x13,
             reg_c: 0,
-            reg_d: 0,
+            reg_d: 0xB8,
             reg_e: 0,
-            reg_h: 0,
-            reg_l: 0,
-            sp: 0,
-            pc: 0,
+            reg_h: 0x4D,
+            reg_l: 0x01,
+            sp: 0xFFFE,
+            pc: 0x100,
+
+            interrupt_enable: false,
+            interrupt_flags: 0,
+            interrupt_master_enable: false,
         }
     }
 
@@ -109,7 +121,75 @@ impl Cpu {
         self.reg_f = set_flag(v, z, 7);
     }
 
-    pub fn exec_instr<T: Instr>(&mut self, instr: T) {
-        instr.exec(self);
+    fn inc_pc(&mut self) -> u16 {
+        let pc = self.pc;
+        self.pc += 1;
+
+        pc
+    }
+
+    pub fn execute(&mut self) {
+        let opcode = bus_read(self.inc_pc());
+
+        match opcode {
+            0x00 => {
+                // NOP
+            }
+            0x01 => {
+                // LD BC,D16
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                self.set_bc(convert_u8_tuple_to_u16(hi, lo));
+            }
+            0x02 => {
+                // LD (BC),A
+                bus_write(self.bc(), self.reg_a);
+            }
+            0x06 => {
+                // LD B,D8
+                self.reg_b = bus_read(self.inc_pc());
+            }
+            0x08 => {
+                // LD (A16),SP
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                let addr = convert_u8_tuple_to_u16(hi, lo);
+                bus_write(addr, (self.sp & 0x00FF) as u8);
+                bus_write(addr + 1, ((self.sp & 0xFF00) >> 8) as u8);
+            }
+            0x0A => {
+                // LD A,(BC)
+                self.reg_a = bus_read(self.bc());
+            }
+            0x0E => {
+                // LD C,D8
+                self.reg_c = bus_read(self.inc_pc());
+            }
+            0x11 => {
+                // LD DE,D16
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                self.set_de(convert_u8_tuple_to_u16(hi, lo));
+            }
+            0x12 => {
+                // LD (DE),A
+                bus_write(self.de(), self.reg_a);
+            }
+            0x16 => {
+                // LD D,D8
+                self.reg_d = bus_read(self.inc_pc());
+            }
+            0x1A => {
+                // LD A,(DE)
+                self.reg_a = bus_read(self.de());
+            }
+            0x1E => {
+                // LD E,D8
+                self.reg_e = bus_read(self.inc_pc());
+            }
+            _ => {
+                todo!()
+            }
+        }
     }
 }
