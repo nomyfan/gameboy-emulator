@@ -2,5 +2,6 @@
 members = [
   "crates/cpu_sm83",
   "crates/gb",
-  "crates/cartridge"
+  "crates/cartridge",
+  "crates/io"
 ]
