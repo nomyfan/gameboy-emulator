@@ -1,3 +1,5 @@
+use log::debug;
+
 pub struct Cpu {
     /// Accumulator register
     pub reg_a: u8,
@@ -49,6 +51,10 @@ fn bus_write(addr: u16, value: u8) {
     todo!()
 }
 
+fn cycles(c: u8) {
+    todo!()
+}
+
 impl Cpu {
     pub fn new() -> Self {
         // TODO init
@@ -70,6 +76,7 @@ impl Cpu {
         }
     }
 
+    #[inline]
     fn bc(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_b, self.reg_c)
     }
@@ -81,6 +88,7 @@ impl Cpu {
         self.reg_c = lo;
     }
 
+    #[inline]
     fn de(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_d, self.reg_e)
     }
@@ -92,6 +100,7 @@ impl Cpu {
         self.reg_e = lo;
     }
 
+    #[inline]
     fn hl(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_h, self.reg_l)
     }
@@ -128,8 +137,19 @@ impl Cpu {
         pc
     }
 
+    #[inline]
+    fn inc_hl(&mut self) {
+        self.set_hl(self.hl() + 1);
+    }
+
+    #[inline]
+    fn dec_hl(&mut self) {
+        self.set_hl(self.hl() - 1);
+    }
+
     pub fn execute(&mut self) {
         let opcode = bus_read(self.inc_pc());
+        debug!("opcode 0x{opcode:02X}");
 
         match opcode {
             0x00 => {
@@ -186,6 +206,329 @@ impl Cpu {
             0x1E => {
                 // LD E,D8
                 self.reg_e = bus_read(self.inc_pc());
+            }
+            0x21 => {
+                // LD HL,D16
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                self.set_hl(convert_u8_tuple_to_u16(hi, lo));
+            }
+            0x22 => {
+                // LD (HL+),A
+                bus_write(self.hl(), self.reg_a);
+                self.inc_hl();
+            }
+            0x26 => {
+                // LD H,D8
+                self.reg_h = bus_read(self.inc_pc());
+            }
+            0x2A => {
+                // LD A,(HL+)
+                self.reg_a = bus_read(self.hl());
+                self.inc_hl();
+            }
+            0x2E => {
+                // LD L,D8
+                self.reg_l = bus_read(self.inc_pc());
+            }
+            0x31 => {
+                // LD SP,D16
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                self.sp = convert_u8_tuple_to_u16(hi, lo);
+            }
+            0x32 => {
+                // LD (HL-),A
+                bus_write(self.hl(), self.reg_a);
+                self.dec_hl();
+            }
+            0x36 => {
+                // LD (HL),D8
+                bus_write(self.hl(), bus_read(self.inc_pc()));
+            }
+            0x3A => {
+                // LD A,(HL-)
+                self.reg_a = bus_read(self.hl());
+                self.dec_hl();
+            }
+            0x3E => {
+                // LD A,D8
+                self.reg_a = bus_read(self.inc_pc());
+            }
+            0x40 => {
+                // LD B,B
+            }
+            0x41 => {
+                // LD B,C
+                self.reg_b = self.reg_c;
+            }
+            0x42 => {
+                // LD B,D
+                self.reg_b = self.reg_d;
+            }
+            0x43 => {
+                // LD B,E
+                self.reg_b = self.reg_e;
+            }
+            0x44 => {
+                // LD B,H
+                self.reg_b = self.reg_h;
+            }
+            0x45 => {
+                // LD B,L
+                self.reg_b = self.reg_l;
+            }
+            0x46 => {
+                // LD B,(HL)
+                self.reg_b = bus_read(self.hl());
+            }
+            0x47 => {
+                // LD B,A
+                self.reg_b = self.reg_a;
+            }
+            0x48 => {
+                // LD C,B
+                self.reg_c = self.reg_b;
+            }
+            0x49 => {
+                // LD C,C
+            }
+            0x4A => {
+                // LD C,D
+                self.reg_c = self.reg_d;
+            }
+            0x4B => {
+                // LD C,E
+                self.reg_c = self.reg_e;
+            }
+            0x4C => {
+                // LD C,H
+                self.reg_c = self.reg_h;
+            }
+            0x4D => {
+                // LD C,L
+                self.reg_c = self.reg_l;
+            }
+            0x4E => {
+                // LD C,(HL)
+                self.reg_c = bus_read(self.hl());
+            }
+            0x4F => {
+                // LD C,A
+                self.reg_c = self.reg_a;
+            }
+            0x50 => {
+                // LD D,B
+                self.reg_d = self.reg_b;
+            }
+            0x51 => {
+                // LD D,C
+                self.reg_d = self.reg_c;
+            }
+            0x52 => {
+                // LD D,D
+            }
+            0x53 => {
+                // LD D,E
+                self.reg_d = self.reg_e;
+            }
+            0x54 => {
+                // LD D,H
+                self.reg_d = self.reg_h;
+            }
+            0x55 => {
+                // LD D,L
+                self.reg_d = self.reg_l;
+            }
+            0x56 => {
+                // LD D,(HL)
+                self.reg_d = bus_read(self.hl());
+            }
+            0x57 => {
+                // LD D,A
+                self.reg_d = self.reg_a;
+            }
+            0x58 => {
+                // LD E,B
+                self.reg_e = self.reg_b;
+            }
+            0x59 => {
+                // LD E,C
+                self.reg_e = self.reg_c;
+            }
+            0x5A => {
+                // LD E,D
+                self.reg_e = self.reg_d;
+            }
+            0x5B => {
+                // LD E,E
+            }
+            0x5C => {
+                // LD E,H
+                self.reg_e = self.reg_h;
+            }
+            0x5D => {
+                // LD E,L
+                self.reg_e = self.reg_l;
+            }
+            0x5E => {
+                // LD E,(HL)
+                self.reg_e = bus_read(self.hl());
+            }
+            0x5F => {
+                // LD E,A
+                self.reg_e = self.reg_a;
+            }
+            0x60 => {
+                // LD H,B
+                self.reg_h = self.reg_b;
+            }
+            0x61 => {
+                // LD H,C
+                self.reg_h = self.reg_c;
+            }
+            0x62 => {
+                // LD H,D
+                self.reg_h = self.reg_d;
+            }
+            0x63 => {
+                // LD H,E
+                self.reg_h = self.reg_e;
+            }
+            0x64 => {
+                // LD H,H
+            }
+            0x65 => {
+                // LD H,L
+                self.reg_h = self.reg_l;
+            }
+            0x66 => {
+                // LD H,(HL)
+                self.reg_h = bus_read(self.hl());
+            }
+            0x67 => {
+                // LD H,A
+                self.reg_h = self.reg_a;
+            }
+            0x68 => {
+                // LD L,B
+                self.reg_l = self.reg_b;
+            }
+            0x69 => {
+                // LD L,C
+                self.reg_l = self.reg_c;
+            }
+            0x6A => {
+                // LD L,D
+                self.reg_l = self.reg_d;
+            }
+            0x6B => {
+                // LD L,E
+                self.reg_l = self.reg_e;
+            }
+            0x6C => {
+                // LD L,H
+                self.reg_l = self.reg_h;
+            }
+            0x6D => {
+                // LD L,L
+            }
+            0x6E => {
+                // LD L,(HL)
+                self.reg_l = bus_read(self.hl());
+            }
+            0x6F => {
+                // LD L,A
+                self.reg_l = self.reg_a;
+            }
+            0x70 => {
+                // LD (HL),B
+                bus_write(self.hl(), self.reg_b);
+            }
+            0x71 => {
+                // LD (HL),C
+                bus_write(self.hl(), self.reg_c);
+            }
+            0x72 => {
+                // LD (HL),D
+                bus_write(self.hl(), self.reg_d);
+            }
+            0x73 => {
+                // LD (HL),E
+                bus_write(self.hl(), self.reg_e);
+            }
+            0x74 => {
+                // LD (HL),H
+                bus_write(self.hl(), self.reg_h);
+            }
+            0x75 => {
+                // LD (HL),L
+                bus_write(self.hl(), self.reg_l);
+            }
+            0x77 => {
+                // LD (HL),A
+                bus_write(self.hl(), self.reg_a);
+            }
+            0x78 => {
+                // LD A,B
+                self.reg_a = self.reg_b;
+            }
+            0x79 => {
+                // LD A,C
+                self.reg_a = self.reg_c;
+            }
+            0x7A => {
+                // LD A,D
+                self.reg_a = self.reg_d;
+            }
+            0x7B => {
+                // LD A,E
+                self.reg_a = self.reg_e;
+            }
+            0x7C => {
+                // LD A,H
+                self.reg_a = self.reg_h;
+            }
+            0x7D => {
+                // LD A,L
+                self.reg_a = self.reg_l;
+            }
+            0x7E => {
+                // LD A,(HL)
+                self.reg_a = bus_read(self.hl());
+            }
+            0x7F => {
+                // LD A,A
+            }
+            0xE2 => {
+                // LD (C),A
+                bus_write(convert_u8_tuple_to_u16(0xFF, self.reg_c), self.reg_a);
+            }
+            0xEA => {
+                // LD (A16),A
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                bus_write(convert_u8_tuple_to_u16(hi, lo), self.reg_a);
+            }
+            0xF2 => {
+                // LD A,(C)
+                self.reg_a = bus_read(convert_u8_tuple_to_u16(0xFF, self.reg_c));
+            }
+            0xF8 => {
+                // LD HL,SP+R8
+                let r8 = bus_read(self.inc_pc());
+                self.set_hl(self.sp + r8 as u16);
+            }
+            0xF9 => {
+                // LD SP,HL
+                self.sp = self.hl();
+            }
+            0xFA => {
+                // LD A,(A16)
+                let lo = bus_read(self.inc_pc());
+                let hi = bus_read(self.inc_pc());
+                let addr = convert_u8_tuple_to_u16(hi, lo);
+                self.reg_a = bus_read(addr);
             }
             _ => {
                 todo!()
