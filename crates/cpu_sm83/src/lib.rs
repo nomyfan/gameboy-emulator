@@ -197,11 +197,15 @@ where
             }
             0x04 => {
                 // INC B
-                self.reg_b += 1;
+                let b = self.reg_b + 1;
+                self.set_flags(Some(b == 0), Some(false), Some((b & 0xF) == 0), None);
+                self.reg_b = b;
             }
             0x05 => {
                 // DEC B
-                self.reg_b -= 1;
+                let b = self.reg_b - 1;
+                self.set_flags(Some(b == 0), Some(true), Some((b & 0xF) == 0), None);
+                self.reg_b = b;
             }
             0x06 => {
                 // LD B,D8
@@ -225,11 +229,15 @@ where
             }
             0x0C => {
                 // INC C
-                self.reg_c += 1;
+                let c = self.reg_c + 1;
+                self.set_flags(Some(c == 0), Some(false), Some((c & 0xF) == 0), None);
+                self.reg_c = c;
             }
             0x0D => {
                 // DEC C
-                self.reg_c -= 1;
+                let c = self.reg_c - 1;
+                self.set_flags(Some(c == 0), Some(true), Some((c & 0xF) == 0), None);
+                self.reg_c = c;
             }
             0x0E => {
                 // LD C,D8
@@ -252,11 +260,15 @@ where
             }
             0x14 => {
                 // INC D
-                self.reg_d += 1;
+                let d = self.reg_d + 1;
+                self.set_flags(Some(d == 0), Some(false), Some((d & 0xF) == 0), None);
+                self.reg_d = d;
             }
             0x15 => {
                 // DEC D
-                self.reg_d -= 1;
+                let d = self.reg_d - 1;
+                self.set_flags(Some(d == 0), Some(true), Some((d & 0xF) == 0), None);
+                self.reg_d = d;
             }
             0x16 => {
                 // LD D,D8
@@ -272,11 +284,15 @@ where
             }
             0x1C => {
                 // INC E
-                self.reg_e += 1;
+                let e = self.reg_e + 1;
+                self.set_flags(Some(e == 0), Some(false), Some((e & 0xF) == 0), None);
+                self.reg_e = e;
             }
             0x1D => {
                 // DEC E
-                self.reg_e -= 1;
+                let e = self.reg_e - 1;
+                self.set_flags(Some(e == 0), Some(true), Some((e & 0xF) == 0), None);
+                self.reg_e = e;
             }
             0x1E => {
                 // LD E,D8
@@ -299,11 +315,15 @@ where
             }
             0x24 => {
                 // INC H
-                self.reg_h += 1;
+                let h = self.reg_h + 1;
+                self.set_flags(Some(h == 0), Some(false), Some((h & 0xF) == 0), None);
+                self.reg_h = h;
             }
             0x25 => {
                 // DEC H
-                self.reg_h -= 1;
+                let h = self.reg_h - 1;
+                self.set_flags(Some(h == 0), Some(true), Some((h & 0xF) == 0), None);
+                self.reg_h = h;
             }
             0x26 => {
                 // LD H,D8
@@ -320,11 +340,15 @@ where
             }
             0x2C => {
                 // INC L
-                self.reg_l += 1;
+                let l = self.reg_l + 1;
+                self.set_flags(Some(l == 0), Some(false), Some((l & 0xF) == 0), None);
+                self.reg_l = l;
             }
             0x2D => {
                 // DEC L
-                self.reg_l -= 1;
+                let l = self.reg_l - 1;
+                self.set_flags(Some(l == 0), Some(true), Some((l & 0xF) == 0), None);
+                self.reg_l = l;
             }
             0x2E => {
                 // LD L,D8
@@ -349,12 +373,19 @@ where
                 // INC (HL)
                 let addr = self.hl();
                 let value = self.bus_read(addr) + 1;
+                self.set_flags(
+                    Some(value == 0),
+                    Some(false),
+                    Some((value & 0xF) == 0),
+                    None,
+                );
                 self.bus_write(addr, value);
             }
             0x35 => {
                 // DEC (HL)
                 let addr = self.hl();
                 let value = self.bus_read(addr) - 1;
+                self.set_flags(Some(value == 0), Some(true), Some((value & 0xF) == 0), None);
                 self.bus_write(addr, value);
             }
             0x36 => {
@@ -373,11 +404,15 @@ where
             }
             0x3C => {
                 // INC A
-                self.reg_a += 1;
+                let a = self.reg_a + 1;
+                self.set_flags(Some(a == 0), Some(false), Some((a & 0xF) == 0), None);
+                self.reg_a = a;
             }
             0x3D => {
                 // DEC A
-                self.reg_a -= 1;
+                let a = self.reg_a - 1;
+                self.set_flags(Some(a == 0), Some(true), Some((a & 0xF) == 0), None);
+                self.reg_a = a;
             }
             0x3E => {
                 // LD A,D8
@@ -645,6 +680,11 @@ where
             0xF8 => {
                 // LD HL,SP+R8
                 let r8 = self.read_pc();
+
+                let h_flag = (self.sp & 0xF) + (r8 as u16 & 0xF) >= 0x10;
+                let c_flag = (self.sp & 0xFF) + (r8 as u16 & 0xFF) >= 0x100;
+
+                self.set_flags(Some(false), Some(false), Some(h_flag), Some(c_flag));
                 self.set_hl(self.sp + r8 as u16);
             }
             0xF9 => {
