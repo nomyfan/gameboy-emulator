@@ -27,8 +27,11 @@ where
     /// Program counter
     pub pc: u16,
 
+    /// Set by instructions(EI, RETI, DI).
     pub interrupt_master_enable: bool,
-    pub interrupt_enable: bool,
+    /// R/W
+    pub interrupt_enable: u8,
+    /// R/W
     pub interrupt_flags: u8,
 
     bus: BUS,
@@ -70,7 +73,7 @@ where
             sp: 0xFFFE,
             pc: 0x100,
 
-            interrupt_enable: false,
+            interrupt_enable: 0,
             interrupt_flags: 0,
             interrupt_master_enable: false,
             bus,
@@ -78,11 +81,19 @@ where
     }
 
     fn bus_read(&self, addr: u16) -> u8 {
+        if addr == 0xFFFF {
+            return self.interrupt_enable;
+        }
+
         self.bus.read(addr)
     }
 
     fn bus_write(&mut self, addr: u16, value: u8) {
-        self.bus.write(addr, value);
+        if addr == 0xFFFF {
+            self.interrupt_enable = value;
+        } else {
+            self.bus.write(addr, value);
+        }
     }
 
     #[inline]
