@@ -191,6 +191,18 @@ where
                 // LD (BC),A
                 self.bus_write(self.bc(), self.reg_a);
             }
+            0x03 => {
+                // INC BC
+                self.set_bc(self.bc() + 1);
+            }
+            0x04 => {
+                // INC B
+                self.reg_b += 1;
+            }
+            0x05 => {
+                // DEC B
+                self.reg_b -= 1;
+            }
             0x06 => {
                 // LD B,D8
                 self.reg_b = self.read_pc();
@@ -207,6 +219,18 @@ where
                 // LD A,(BC)
                 self.reg_a = self.bus_read(self.bc());
             }
+            0x0B => {
+                // DEC BC
+                self.set_bc(self.bc() - 1);
+            }
+            0x0C => {
+                // INC C
+                self.reg_c += 1;
+            }
+            0x0D => {
+                // DEC C
+                self.reg_c -= 1;
+            }
             0x0E => {
                 // LD C,D8
                 let addr = self.inc_pc();
@@ -222,6 +246,18 @@ where
                 // LD (DE),A
                 self.bus_write(self.de(), self.reg_a);
             }
+            0x13 => {
+                // INC DE
+                self.set_de(self.de() + 1);
+            }
+            0x14 => {
+                // INC D
+                self.reg_d += 1;
+            }
+            0x15 => {
+                // DEC D
+                self.reg_d -= 1;
+            }
             0x16 => {
                 // LD D,D8
                 self.reg_d = self.read_pc();
@@ -229,6 +265,18 @@ where
             0x1A => {
                 // LD A,(DE)
                 self.reg_a = self.bus_read(self.de());
+            }
+            0x1B => {
+                // DEC DE
+                self.set_de(self.de() - 1);
+            }
+            0x1C => {
+                // INC E
+                self.reg_e += 1;
+            }
+            0x1D => {
+                // DEC E
+                self.reg_e -= 1;
             }
             0x1E => {
                 // LD E,D8
@@ -245,6 +293,18 @@ where
                 self.bus_write(self.hl(), self.reg_a);
                 self.inc_hl();
             }
+            0x23 => {
+                // INC HL
+                self.set_hl(self.hl() + 1);
+            }
+            0x24 => {
+                // INC H
+                self.reg_h += 1;
+            }
+            0x25 => {
+                // DEC H
+                self.reg_h -= 1;
+            }
             0x26 => {
                 // LD H,D8
                 self.reg_h = self.read_pc();
@@ -253,6 +313,18 @@ where
                 // LD A,(HL+)
                 self.reg_a = self.bus_read(self.hl());
                 self.inc_hl();
+            }
+            0x2B => {
+                // DEC HL
+                self.set_hl(self.hl() - 1);
+            }
+            0x2C => {
+                // INC L
+                self.reg_l += 1;
+            }
+            0x2D => {
+                // DEC L
+                self.reg_l -= 1;
             }
             0x2E => {
                 // LD L,D8
@@ -269,6 +341,22 @@ where
                 self.bus_write(self.hl(), self.reg_a);
                 self.dec_hl();
             }
+            0x33 => {
+                // INC SP
+                self.sp += 1;
+            }
+            0x34 => {
+                // INC (HL)
+                let addr = self.hl();
+                let value = self.bus_read(addr) + 1;
+                self.bus_write(addr, value);
+            }
+            0x35 => {
+                // DEC (HL)
+                let addr = self.hl();
+                let value = self.bus_read(addr) - 1;
+                self.bus_write(addr, value);
+            }
             0x36 => {
                 // LD (HL),D8
                 let addr = self.inc_pc();
@@ -278,6 +366,18 @@ where
                 // LD A,(HL-)
                 self.reg_a = self.bus_read(self.hl());
                 self.dec_hl();
+            }
+            0x3B => {
+                // DEC SP
+                self.sp -= 1;
+            }
+            0x3C => {
+                // INC A
+                self.reg_a += 1;
+            }
+            0x3D => {
+                // DEC A
+                self.reg_a -= 1;
             }
             0x3E => {
                 // LD A,D8
