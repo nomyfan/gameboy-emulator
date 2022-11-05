@@ -393,10 +393,21 @@ impl Cartridge {
             .iter()
             .fold(0u8, |checksum, v| checksum.wrapping_sub(v.wrapping_add(1)));
 
-        assert_eq!(checksum, header.checksum);
+        debug_assert_eq!(checksum, header.checksum);
 
         debug!("{}", &header);
 
         Ok(Cartridge { header, rom })
+    }
+}
+
+impl io::IO for Cartridge {
+    fn write(&mut self, addr: u16, value: u8) {
+        todo!()
+    }
+
+    fn read(&self, addr: u16) -> u8 {
+        todo!();
+        // self.rom[addr as usize]
     }
 }

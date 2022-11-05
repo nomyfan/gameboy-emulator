@@ -33,6 +33,7 @@ name = "cartridge"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "io",
  "log",
 ]
 

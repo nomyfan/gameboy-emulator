@@ -10,10 +10,12 @@ impl io::IO for Bus {
 
         if addr < 0x8000 {
             // ROM data
+            self.cart.write(addr, value);
         } else if addr < 0xA000 {
             // Char/Map data
         } else if addr < 0xC000 {
-            // EXT-RAM
+            // EXT-RAM, from cartridge
+            self.cart.write(addr, value);
         } else if addr < 0xE000 {
             // WRAM
         } else if addr < 0xFE00 {
@@ -24,10 +26,11 @@ impl io::IO for Bus {
             // Reserved
         } else if addr < 0xFF80 {
             // IO registers
-        } else if addr == 0xFFFF {
-            // CPU set IE
-        } else {
+        } else if addr < 0xFFFF {
             // HRAM
+        } else {
+            // addr == 0xFFFF
+            // CPU IE
         }
     }
 
@@ -36,10 +39,12 @@ impl io::IO for Bus {
 
         if addr < 0x8000 {
             // ROM data
+            return self.cart.read(addr);
         } else if addr < 0xA000 {
             // Char/Map data
         } else if addr < 0xC000 {
-            // EXT-RAM
+            // EXT-RAM, from cartridge
+            return self.cart.read(addr);
         } else if addr < 0xE000 {
             // WRAM
         } else if addr < 0xFE00 {
@@ -50,10 +55,11 @@ impl io::IO for Bus {
             // Reserved
         } else if addr < 0xFF80 {
             // IO registers
-        } else if addr == 0xFFFF {
-            // CPU set IE
+        } else if addr < 0xFFFF {
+            //HRAM
         } else {
-            // HRAM
+            // addr == 0xFFFF
+            // CPU IE
         }
 
         0
@@ -72,5 +78,8 @@ fn main() {
     let bus = Bus { cart };
 
     let mut cpu = cpu_sm83::Cpu::new(bus);
-    cpu.execute();
+
+    for x in 1..10 {
+        cpu.execute();
+    }
 }
