@@ -1,7 +1,62 @@
 use log::debug;
 
+struct WorkRam {
+    /// [C000, D000)
+    /// 4KiB
+    ram: [u8; 0x1000],
+}
+
+impl WorkRam {
+    fn new() -> Self {
+        Self { ram: [0; 0x1000] }
+    }
+}
+
+impl io::IO for WorkRam {
+    fn write(&mut self, addr: u16, value: u8) {
+        debug_assert!(addr >= 0xC000 && addr <= 0xCFFF);
+
+        let addr = (addr as usize) - 0xC000;
+        self.ram[addr] = value;
+    }
+
+    fn read(&self, addr: u16) -> u8 {
+        debug_assert!(addr >= 0xC000 && addr <= 0xCFFF);
+
+        self.ram[addr as usize]
+    }
+}
+
+struct HighRam {
+    /// [FF80, FFFF)
+    ram: [u8; 0x7F],
+}
+
+impl HighRam {
+    fn new() -> Self {
+        Self { ram: [0; 0x7F] }
+    }
+}
+
+impl io::IO for HighRam {
+    fn write(&mut self, addr: u16, value: u8) {
+        debug_assert!(addr >= 0xFF80 && addr <= 0xFFFE);
+
+        let addr = (addr as usize) - 0xFF80;
+        self.ram[addr] = value;
+    }
+
+    fn read(&self, addr: u16) -> u8 {
+        debug_assert!(addr >= 0xFF80 && addr <= 0xFFFE);
+
+        self.ram[addr as usize]
+    }
+}
+
 struct Bus {
     cart: cartridge::Cartridge,
+    wram: WorkRam,
+    hram: HighRam,
 }
 
 impl io::IO for Bus {
@@ -12,12 +67,13 @@ impl io::IO for Bus {
             // ROM data
             self.cart.write(addr, value);
         } else if addr < 0xA000 {
-            // Char/Map data
+            // VRAM
         } else if addr < 0xC000 {
             // EXT-RAM, from cartridge
             self.cart.write(addr, value);
         } else if addr < 0xE000 {
             // WRAM
+            self.wram.write(addr, value);
         } else if addr < 0xFE00 {
             // Reserved echo RAM
         } else if addr < 0xFEA0 {
@@ -28,6 +84,7 @@ impl io::IO for Bus {
             // IO registers
         } else if addr < 0xFFFF {
             // HRAM
+            self.hram.write(addr, value);
         } else {
             // addr == 0xFFFF
             // CPU IE
@@ -41,12 +98,13 @@ impl io::IO for Bus {
             // ROM data
             return self.cart.read(addr);
         } else if addr < 0xA000 {
-            // Char/Map data
+            // VRAM
         } else if addr < 0xC000 {
             // EXT-RAM, from cartridge
             return self.cart.read(addr);
         } else if addr < 0xE000 {
             // WRAM
+            return self.wram.read(addr);
         } else if addr < 0xFE00 {
             // Reserved echo RAM
         } else if addr < 0xFEA0 {
@@ -56,7 +114,8 @@ impl io::IO for Bus {
         } else if addr < 0xFF80 {
             // IO registers
         } else if addr < 0xFFFF {
-            //HRAM
+            // HRAM
+            return self.hram.read(addr);
         } else {
             // addr == 0xFFFF
             // CPU IE
@@ -75,7 +134,11 @@ fn main() {
     let cart = cartridge::Cartridge::load(&rom_path).unwrap();
 
     // Delegate all RWs.
-    let bus = Bus { cart };
+    let bus = Bus {
+        cart,
+        wram: WorkRam::new(),
+        hram: HighRam::new(),
+    };
 
     let mut cpu = cpu_sm83::Cpu::new(bus);
 
