@@ -150,6 +150,26 @@ where
         self.reg_f = set_flag(v, z, 7);
     }
 
+    #[inline]
+    fn flag_z(&self) -> bool {
+        (self.reg_f & (1 << 6)) != 0
+    }
+
+    #[inline]
+    fn flag_n(&self) -> bool {
+        (self.reg_f & (1 << 5)) != 0
+    }
+
+    #[inline]
+    fn flag_h(&self) -> bool {
+        (self.reg_f & (1 << 4)) != 0
+    }
+
+    #[inline]
+    fn flag_c(&self) -> bool {
+        (self.reg_f & (1 << 3)) != 0
+    }
+
     fn inc_pc(&mut self) -> u16 {
         let pc = self.pc;
         self.pc += 1;
@@ -663,9 +683,51 @@ where
             0x7F => {
                 // LD A,A
             }
+            0xC2 => {
+                // JP NZ,A16
+                let lo = self.read_pc();
+                let hi = self.read_pc();
+                if !self.flag_z() {
+                    self.pc = convert_u8_tuple_to_u16(hi, lo);
+                }
+            }
+            0xC3 => {
+                // JP A16
+                let lo = self.read_pc();
+                let hi = self.read_pc();
+                self.pc = convert_u8_tuple_to_u16(hi, lo);
+            }
+            0xCA => {
+                // JP Z,A16
+                let lo = self.read_pc();
+                let hi = self.read_pc();
+                if self.flag_z() {
+                    self.pc = convert_u8_tuple_to_u16(hi, lo);
+                }
+            }
+            0xD2 => {
+                // JP NC,A16
+                let lo = self.read_pc();
+                let hi = self.read_pc();
+                if !self.flag_c() {
+                    self.pc = convert_u8_tuple_to_u16(hi, lo);
+                }
+            }
+            0xDA => {
+                // JP C,A16
+                let lo = self.read_pc();
+                let hi = self.read_pc();
+                if self.flag_c() {
+                    self.pc = convert_u8_tuple_to_u16(hi, lo);
+                }
+            }
             0xE2 => {
                 // LD (C),A
                 self.bus_write(convert_u8_tuple_to_u16(0xFF, self.reg_c), self.reg_a);
+            }
+            0xE9 => {
+                // JP (HL)
+                self.pc = self.hl();
             }
             0xEA => {
                 // LD (A16),A

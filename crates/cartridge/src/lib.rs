@@ -403,11 +403,11 @@ impl Cartridge {
 
 impl io::IO for Cartridge {
     fn write(&mut self, addr: u16, value: u8) {
-        todo!()
+        // todo!()
     }
 
     fn read(&self, addr: u16) -> u8 {
-        todo!();
-        // self.rom[addr as usize]
+        // todo!();
+        self.rom[addr as usize]
     }
 }

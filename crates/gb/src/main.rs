@@ -142,7 +142,8 @@ fn main() {
 
     let mut cpu = cpu_sm83::Cpu::new(bus);
 
-    for x in 1..10 {
+    loop {
         cpu.execute();
     }
+    // for _ in 1..100 {}
 }
