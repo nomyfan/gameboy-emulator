@@ -97,7 +97,12 @@ where
     }
 
     #[inline]
-    fn bc(&self) -> u16 {
+    pub fn af(&self) -> u16 {
+        convert_u8_tuple_to_u16(self.reg_a, self.reg_f)
+    }
+
+    #[inline]
+    pub fn bc(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_b, self.reg_c)
     }
 
@@ -109,7 +114,7 @@ where
     }
 
     #[inline]
-    fn de(&self) -> u16 {
+    pub fn de(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_d, self.reg_e)
     }
 
@@ -121,7 +126,7 @@ where
     }
 
     #[inline]
-    fn hl(&self) -> u16 {
+    pub fn hl(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_h, self.reg_l)
     }
 
@@ -294,6 +299,10 @@ where
                 // LD D,D8
                 self.reg_d = self.read_pc();
             }
+            0x18 => {
+                // JR R8
+                self.pc += self.read_pc() as u16;
+            }
             0x1A => {
                 // LD A,(DE)
                 self.reg_a = self.bus_read(self.de());
@@ -317,6 +326,13 @@ where
             0x1E => {
                 // LD E,D8
                 self.reg_e = self.read_pc();
+            }
+            0x20 => {
+                // JR NZ,R8
+                let r8 = self.read_pc();
+                if !self.flag_z() {
+                    self.pc += r8 as u16;
+                }
             }
             0x21 => {
                 // LD HL,D16
@@ -349,6 +365,13 @@ where
                 // LD H,D8
                 self.reg_h = self.read_pc();
             }
+            0x28 => {
+                // JR Z,R8
+                let r8 = self.read_pc();
+                if self.flag_z() {
+                    self.pc += r8 as u16;
+                }
+            }
             0x2A => {
                 // LD A,(HL+)
                 self.reg_a = self.bus_read(self.hl());
@@ -373,6 +396,13 @@ where
             0x2E => {
                 // LD L,D8
                 self.reg_l = self.read_pc();
+            }
+            0x30 => {
+                // JR NC,R8
+                let r8 = self.read_pc();
+                if !self.flag_c() {
+                    self.pc += r8 as u16;
+                }
             }
             0x31 => {
                 // LD SP,D16
@@ -412,6 +442,13 @@ where
                 // LD (HL),D8
                 let addr = self.inc_pc();
                 self.bus_write(self.hl(), self.bus_read(addr));
+            }
+            0x38 => {
+                // JR C,R8
+                let r8 = self.read_pc();
+                if self.flag_c() {
+                    self.pc += r8 as u16;
+                }
             }
             0x3A => {
                 // LD A,(HL-)

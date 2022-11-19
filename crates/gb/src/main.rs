@@ -61,7 +61,10 @@ struct Bus {
 
 impl io::IO for Bus {
     fn write(&mut self, addr: u16, value: u8) {
-        debug!("bus write address: 0x{:04X}, value: 0x{:02X}", addr, value);
+        debug!(
+            "bus write at address: 0x{:04X}, value: 0x{:02X}",
+            addr, value
+        );
 
         if addr < 0x8000 {
             // ROM data
@@ -92,7 +95,7 @@ impl io::IO for Bus {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        debug!("bus read 0x{:04X}", addr);
+        debug!("bus read at 0x{:04X}", addr);
 
         if addr < 0x8000 {
             // ROM data
@@ -142,8 +145,17 @@ fn main() {
 
     let mut cpu = cpu_sm83::Cpu::new(bus);
 
-    loop {
+    // loop {
+    //     cpu.execute();
+    // }
+    for _ in 1..10 {
         cpu.execute();
+        debug!(
+            "AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
+            cpu.af(),
+            cpu.bc(),
+            cpu.de(),
+            cpu.hl()
+        );
     }
-    // for _ in 1..100 {}
 }
