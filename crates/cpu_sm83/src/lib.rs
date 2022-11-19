@@ -1,3 +1,5 @@
+mod instructions;
+use instructions::INSTRUCTIONS;
 use log::debug;
 
 pub struct Cpu<BUS>
