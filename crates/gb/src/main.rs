@@ -23,7 +23,8 @@ impl io::IO for WorkRam {
     fn read(&self, addr: u16) -> u8 {
         debug_assert!(addr >= 0xC000 && addr <= 0xCFFF);
 
-        self.ram[addr as usize]
+        let addr = (addr as usize) - 0xC000;
+        self.ram[addr]
     }
 }
 
@@ -49,7 +50,8 @@ impl io::IO for HighRam {
     fn read(&self, addr: u16) -> u8 {
         debug_assert!(addr >= 0xFF80 && addr <= 0xFFFE);
 
-        self.ram[addr as usize]
+        let addr = (addr as usize) - 0xFF80;
+        self.ram[addr]
     }
 }
 
@@ -61,10 +63,7 @@ struct Bus {
 
 impl io::IO for Bus {
     fn write(&mut self, addr: u16, value: u8) {
-        debug!(
-            "bus write at address: 0x{:04X}, value: 0x{:02X}",
-            addr, value
-        );
+        debug!("bus write at 0x{:04X}, value: 0x{:02X}", addr, value);
 
         if addr < 0x8000 {
             // ROM data
@@ -95,36 +94,45 @@ impl io::IO for Bus {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        debug!("bus read at 0x{:04X}", addr);
-
-        if addr < 0x8000 {
+        let value = if addr < 0x8000 {
             // ROM data
-            return self.cart.read(addr);
+            self.cart.read(addr)
         } else if addr < 0xA000 {
             // VRAM
+            // TODO
+            0
         } else if addr < 0xC000 {
             // EXT-RAM, from cartridge
-            return self.cart.read(addr);
+            self.cart.read(addr)
         } else if addr < 0xE000 {
             // WRAM
-            return self.wram.read(addr);
+            self.wram.read(addr)
         } else if addr < 0xFE00 {
             // Reserved echo RAM
+            0
         } else if addr < 0xFEA0 {
             // OAM
+            // TODO
+            0
         } else if addr < 0xFF00 {
             // Reserved
+            0
         } else if addr < 0xFF80 {
             // IO registers
+            // TODO
+            0
         } else if addr < 0xFFFF {
             // HRAM
-            return self.hram.read(addr);
+            self.hram.read(addr)
         } else {
             // addr == 0xFFFF
             // CPU IE
-        }
+            // TODO
+            0
+        };
 
-        0
+        debug!("bus read at 0x{:04X}, value: 0x{:04X}", addr, value);
+        value
     }
 }
 
@@ -137,11 +145,7 @@ fn main() {
     let cart = cartridge::Cartridge::load(&rom_path).unwrap();
 
     // Delegate all RWs.
-    let bus = Bus {
-        cart,
-        wram: WorkRam::new(),
-        hram: HighRam::new(),
-    };
+    let bus = Bus { cart, wram: WorkRam::new(), hram: HighRam::new() };
 
     let mut cpu = cpu_sm83::Cpu::new(bus);
 
@@ -151,11 +155,13 @@ fn main() {
     for _ in 1..10 {
         cpu.execute();
         debug!(
-            "AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
+            "SP: 0x{:04X}, PC: 0x{:04X}, AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
+            cpu.sp,
+            cpu.pc,
             cpu.af(),
             cpu.bc(),
             cpu.de(),
-            cpu.hl()
+            cpu.hl(),
         );
     }
 }
