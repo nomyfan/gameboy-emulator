@@ -23,7 +23,8 @@ impl io::IO for WorkRam {
     fn read(&self, addr: u16) -> u8 {
         debug_assert!(addr >= 0xC000 && addr <= 0xCFFF);
 
-        self.ram[addr as usize]
+        let addr = (addr as usize) - 0xC000;
+        self.ram[addr]
     }
 }
 
@@ -49,7 +50,8 @@ impl io::IO for HighRam {
     fn read(&self, addr: u16) -> u8 {
         debug_assert!(addr >= 0xFF80 && addr <= 0xFFFE);
 
-        self.ram[addr as usize]
+        let addr = (addr as usize) - 0xFF80;
+        self.ram[addr]
     }
 }
 
@@ -150,7 +152,7 @@ fn main() {
     // loop {
     //     cpu.execute();
     // }
-    for _ in 1..10000 {
+    for _ in 1..10 {
         cpu.execute();
         debug!(
             "SP: 0x{:04X}, PC: 0x{:04X}, AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
