@@ -45,7 +45,7 @@ where
 
 #[inline]
 fn convert_u16_to_u8_tuple(value: u16) -> (u8, u8) {
-    let hi = value & 0xFF00;
+    let hi = (value & 0xFF00) >> 8;
     let lo = value & 0x00FF;
 
     (hi as u8, lo as u8)
@@ -101,8 +101,8 @@ where
         }
     }
 
-    pub(crate) fn fetch_data(&mut self, addr: &AddressingMode) -> u16 {
-        match addr {
+    pub(crate) fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
+        match am {
             AddressingMode::Rd(r) => match r {
                 instructions::Register::A => self.reg_a as u16,
                 instructions::Register::F => self.reg_f as u16,
@@ -129,8 +129,8 @@ where
         }
     }
 
-    pub(crate) fn write_data(&mut self, addr: &AddressingMode, bus_addr: u16, value: u16) {
-        match addr {
+    pub(crate) fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16) {
+        match am {
             AddressingMode::Rd(r) => match r {
                 instructions::Register::A => self.reg_a = value as u8,
                 instructions::Register::F => self.reg_f = value as u8,
@@ -152,7 +152,7 @@ where
                 instructions::Register::HL => self.bus_write(self.hl(), value as u8),
                 _ => unreachable!("Only BC, DE, HL is valid for RM"),
             },
-            _ => self.bus_write(bus_addr, value as u8),
+            _ => self.bus_write(address, value as u8),
         }
     }
 
