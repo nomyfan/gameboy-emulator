@@ -1,6 +1,9 @@
 mod instructions;
-use instructions::INSTRUCTIONS;
+mod proc;
+
+use instructions::{get_instruction, AddressingMode, InstructionType};
 use log::debug;
+use proc::{proc_dec, proc_inc, proc_jp, proc_jr, proc_ld};
 
 pub struct Cpu<BUS>
 where
@@ -95,6 +98,61 @@ where
             self.interrupt_enable = value;
         } else {
             self.bus.write(addr, value);
+        }
+    }
+
+    pub(crate) fn fetch_data(&mut self, addr: &AddressingMode) -> u16 {
+        match addr {
+            AddressingMode::Rd(r) => match r {
+                instructions::Register::A => self.reg_a as u16,
+                instructions::Register::F => self.reg_f as u16,
+                instructions::Register::B => self.reg_b as u16,
+                instructions::Register::C => self.reg_c as u16,
+                instructions::Register::D => self.reg_d as u16,
+                instructions::Register::E => self.reg_e as u16,
+                instructions::Register::H => self.reg_h as u16,
+                instructions::Register::L => self.reg_l as u16,
+                instructions::Register::AF => self.af(),
+                instructions::Register::BC => self.bc(),
+                instructions::Register::DE => self.de(),
+                instructions::Register::HL => self.hl(),
+                instructions::Register::SP => self.sp,
+            },
+            AddressingMode::Ri(rm) => match rm {
+                instructions::Register::BC => self.bus_read(self.bc()) as u16,
+                instructions::Register::DE => self.bus_read(self.de()) as u16,
+                instructions::Register::HL => self.bus_read(self.hl()) as u16,
+                _ => unreachable!("Only BC, DE, HL is valid for RM"),
+            },
+            AddressingMode::PC1 => self.read_pc() as u16,
+            AddressingMode::PC2 => self.read_pc2(),
+        }
+    }
+
+    pub(crate) fn write_data(&mut self, addr: &AddressingMode, bus_addr: u16, value: u16) {
+        match addr {
+            AddressingMode::Rd(r) => match r {
+                instructions::Register::A => self.reg_a = value as u8,
+                instructions::Register::F => self.reg_f = value as u8,
+                instructions::Register::B => self.reg_b = value as u8,
+                instructions::Register::C => self.reg_c = value as u8,
+                instructions::Register::D => self.reg_d = value as u8,
+                instructions::Register::E => self.reg_e = value as u8,
+                instructions::Register::H => self.reg_h = value as u8,
+                instructions::Register::L => self.reg_l = value as u8,
+                instructions::Register::BC => self.set_bc(value),
+                instructions::Register::DE => self.set_de(value),
+                instructions::Register::HL => self.set_hl(value),
+                instructions::Register::SP => self.sp = value,
+                _ => unreachable!(),
+            },
+            AddressingMode::Ri(rm) => match rm {
+                instructions::Register::BC => self.bus_write(self.bc(), value as u8),
+                instructions::Register::DE => self.bus_write(self.de(), value as u8),
+                instructions::Register::HL => self.bus_write(self.hl(), value as u8),
+                _ => unreachable!("Only BC, DE, HL is valid for RM"),
+            },
+            _ => self.bus_write(bus_addr, value as u8),
         }
     }
 
@@ -200,607 +258,38 @@ where
         self.bus_read(addr)
     }
 
+    #[inline]
+    fn read_pc2(&mut self) -> u16 {
+        let lo = self.read_pc();
+        let hi = self.read_pc();
+
+        convert_u8_tuple_to_u16(hi, lo)
+    }
+
     pub fn execute(&mut self) {
         let opcode = self.read_pc();
         debug!("opcode 0x{opcode:02X}");
+        let inst = get_instruction(opcode);
+        debug!("inst {:?}", inst);
 
-        match opcode {
-            0x00 => {
-                // NOP
+        match inst.ty {
+            InstructionType::NOP => {
+                //
             }
-            0x01 => {
-                // LD BC,D16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                self.set_bc(convert_u8_tuple_to_u16(hi, lo));
+            InstructionType::LD => {
+                proc_ld(self, inst);
             }
-            0x02 => {
-                // LD (BC),A
-                self.bus_write(self.bc(), self.reg_a);
+            InstructionType::INC => {
+                proc_inc(self, inst);
             }
-            0x03 => {
-                // INC BC
-                self.set_bc(self.bc() + 1);
+            InstructionType::DEC => {
+                proc_dec(self, inst);
             }
-            0x04 => {
-                // INC B
-                let b = self.reg_b + 1;
-                self.set_flags(Some(b == 0), Some(false), Some((b & 0xF) == 0), None);
-                self.reg_b = b;
+            InstructionType::JP => {
+                proc_jp(self, inst);
             }
-            0x05 => {
-                // DEC B
-                let b = self.reg_b - 1;
-                self.set_flags(Some(b == 0), Some(true), Some((b & 0xF) == 0), None);
-                self.reg_b = b;
-            }
-            0x06 => {
-                // LD B,D8
-                self.reg_b = self.read_pc();
-            }
-            0x08 => {
-                // LD (A16),SP
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                let addr = convert_u8_tuple_to_u16(hi, lo);
-                self.bus_write(addr, (self.sp & 0x00FF) as u8);
-                self.bus_write(addr + 1, ((self.sp & 0xFF00) >> 8) as u8);
-            }
-            0x0A => {
-                // LD A,(BC)
-                self.reg_a = self.bus_read(self.bc());
-            }
-            0x0B => {
-                // DEC BC
-                self.set_bc(self.bc() - 1);
-            }
-            0x0C => {
-                // INC C
-                let c = self.reg_c + 1;
-                self.set_flags(Some(c == 0), Some(false), Some((c & 0xF) == 0), None);
-                self.reg_c = c;
-            }
-            0x0D => {
-                // DEC C
-                let c = self.reg_c - 1;
-                self.set_flags(Some(c == 0), Some(true), Some((c & 0xF) == 0), None);
-                self.reg_c = c;
-            }
-            0x0E => {
-                // LD C,D8
-                let addr = self.inc_pc();
-                self.reg_c = self.bus_read(addr);
-            }
-            0x11 => {
-                // LD DE,D16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                self.set_de(convert_u8_tuple_to_u16(hi, lo));
-            }
-            0x12 => {
-                // LD (DE),A
-                self.bus_write(self.de(), self.reg_a);
-            }
-            0x13 => {
-                // INC DE
-                self.set_de(self.de() + 1);
-            }
-            0x14 => {
-                // INC D
-                let d = self.reg_d + 1;
-                self.set_flags(Some(d == 0), Some(false), Some((d & 0xF) == 0), None);
-                self.reg_d = d;
-            }
-            0x15 => {
-                // DEC D
-                let d = self.reg_d - 1;
-                self.set_flags(Some(d == 0), Some(true), Some((d & 0xF) == 0), None);
-                self.reg_d = d;
-            }
-            0x16 => {
-                // LD D,D8
-                self.reg_d = self.read_pc();
-            }
-            0x18 => {
-                // JR R8
-                self.pc += self.read_pc() as u16;
-            }
-            0x1A => {
-                // LD A,(DE)
-                self.reg_a = self.bus_read(self.de());
-            }
-            0x1B => {
-                // DEC DE
-                self.set_de(self.de() - 1);
-            }
-            0x1C => {
-                // INC E
-                let e = self.reg_e + 1;
-                self.set_flags(Some(e == 0), Some(false), Some((e & 0xF) == 0), None);
-                self.reg_e = e;
-            }
-            0x1D => {
-                // DEC E
-                let e = self.reg_e - 1;
-                self.set_flags(Some(e == 0), Some(true), Some((e & 0xF) == 0), None);
-                self.reg_e = e;
-            }
-            0x1E => {
-                // LD E,D8
-                self.reg_e = self.read_pc();
-            }
-            0x20 => {
-                // JR NZ,R8
-                let r8 = self.read_pc();
-                if !self.flag_z() {
-                    self.pc += r8 as u16;
-                }
-            }
-            0x21 => {
-                // LD HL,D16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                self.set_hl(convert_u8_tuple_to_u16(hi, lo));
-            }
-            0x22 => {
-                // LD (HL+),A
-                self.bus_write(self.hl(), self.reg_a);
-                self.inc_hl();
-            }
-            0x23 => {
-                // INC HL
-                self.set_hl(self.hl() + 1);
-            }
-            0x24 => {
-                // INC H
-                let h = self.reg_h + 1;
-                self.set_flags(Some(h == 0), Some(false), Some((h & 0xF) == 0), None);
-                self.reg_h = h;
-            }
-            0x25 => {
-                // DEC H
-                let h = self.reg_h - 1;
-                self.set_flags(Some(h == 0), Some(true), Some((h & 0xF) == 0), None);
-                self.reg_h = h;
-            }
-            0x26 => {
-                // LD H,D8
-                self.reg_h = self.read_pc();
-            }
-            0x28 => {
-                // JR Z,R8
-                let r8 = self.read_pc();
-                if self.flag_z() {
-                    self.pc += r8 as u16;
-                }
-            }
-            0x2A => {
-                // LD A,(HL+)
-                self.reg_a = self.bus_read(self.hl());
-                self.inc_hl();
-            }
-            0x2B => {
-                // DEC HL
-                self.set_hl(self.hl() - 1);
-            }
-            0x2C => {
-                // INC L
-                let l = self.reg_l + 1;
-                self.set_flags(Some(l == 0), Some(false), Some((l & 0xF) == 0), None);
-                self.reg_l = l;
-            }
-            0x2D => {
-                // DEC L
-                let l = self.reg_l - 1;
-                self.set_flags(Some(l == 0), Some(true), Some((l & 0xF) == 0), None);
-                self.reg_l = l;
-            }
-            0x2E => {
-                // LD L,D8
-                self.reg_l = self.read_pc();
-            }
-            0x30 => {
-                // JR NC,R8
-                let r8 = self.read_pc();
-                if !self.flag_c() {
-                    self.pc += r8 as u16;
-                }
-            }
-            0x31 => {
-                // LD SP,D16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                self.sp = convert_u8_tuple_to_u16(hi, lo);
-            }
-            0x32 => {
-                // LD (HL-),A
-                self.bus_write(self.hl(), self.reg_a);
-                self.dec_hl();
-            }
-            0x33 => {
-                // INC SP
-                self.sp += 1;
-            }
-            0x34 => {
-                // INC (HL)
-                let addr = self.hl();
-                let value = self.bus_read(addr) + 1;
-                self.set_flags(
-                    Some(value == 0),
-                    Some(false),
-                    Some((value & 0xF) == 0),
-                    None,
-                );
-                self.bus_write(addr, value);
-            }
-            0x35 => {
-                // DEC (HL)
-                let addr = self.hl();
-                let value = self.bus_read(addr) - 1;
-                self.set_flags(Some(value == 0), Some(true), Some((value & 0xF) == 0), None);
-                self.bus_write(addr, value);
-            }
-            0x36 => {
-                // LD (HL),D8
-                let addr = self.inc_pc();
-                self.bus_write(self.hl(), self.bus_read(addr));
-            }
-            0x38 => {
-                // JR C,R8
-                let r8 = self.read_pc();
-                if self.flag_c() {
-                    self.pc += r8 as u16;
-                }
-            }
-            0x3A => {
-                // LD A,(HL-)
-                self.reg_a = self.bus_read(self.hl());
-                self.dec_hl();
-            }
-            0x3B => {
-                // DEC SP
-                self.sp -= 1;
-            }
-            0x3C => {
-                // INC A
-                let a = self.reg_a + 1;
-                self.set_flags(Some(a == 0), Some(false), Some((a & 0xF) == 0), None);
-                self.reg_a = a;
-            }
-            0x3D => {
-                // DEC A
-                let a = self.reg_a - 1;
-                self.set_flags(Some(a == 0), Some(true), Some((a & 0xF) == 0), None);
-                self.reg_a = a;
-            }
-            0x3E => {
-                // LD A,D8
-                self.reg_a = self.read_pc();
-            }
-            0x40 => {
-                // LD B,B
-            }
-            0x41 => {
-                // LD B,C
-                self.reg_b = self.reg_c;
-            }
-            0x42 => {
-                // LD B,D
-                self.reg_b = self.reg_d;
-            }
-            0x43 => {
-                // LD B,E
-                self.reg_b = self.reg_e;
-            }
-            0x44 => {
-                // LD B,H
-                self.reg_b = self.reg_h;
-            }
-            0x45 => {
-                // LD B,L
-                self.reg_b = self.reg_l;
-            }
-            0x46 => {
-                // LD B,(HL)
-                self.reg_b = self.bus_read(self.hl());
-            }
-            0x47 => {
-                // LD B,A
-                self.reg_b = self.reg_a;
-            }
-            0x48 => {
-                // LD C,B
-                self.reg_c = self.reg_b;
-            }
-            0x49 => {
-                // LD C,C
-            }
-            0x4A => {
-                // LD C,D
-                self.reg_c = self.reg_d;
-            }
-            0x4B => {
-                // LD C,E
-                self.reg_c = self.reg_e;
-            }
-            0x4C => {
-                // LD C,H
-                self.reg_c = self.reg_h;
-            }
-            0x4D => {
-                // LD C,L
-                self.reg_c = self.reg_l;
-            }
-            0x4E => {
-                // LD C,(HL)
-                self.reg_c = self.bus_read(self.hl());
-            }
-            0x4F => {
-                // LD C,A
-                self.reg_c = self.reg_a;
-            }
-            0x50 => {
-                // LD D,B
-                self.reg_d = self.reg_b;
-            }
-            0x51 => {
-                // LD D,C
-                self.reg_d = self.reg_c;
-            }
-            0x52 => {
-                // LD D,D
-            }
-            0x53 => {
-                // LD D,E
-                self.reg_d = self.reg_e;
-            }
-            0x54 => {
-                // LD D,H
-                self.reg_d = self.reg_h;
-            }
-            0x55 => {
-                // LD D,L
-                self.reg_d = self.reg_l;
-            }
-            0x56 => {
-                // LD D,(HL)
-                self.reg_d = self.bus_read(self.hl());
-            }
-            0x57 => {
-                // LD D,A
-                self.reg_d = self.reg_a;
-            }
-            0x58 => {
-                // LD E,B
-                self.reg_e = self.reg_b;
-            }
-            0x59 => {
-                // LD E,C
-                self.reg_e = self.reg_c;
-            }
-            0x5A => {
-                // LD E,D
-                self.reg_e = self.reg_d;
-            }
-            0x5B => {
-                // LD E,E
-            }
-            0x5C => {
-                // LD E,H
-                self.reg_e = self.reg_h;
-            }
-            0x5D => {
-                // LD E,L
-                self.reg_e = self.reg_l;
-            }
-            0x5E => {
-                // LD E,(HL)
-                self.reg_e = self.bus_read(self.hl());
-            }
-            0x5F => {
-                // LD E,A
-                self.reg_e = self.reg_a;
-            }
-            0x60 => {
-                // LD H,B
-                self.reg_h = self.reg_b;
-            }
-            0x61 => {
-                // LD H,C
-                self.reg_h = self.reg_c;
-            }
-            0x62 => {
-                // LD H,D
-                self.reg_h = self.reg_d;
-            }
-            0x63 => {
-                // LD H,E
-                self.reg_h = self.reg_e;
-            }
-            0x64 => {
-                // LD H,H
-            }
-            0x65 => {
-                // LD H,L
-                self.reg_h = self.reg_l;
-            }
-            0x66 => {
-                // LD H,(HL)
-                self.reg_h = self.bus_read(self.hl());
-            }
-            0x67 => {
-                // LD H,A
-                self.reg_h = self.reg_a;
-            }
-            0x68 => {
-                // LD L,B
-                self.reg_l = self.reg_b;
-            }
-            0x69 => {
-                // LD L,C
-                self.reg_l = self.reg_c;
-            }
-            0x6A => {
-                // LD L,D
-                self.reg_l = self.reg_d;
-            }
-            0x6B => {
-                // LD L,E
-                self.reg_l = self.reg_e;
-            }
-            0x6C => {
-                // LD L,H
-                self.reg_l = self.reg_h;
-            }
-            0x6D => {
-                // LD L,L
-            }
-            0x6E => {
-                // LD L,(HL)
-                self.reg_l = self.bus_read(self.hl());
-            }
-            0x6F => {
-                // LD L,A
-                self.reg_l = self.reg_a;
-            }
-            0x70 => {
-                // LD (HL),B
-                self.bus_write(self.hl(), self.reg_b);
-            }
-            0x71 => {
-                // LD (HL),C
-                self.bus_write(self.hl(), self.reg_c);
-            }
-            0x72 => {
-                // LD (HL),D
-                self.bus_write(self.hl(), self.reg_d);
-            }
-            0x73 => {
-                // LD (HL),E
-                self.bus_write(self.hl(), self.reg_e);
-            }
-            0x74 => {
-                // LD (HL),H
-                self.bus_write(self.hl(), self.reg_h);
-            }
-            0x75 => {
-                // LD (HL),L
-                self.bus_write(self.hl(), self.reg_l);
-            }
-            0x77 => {
-                // LD (HL),A
-                self.bus_write(self.hl(), self.reg_a);
-            }
-            0x78 => {
-                // LD A,B
-                self.reg_a = self.reg_b;
-            }
-            0x79 => {
-                // LD A,C
-                self.reg_a = self.reg_c;
-            }
-            0x7A => {
-                // LD A,D
-                self.reg_a = self.reg_d;
-            }
-            0x7B => {
-                // LD A,E
-                self.reg_a = self.reg_e;
-            }
-            0x7C => {
-                // LD A,H
-                self.reg_a = self.reg_h;
-            }
-            0x7D => {
-                // LD A,L
-                self.reg_a = self.reg_l;
-            }
-            0x7E => {
-                // LD A,(HL)
-                self.reg_a = self.bus_read(self.hl());
-            }
-            0x7F => {
-                // LD A,A
-            }
-            0xC2 => {
-                // JP NZ,A16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                if !self.flag_z() {
-                    self.pc = convert_u8_tuple_to_u16(hi, lo);
-                }
-            }
-            0xC3 => {
-                // JP A16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                self.pc = convert_u8_tuple_to_u16(hi, lo);
-            }
-            0xCA => {
-                // JP Z,A16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                if self.flag_z() {
-                    self.pc = convert_u8_tuple_to_u16(hi, lo);
-                }
-            }
-            0xD2 => {
-                // JP NC,A16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                if !self.flag_c() {
-                    self.pc = convert_u8_tuple_to_u16(hi, lo);
-                }
-            }
-            0xDA => {
-                // JP C,A16
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                if self.flag_c() {
-                    self.pc = convert_u8_tuple_to_u16(hi, lo);
-                }
-            }
-            0xE2 => {
-                // LD (C),A
-                self.bus_write(convert_u8_tuple_to_u16(0xFF, self.reg_c), self.reg_a);
-            }
-            0xE9 => {
-                // JP (HL)
-                self.pc = self.hl();
-            }
-            0xEA => {
-                // LD (A16),A
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                self.bus_write(convert_u8_tuple_to_u16(hi, lo), self.reg_a);
-            }
-            0xF2 => {
-                // LD A,(C)
-                self.reg_a = self.bus_read(convert_u8_tuple_to_u16(0xFF, self.reg_c));
-            }
-            0xF8 => {
-                // LD HL,SP+R8
-                let r8 = self.read_pc();
-
-                let h_flag = (self.sp & 0xF) + (r8 as u16 & 0xF) >= 0x10;
-                let c_flag = (self.sp & 0xFF) + (r8 as u16 & 0xFF) >= 0x100;
-
-                self.set_flags(Some(false), Some(false), Some(h_flag), Some(c_flag));
-                self.set_hl(self.sp + r8 as u16);
-            }
-            0xF9 => {
-                // LD SP,HL
-                self.sp = self.hl();
-            }
-            0xFA => {
-                // LD A,(A16)
-                let lo = self.read_pc();
-                let hi = self.read_pc();
-                let addr = convert_u8_tuple_to_u16(hi, lo);
-                self.reg_a = self.bus_read(addr);
-            }
-            _ => {
-                todo!()
+            InstructionType::JR => {
+                proc_jr(self, inst);
             }
         }
     }

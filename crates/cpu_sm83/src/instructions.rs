@@ -1,31 +1,37 @@
-type Opcode = u16;
-
+#[derive(Debug)]
 pub(crate) struct Instruction {
-    pub(crate) opcode: Opcode,
-    pub(crate) instr_ty: InstructionType,
+    pub(crate) opcode: u8,
+    pub(crate) ty: InstructionType,
     pub(crate) cond: Option<Condition>,
-    pub(crate) operand1: Option<Address>,
-    pub(crate) operand2: Option<Address>,
+    pub(crate) operand1: Option<AddressingMode>,
+    pub(crate) operand2: Option<AddressingMode>,
 }
 
+#[derive(Debug)]
 pub(crate) enum InstructionType {
     NOP,
     LD,
     INC,
     DEC,
-    ADD,
     JR,
     JP,
     // TODO
 }
 
-pub(crate) enum Address {
-    R(Register),
-    RM(Register),
-    PC1, // 1 byte
-    PC2, // 2 bytes
+/// Addressing mode
+#[derive(Debug)]
+pub(crate) enum AddressingMode {
+    /// Register direct
+    Rd(Register),
+    /// Register indirect
+    Ri(Register),
+    /// PC-relative 1 byte
+    PC1,
+    /// PC-relative 2 bytes
+    PC2,
 }
 
+#[derive(Debug)]
 pub(crate) enum Condition {
     Z,
     NZ,
@@ -33,6 +39,7 @@ pub(crate) enum Condition {
     NC,
 }
 
+#[derive(Debug)]
 pub(crate) enum Register {
     A,
     F,
@@ -47,14 +54,13 @@ pub(crate) enum Register {
     DE,
     HL,
     SP,
-    SP_R8,
 }
 
-macro_rules! instr_ld {
+macro_rules! inst_ld {
     ($opcode:expr, $op1:expr, $op2:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::LD,
+            ty: InstructionType::LD,
             cond: None,
             operand1: Some($op1),
             operand2: Some($op2),
@@ -62,11 +68,11 @@ macro_rules! instr_ld {
     };
 }
 
-macro_rules! instr_inc {
+macro_rules! inst_inc {
     ($opcode:expr, $op1:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::INC,
+            ty: InstructionType::INC,
             cond: None,
             operand1: Some($op1),
             operand2: None,
@@ -74,11 +80,11 @@ macro_rules! instr_inc {
     };
 }
 
-macro_rules! instr_dec {
+macro_rules! inst_dec {
     ($opcode:expr, $op1:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::DEC,
+            ty: InstructionType::DEC,
             cond: None,
             operand1: Some($op1),
             operand2: None,
@@ -86,11 +92,11 @@ macro_rules! instr_dec {
     };
 }
 
-macro_rules! instr_jp {
+macro_rules! inst_jp {
     ($opcode:expr, $op1:expr, $cond:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::JP,
+            ty: InstructionType::JP,
             cond: Some($cond),
             operand1: Some($op1),
             operand2: None,
@@ -99,7 +105,7 @@ macro_rules! instr_jp {
     ($opcode:expr, $op1:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::JP,
+            ty: InstructionType::JP,
             cond: None,
             operand1: Some($op1),
             operand2: None,
@@ -107,174 +113,187 @@ macro_rules! instr_jp {
     };
 }
 
-macro_rules! instr_jr {
-    ($opcode:expr, $op1:expr, $cond:expr) => {
+macro_rules! inst_jr {
+    ($opcode:expr, $cond:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::JR,
+            ty: InstructionType::JR,
             cond: Some($cond),
-            operand1: Some($op1),
+            operand1: Some(AddressingMode::PC1),
             operand2: None,
         }
     };
-    ($opcode:expr, $op1:expr) => {
+    ($opcode:expr) => {
         Instruction {
             opcode: $opcode,
-            instr_ty: InstructionType::JR,
+            ty: InstructionType::JR,
             cond: None,
-            operand1: Some($op1),
+            operand1: Some(AddressingMode::PC1),
             operand2: None,
         }
     };
 }
 
-pub(crate) const INSTRUCTIONS: [Instruction; 126] = [
+const INSTRUCTIONS: [Instruction; 126] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
-        instr_ty: InstructionType::NOP,
+        ty: InstructionType::NOP,
         cond: None,
         operand1: None,
         operand2: None,
     },
-    instr_ld!(0x01, Address::R(Register::BC), Address::PC2),
-    instr_ld!(0x02, Address::RM(Register::BC), Address::R(Register::A)),
-    instr_inc!(0x03, Address::R(Register::BC)),
-    instr_inc!(0x04, Address::R(Register::B)),
-    instr_dec!(0x05, Address::R(Register::B)),
-    instr_ld!(0x06, Address::R(Register::B), Address::PC1),
-    instr_ld!(0x08, Address::PC2, Address::R(Register::SP)),
-    instr_ld!(0x0A, Address::R(Register::A), Address::RM(Register::BC)),
-    instr_dec!(0x0B, Address::R(Register::BC)),
-    instr_ld!(0x0E, Address::R(Register::C), Address::PC1),
-    instr_inc!(0x0C, Address::R(Register::C)),
-    instr_dec!(0x0D, Address::R(Register::C)),
+    inst_ld!(0x01, AddressingMode::Rd(Register::BC), AddressingMode::PC2),
+    inst_ld!(0x02, AddressingMode::Ri(Register::BC), AddressingMode::Rd(Register::A)),
+    inst_inc!(0x03, AddressingMode::Rd(Register::BC)),
+    inst_inc!(0x04, AddressingMode::Rd(Register::B)),
+    inst_dec!(0x05, AddressingMode::Rd(Register::B)),
+    inst_ld!(0x06, AddressingMode::Rd(Register::B), AddressingMode::PC1),
+    inst_ld!(0x08, AddressingMode::PC2, AddressingMode::Rd(Register::SP)),
+    inst_ld!(0x0A, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::BC)),
+    inst_dec!(0x0B, AddressingMode::Rd(Register::BC)),
+    inst_ld!(0x0E, AddressingMode::Rd(Register::C), AddressingMode::PC1),
+    inst_inc!(0x0C, AddressingMode::Rd(Register::C)),
+    inst_dec!(0x0D, AddressingMode::Rd(Register::C)),
     // 0x1x
-    instr_ld!(0x11, Address::R(Register::DE), Address::PC2),
-    instr_ld!(0x12, Address::RM(Register::DE), Address::R(Register::A)),
-    instr_inc!(0x13, Address::R(Register::DE)),
-    instr_inc!(0x14, Address::R(Register::D)),
-    instr_dec!(0x15, Address::R(Register::D)),
-    instr_ld!(0x16, Address::R(Register::D), Address::PC1),
-    instr_jr!(0x18, Address::PC1),
-    instr_ld!(0x1A, Address::R(Register::A), Address::RM(Register::DE)),
-    instr_dec!(0x1B, Address::R(Register::DE)),
-    instr_inc!(0x1C, Address::R(Register::E)),
-    instr_dec!(0x1D, Address::R(Register::E)),
-    instr_ld!(0x1E, Address::R(Register::E), Address::PC1),
+    inst_ld!(0x11, AddressingMode::Rd(Register::DE), AddressingMode::PC2),
+    inst_ld!(0x12, AddressingMode::Ri(Register::DE), AddressingMode::Rd(Register::A)),
+    inst_inc!(0x13, AddressingMode::Rd(Register::DE)),
+    inst_inc!(0x14, AddressingMode::Rd(Register::D)),
+    inst_dec!(0x15, AddressingMode::Rd(Register::D)),
+    inst_ld!(0x16, AddressingMode::Rd(Register::D), AddressingMode::PC1),
+    inst_jr!(0x18),
+    inst_ld!(0x1A, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::DE)),
+    inst_dec!(0x1B, AddressingMode::Rd(Register::DE)),
+    inst_inc!(0x1C, AddressingMode::Rd(Register::E)),
+    inst_dec!(0x1D, AddressingMode::Rd(Register::E)),
+    inst_ld!(0x1E, AddressingMode::Rd(Register::E), AddressingMode::PC1),
     // 0x2x
-    instr_jr!(0x20, Address::PC1, Condition::NZ),
-    instr_ld!(0x21, Address::R(Register::HL), Address::PC2),
-    instr_ld!(0x22, Address::RM(Register::HL), Address::R(Register::A)),
-    instr_inc!(0x23, Address::R(Register::HL)),
-    instr_inc!(0x24, Address::R(Register::H)),
-    instr_dec!(0x25, Address::R(Register::H)),
-    instr_ld!(0x26, Address::R(Register::H), Address::PC1),
-    instr_jr!(0x28, Address::PC1, Condition::Z),
-    instr_ld!(0x2A, Address::R(Register::A), Address::RM(Register::HL)),
-    instr_dec!(0x2B, Address::R(Register::HL)),
-    instr_inc!(0x2C, Address::R(Register::L)),
-    instr_dec!(0x2D, Address::R(Register::L)),
-    instr_ld!(0x2E, Address::R(Register::L), Address::PC1),
+    inst_jr!(0x20, Condition::NZ),
+    inst_ld!(0x21, AddressingMode::Rd(Register::HL), AddressingMode::PC2),
+    inst_ld!(0x22, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::A)),
+    inst_inc!(0x23, AddressingMode::Rd(Register::HL)),
+    inst_inc!(0x24, AddressingMode::Rd(Register::H)),
+    inst_dec!(0x25, AddressingMode::Rd(Register::H)),
+    inst_ld!(0x26, AddressingMode::Rd(Register::H), AddressingMode::PC1),
+    inst_jr!(0x28, Condition::Z),
+    inst_ld!(0x2A, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::HL)),
+    inst_dec!(0x2B, AddressingMode::Rd(Register::HL)),
+    inst_inc!(0x2C, AddressingMode::Rd(Register::L)),
+    inst_dec!(0x2D, AddressingMode::Rd(Register::L)),
+    inst_ld!(0x2E, AddressingMode::Rd(Register::L), AddressingMode::PC1),
     // 0x3x
-    instr_jr!(0x20, Address::PC1, Condition::NC),
-    instr_ld!(0x31, Address::R(Register::SP), Address::PC2),
-    instr_ld!(0x32, Address::RM(Register::HL), Address::R(Register::A)),
-    instr_inc!(0x33, Address::R(Register::SP)),
-    instr_inc!(0x34, Address::RM(Register::HL)),
-    instr_dec!(0x35, Address::RM(Register::HL)),
-    instr_ld!(0x36, Address::RM(Register::HL), Address::PC1),
-    instr_jr!(0x28, Address::PC1, Condition::C),
-    instr_ld!(0x3A, Address::R(Register::A), Address::RM(Register::HL)),
-    instr_dec!(0x3B, Address::R(Register::SP)),
-    instr_inc!(0x3C, Address::R(Register::A)),
-    instr_dec!(0x3D, Address::R(Register::A)),
-    instr_ld!(0x3E, Address::R(Register::A), Address::PC1),
+    inst_jr!(0x20, Condition::NC),
+    inst_ld!(0x31, AddressingMode::Rd(Register::SP), AddressingMode::PC2),
+    inst_ld!(0x32, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::A)),
+    inst_inc!(0x33, AddressingMode::Rd(Register::SP)),
+    inst_inc!(0x34, AddressingMode::Ri(Register::HL)),
+    inst_dec!(0x35, AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x36, AddressingMode::Ri(Register::HL), AddressingMode::PC1),
+    inst_jr!(0x28, Condition::C),
+    inst_ld!(0x3A, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::HL)),
+    inst_dec!(0x3B, AddressingMode::Rd(Register::SP)),
+    inst_inc!(0x3C, AddressingMode::Rd(Register::A)),
+    inst_dec!(0x3D, AddressingMode::Rd(Register::A)),
+    inst_ld!(0x3E, AddressingMode::Rd(Register::A), AddressingMode::PC1),
     // 0x4x
-    instr_ld!(0x40, Address::R(Register::B), Address::R(Register::B)),
-    instr_ld!(0x41, Address::R(Register::B), Address::R(Register::C)),
-    instr_ld!(0x42, Address::R(Register::B), Address::R(Register::D)),
-    instr_ld!(0x43, Address::R(Register::B), Address::R(Register::E)),
-    instr_ld!(0x44, Address::R(Register::B), Address::R(Register::H)),
-    instr_ld!(0x45, Address::R(Register::B), Address::R(Register::L)),
-    instr_ld!(0x46, Address::R(Register::B), Address::RM(Register::HL)),
-    instr_ld!(0x47, Address::R(Register::B), Address::R(Register::A)),
-    instr_ld!(0x48, Address::R(Register::C), Address::R(Register::B)),
-    instr_ld!(0x49, Address::R(Register::C), Address::R(Register::C)),
-    instr_ld!(0x4A, Address::R(Register::C), Address::R(Register::D)),
-    instr_ld!(0x4B, Address::R(Register::C), Address::R(Register::E)),
-    instr_ld!(0x4C, Address::R(Register::C), Address::R(Register::H)),
-    instr_ld!(0x4D, Address::R(Register::C), Address::R(Register::L)),
-    instr_ld!(0x4E, Address::R(Register::C), Address::RM(Register::HL)),
-    instr_ld!(0x4F, Address::R(Register::C), Address::R(Register::A)),
+    inst_ld!(0x40, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x41, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x42, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x43, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x44, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x45, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x46, AddressingMode::Rd(Register::B), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x47, AddressingMode::Rd(Register::B), AddressingMode::Rd(Register::A)),
+    inst_ld!(0x48, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x49, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x4A, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x4B, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x4C, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x4D, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x4E, AddressingMode::Rd(Register::C), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x4F, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::A)),
     // 0x5x
-    instr_ld!(0x50, Address::R(Register::D), Address::R(Register::B)),
-    instr_ld!(0x51, Address::R(Register::D), Address::R(Register::C)),
-    instr_ld!(0x52, Address::R(Register::D), Address::R(Register::D)),
-    instr_ld!(0x53, Address::R(Register::D), Address::R(Register::E)),
-    instr_ld!(0x54, Address::R(Register::D), Address::R(Register::H)),
-    instr_ld!(0x55, Address::R(Register::D), Address::R(Register::L)),
-    instr_ld!(0x56, Address::R(Register::D), Address::RM(Register::HL)),
-    instr_ld!(0x57, Address::R(Register::D), Address::R(Register::A)),
-    instr_ld!(0x58, Address::R(Register::E), Address::R(Register::B)),
-    instr_ld!(0x59, Address::R(Register::E), Address::R(Register::C)),
-    instr_ld!(0x5A, Address::R(Register::E), Address::R(Register::D)),
-    instr_ld!(0x5B, Address::R(Register::E), Address::R(Register::E)),
-    instr_ld!(0x5C, Address::R(Register::E), Address::R(Register::H)),
-    instr_ld!(0x5D, Address::R(Register::E), Address::R(Register::L)),
-    instr_ld!(0x5E, Address::R(Register::E), Address::RM(Register::HL)),
-    instr_ld!(0x5F, Address::R(Register::E), Address::R(Register::A)),
+    inst_ld!(0x50, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x51, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x52, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x53, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x54, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x55, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x56, AddressingMode::Rd(Register::D), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x57, AddressingMode::Rd(Register::D), AddressingMode::Rd(Register::A)),
+    inst_ld!(0x58, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x59, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x5A, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x5B, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x5C, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x5D, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x5E, AddressingMode::Rd(Register::E), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x5F, AddressingMode::Rd(Register::E), AddressingMode::Rd(Register::A)),
     // 0x6x
-    instr_ld!(0x60, Address::R(Register::H), Address::R(Register::B)),
-    instr_ld!(0x61, Address::R(Register::H), Address::R(Register::C)),
-    instr_ld!(0x62, Address::R(Register::H), Address::R(Register::D)),
-    instr_ld!(0x63, Address::R(Register::H), Address::R(Register::E)),
-    instr_ld!(0x64, Address::R(Register::H), Address::R(Register::H)),
-    instr_ld!(0x65, Address::R(Register::H), Address::R(Register::L)),
-    instr_ld!(0x66, Address::R(Register::H), Address::RM(Register::HL)),
-    instr_ld!(0x67, Address::R(Register::H), Address::R(Register::A)),
-    instr_ld!(0x68, Address::R(Register::L), Address::R(Register::B)),
-    instr_ld!(0x69, Address::R(Register::L), Address::R(Register::C)),
-    instr_ld!(0x6A, Address::R(Register::L), Address::R(Register::D)),
-    instr_ld!(0x6B, Address::R(Register::L), Address::R(Register::E)),
-    instr_ld!(0x6C, Address::R(Register::L), Address::R(Register::H)),
-    instr_ld!(0x6D, Address::R(Register::L), Address::R(Register::L)),
-    instr_ld!(0x6E, Address::R(Register::L), Address::RM(Register::HL)),
-    instr_ld!(0x6F, Address::R(Register::L), Address::R(Register::A)),
+    inst_ld!(0x60, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x61, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x62, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x63, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x64, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x65, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x66, AddressingMode::Rd(Register::H), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x67, AddressingMode::Rd(Register::H), AddressingMode::Rd(Register::A)),
+    inst_ld!(0x68, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x69, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x6A, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x6B, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x6C, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x6D, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x6E, AddressingMode::Rd(Register::L), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x6F, AddressingMode::Rd(Register::L), AddressingMode::Rd(Register::A)),
     // 0x7x
-    instr_ld!(0x70, Address::RM(Register::HL), Address::R(Register::B)),
-    instr_ld!(0x71, Address::RM(Register::HL), Address::R(Register::C)),
-    instr_ld!(0x72, Address::RM(Register::HL), Address::R(Register::D)),
-    instr_ld!(0x73, Address::RM(Register::HL), Address::R(Register::E)),
-    instr_ld!(0x74, Address::RM(Register::HL), Address::R(Register::H)),
-    instr_ld!(0x75, Address::RM(Register::HL), Address::R(Register::L)),
-    instr_ld!(0x77, Address::RM(Register::HL), Address::R(Register::A)),
-    instr_ld!(0x78, Address::R(Register::A), Address::R(Register::B)),
-    instr_ld!(0x79, Address::R(Register::A), Address::R(Register::C)),
-    instr_ld!(0x7A, Address::R(Register::A), Address::R(Register::D)),
-    instr_ld!(0x7B, Address::R(Register::A), Address::R(Register::E)),
-    instr_ld!(0x7C, Address::R(Register::A), Address::R(Register::H)),
-    instr_ld!(0x7D, Address::R(Register::A), Address::R(Register::L)),
-    instr_ld!(0x7E, Address::R(Register::A), Address::RM(Register::HL)),
-    instr_ld!(0x7F, Address::R(Register::A), Address::R(Register::A)),
+    inst_ld!(0x70, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x71, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x72, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x73, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x74, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x75, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x77, AddressingMode::Ri(Register::HL), AddressingMode::Rd(Register::A)),
+    inst_ld!(0x78, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::B)),
+    inst_ld!(0x79, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::C)),
+    inst_ld!(0x7A, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::D)),
+    inst_ld!(0x7B, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::E)),
+    inst_ld!(0x7C, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::H)),
+    inst_ld!(0x7D, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::L)),
+    inst_ld!(0x7E, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::HL)),
+    inst_ld!(0x7F, AddressingMode::Rd(Register::A), AddressingMode::Rd(Register::A)),
     // 0x8x
     // 0x9x
     // 0xAx
     // 0xBx
     // 0xCx
-    instr_jp!(0xC2, Address::PC2, Condition::NZ),
-    instr_jp!(0xC3, Address::PC2),
-    instr_jp!(0xCA, Address::PC2, Condition::Z),
+    inst_jp!(0xC2, AddressingMode::PC2, Condition::NZ),
+    inst_jp!(0xC3, AddressingMode::PC2),
+    inst_jp!(0xCA, AddressingMode::PC2, Condition::Z),
     // 0xDx
-    instr_jp!(0xD2, Address::PC2, Condition::NZ),
-    instr_jp!(0xDA, Address::PC2, Condition::C),
+    inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
+    inst_jp!(0xDA, AddressingMode::PC2, Condition::C),
     // 0xEx
-    instr_ld!(0xE2, Address::R(Register::C), Address::R(Register::A)),
-    instr_jp!(0xE9, Address::RM(Register::HL)),
-    instr_ld!(0xEA, Address::PC2, Address::R(Register::A)),
+    inst_ld!(0xE2, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::A)),
+    inst_jp!(0xE9, AddressingMode::Ri(Register::HL)),
+    inst_ld!(0xEA, AddressingMode::PC2, AddressingMode::Rd(Register::A)),
     // 0xFx
-    instr_ld!(0xF2, Address::R(Register::A), Address::RM(Register::C)),
-    instr_ld!(0xF8, Address::R(Register::HL), Address::R(Register::SP_R8)),
-    instr_ld!(0xF9, Address::R(Register::SP), Address::R(Register::HL)),
-    instr_ld!(0xFA, Address::R(Register::A), Address::PC2),
+    inst_ld!(0xF2, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::C)),
+    inst_ld!(
+        0xF8,
+        AddressingMode::Rd(Register::HL),
+        AddressingMode::Rd(Register::SP) /* SP + r8 */
+    ),
+    inst_ld!(0xF9, AddressingMode::Rd(Register::SP), AddressingMode::Rd(Register::HL)),
+    inst_ld!(0xFA, AddressingMode::Rd(Register::A), AddressingMode::PC2),
 ];
+
+#[inline]
+pub(crate) fn get_instruction(opcode: u8) -> &'static Instruction {
+    // TODO index accessing
+    INSTRUCTIONS
+        .iter()
+        .find(|it| it.opcode == opcode)
+        .expect(&format!("Expect an instruction whose opcode is 0x{:04X}", opcode))
+}
