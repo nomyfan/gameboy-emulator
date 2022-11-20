@@ -15,6 +15,7 @@ pub(crate) enum InstructionType {
     DEC,
     JR,
     JP,
+    ADD,
     // TODO
 }
 
@@ -133,7 +134,19 @@ macro_rules! inst_jr {
     };
 }
 
-const INSTRUCTIONS: [Instruction; 128] = [
+macro_rules! inst_add {
+    ($opcode:expr, $op1:expr, $op2:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::ADD,
+            cond: None,
+            operand1: Some($op1),
+            operand2: Some($op2),
+        }
+    };
+}
+
+const INSTRUCTIONS: [Instruction; 142] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
@@ -149,6 +162,7 @@ const INSTRUCTIONS: [Instruction; 128] = [
     inst_dec!(0x05, AddressingMode::Direct(Register::B)),
     inst_ld!(0x06, AddressingMode::Direct(Register::B), AddressingMode::PC1),
     inst_ld!(0x08, AddressingMode::PC2, AddressingMode::Direct(Register::SP)),
+    inst_add!(0x09, AddressingMode::Direct(Register::HL), AddressingMode::Direct(Register::BC)),
     inst_ld!(0x0A, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::BC)),
     inst_dec!(0x0B, AddressingMode::Direct(Register::BC)),
     inst_ld!(0x0E, AddressingMode::Direct(Register::C), AddressingMode::PC1),
@@ -162,6 +176,7 @@ const INSTRUCTIONS: [Instruction; 128] = [
     inst_dec!(0x15, AddressingMode::Direct(Register::D)),
     inst_ld!(0x16, AddressingMode::Direct(Register::D), AddressingMode::PC1),
     inst_jr!(0x18),
+    inst_add!(0x19, AddressingMode::Direct(Register::HL), AddressingMode::Direct(Register::DE)),
     inst_ld!(0x1A, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::DE)),
     inst_dec!(0x1B, AddressingMode::Direct(Register::DE)),
     inst_inc!(0x1C, AddressingMode::Direct(Register::E)),
@@ -176,6 +191,7 @@ const INSTRUCTIONS: [Instruction; 128] = [
     inst_dec!(0x25, AddressingMode::Direct(Register::H)),
     inst_ld!(0x26, AddressingMode::Direct(Register::H), AddressingMode::PC1),
     inst_jr!(0x28, Condition::Z),
+    inst_add!(0x29, AddressingMode::Direct(Register::HL), AddressingMode::Direct(Register::HL)),
     inst_ld!(0x2A, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::HL)),
     inst_dec!(0x2B, AddressingMode::Direct(Register::HL)),
     inst_inc!(0x2C, AddressingMode::Direct(Register::L)),
@@ -190,6 +206,7 @@ const INSTRUCTIONS: [Instruction; 128] = [
     inst_dec!(0x35, AddressingMode::Indirect(Register::HL)),
     inst_ld!(0x36, AddressingMode::Indirect(Register::HL), AddressingMode::PC1),
     inst_jr!(0x28, Condition::C),
+    inst_add!(0x39, AddressingMode::Direct(Register::HL), AddressingMode::Direct(Register::SP)),
     inst_ld!(0x3A, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::HL)),
     inst_dec!(0x3B, AddressingMode::Direct(Register::SP)),
     inst_inc!(0x3C, AddressingMode::Direct(Register::A)),
@@ -263,12 +280,21 @@ const INSTRUCTIONS: [Instruction; 128] = [
     inst_ld!(0x7E, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::HL)),
     inst_ld!(0x7F, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::A)),
     // 0x8x
+    inst_add!(0x80, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::B)),
+    inst_add!(0x81, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::C)),
+    inst_add!(0x82, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::D)),
+    inst_add!(0x83, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::E)),
+    inst_add!(0x84, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::H)),
+    inst_add!(0x85, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::L)),
+    inst_add!(0x86, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::HL)),
+    inst_add!(0x87, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::A)),
     // 0x9x
     // 0xAx
     // 0xBx
     // 0xCx
     inst_jp!(0xC2, AddressingMode::PC2, Condition::NZ),
     inst_jp!(0xC3, AddressingMode::PC2),
+    inst_add!(0xC6, AddressingMode::Direct(Register::A), AddressingMode::PC1),
     inst_jp!(0xCA, AddressingMode::PC2, Condition::Z),
     // 0xDx
     inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
@@ -276,6 +302,7 @@ const INSTRUCTIONS: [Instruction; 128] = [
     // 0xEx
     inst_ld!(0xE0, AddressingMode::PC1, AddressingMode::Direct(Register::A)),
     inst_ld!(0xE2, AddressingMode::Direct(Register::C), AddressingMode::Direct(Register::A)),
+    inst_add!(0xE8, AddressingMode::Direct(Register::SP), AddressingMode::PC1),
     inst_jp!(0xE9, AddressingMode::Indirect(Register::HL)),
     inst_ld!(0xEA, AddressingMode::PC2, AddressingMode::Direct(Register::A)),
     // 0xFx

@@ -3,7 +3,7 @@ mod proc;
 
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
-use proc::{proc_dec, proc_inc, proc_jp, proc_jr, proc_ld};
+use proc::{proc_add, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld};
 
 pub struct Cpu<BUS>
 where
@@ -103,7 +103,7 @@ where
 
     pub(crate) fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
         match am {
-            AddressingMode::Direct(r) => match r {
+            AddressingMode::Direct(register) => match register {
                 Register::A => self.reg_a as u16,
                 Register::F => self.reg_f as u16,
                 Register::B => self.reg_b as u16,
@@ -118,11 +118,11 @@ where
                 Register::HL => self.hl(),
                 Register::SP => self.sp,
             },
-            AddressingMode::Indirect(rm) => match rm {
+            AddressingMode::Indirect(register) => match register {
                 Register::BC => self.bus_read(self.bc()) as u16,
                 Register::DE => self.bus_read(self.de()) as u16,
                 Register::HL => self.bus_read(self.hl()) as u16,
-                _ => unreachable!("Only BC, DE, HL is valid for RM"),
+                _ => unreachable!("Only BC, DE, HL is valid for RegisterIndirect"),
             },
             AddressingMode::PC1 => self.read_pc() as u16,
             AddressingMode::PC2 => self.read_pc2(),
@@ -131,7 +131,7 @@ where
 
     pub(crate) fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16) {
         match am {
-            AddressingMode::Direct(r) => match r {
+            AddressingMode::Direct(register) => match register {
                 Register::A => self.reg_a = value as u8,
                 Register::F => self.reg_f = value as u8,
                 Register::B => self.reg_b = value as u8,
@@ -146,13 +146,19 @@ where
                 Register::SP => self.sp = value,
                 _ => unreachable!(),
             },
-            AddressingMode::Indirect(rm) => match rm {
+            AddressingMode::Indirect(register) => match register {
                 Register::BC => self.bus_write(self.bc(), value as u8),
                 Register::DE => self.bus_write(self.de(), value as u8),
                 Register::HL => self.bus_write(self.hl(), value as u8),
-                _ => unreachable!("Only BC, DE, HL is valid for RM"),
+                _ => unreachable!("Only BC, DE, HL is valid for RegisterIndirect"),
             },
-            _ => self.bus_write(address, value as u8),
+            AddressingMode::PC1 => {
+                self.bus_write(address, value as u8);
+            }
+            AddressingMode::PC2 => {
+                self.bus_write(address, value as u8);
+                self.bus_write(address + 1, (value >> 8) as u8);
+            }
         }
     }
 
@@ -290,6 +296,9 @@ where
             }
             InstructionType::JR => {
                 proc_jr(self, inst);
+            }
+            InstructionType::ADD => {
+                proc_add(self, inst);
             }
         }
     }

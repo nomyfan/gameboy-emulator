@@ -102,3 +102,36 @@ where
         cpu.dec_hl();
     }
 }
+
+pub(crate) fn proc_add<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let opcode = inst.opcode;
+    let operand2 = cpu.fetch_data(inst.operand2.as_ref().unwrap());
+    let operand1 = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    let sum = operand1 + operand2;
+
+    let z = if opcode == 0x09 || opcode == 0x19 || opcode == 0x29 || opcode == 0x39 {
+        None
+    } else if opcode == 0xE8 {
+        Some(false)
+    } else {
+        Some(sum as u8 == 0)
+    };
+
+    let (h, c) =
+        // 16 bits
+        if opcode == 0x09 || opcode == 0x19 || opcode == 0x29 || opcode == 0x39 || opcode == 0xE8 {
+            let h = (operand1 & 0xFFF) + (operand2 & 0xFFF) >= 0x1000;
+            let c = (operand1 as u32) + (operand2 as u32) >= 0x10000;
+            (Some(h), Some(c))
+        } else { // 8 bits
+            let h = (operand1 & 0xF) + (operand2 & 0xF) >= 0x10;
+            let c = (operand1 & 0xFF) + (operand2 & 0xFF) >= 0x100;
+            (Some(h), Some(c))
+        };
+
+    cpu.write_data(inst.operand1.as_ref().unwrap(), 0, sum);
+    cpu.set_flags(z, Some(false), h, c);
+}
