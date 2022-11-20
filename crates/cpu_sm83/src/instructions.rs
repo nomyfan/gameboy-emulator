@@ -134,7 +134,7 @@ macro_rules! inst_jr {
     };
 }
 
-const INSTRUCTIONS: [Instruction; 126] = [
+const INSTRUCTIONS: [Instruction; 128] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
@@ -275,10 +275,12 @@ const INSTRUCTIONS: [Instruction; 126] = [
     inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
     inst_jp!(0xDA, AddressingMode::PC2, Condition::C),
     // 0xEx
+    inst_ld!(0xE0, AddressingMode::PC1, AddressingMode::Rd(Register::A)),
     inst_ld!(0xE2, AddressingMode::Rd(Register::C), AddressingMode::Rd(Register::A)),
     inst_jp!(0xE9, AddressingMode::Ri(Register::HL)),
     inst_ld!(0xEA, AddressingMode::PC2, AddressingMode::Rd(Register::A)),
     // 0xFx
+    inst_ld!(0xF0, AddressingMode::Rd(Register::A), AddressingMode::PC1),
     inst_ld!(0xF2, AddressingMode::Rd(Register::A), AddressingMode::Ri(Register::C)),
     inst_ld!(
         0xF8,
