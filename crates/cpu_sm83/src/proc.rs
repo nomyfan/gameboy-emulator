@@ -77,34 +77,28 @@ where
     let mut operand1 = cpu.fetch_data(inst.operand1.as_ref().unwrap());
 
     let opcode = inst.opcode;
-    match opcode {
-        0xE0 | 0xE2 => {
-            // (a8), (C)
-            operand1 = 0xFF00 | operand1;
-        }
-        0xF0 | 0xF2 => {
-            // (a8), (C)
-            operand2 = 0xFF00 | operand2;
-        }
-        0xF8 => {
-            // SP+r8
-            let r8 = cpu.read_pc();
-            operand2 += r8 as u16;
-        }
-        _ => {}
-    };
+    if opcode == 0xE0 || opcode == 0xE2 {
+        // (a8), (C)
+        operand1 = 0xFF00 | operand1;
+    }
+    if opcode == 0xF0 || opcode == 0xF2 {
+        // (a8), (C)
+        operand2 = 0xFF00 | operand2;
+    }
+    if opcode == 0xF8 {
+        // SP+r8
+        let r8 = cpu.read_pc();
+        operand2 += r8 as u16;
+    }
 
     cpu.write_data(inst.operand1.as_ref().unwrap(), operand1, operand2);
 
-    match opcode {
-        0x22 | 0x2A => {
-            // HL+
-            cpu.inc_hl();
-        }
-        0x32 | 0x3A => {
-            // HL-
-            cpu.dec_hl();
-        }
-        _ => {}
+    if opcode == 0x22 || opcode == 0x2A {
+        // HL+
+        cpu.inc_hl();
+    }
+    if opcode == 0x32 || opcode == 0x3A {
+        // HL-
+        cpu.dec_hl();
     }
 }
