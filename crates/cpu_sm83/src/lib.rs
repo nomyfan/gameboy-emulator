@@ -3,7 +3,7 @@ mod proc;
 
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
-use proc::{proc_add, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld};
+use proc::{proc_add, proc_call, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld};
 
 pub struct Cpu<BUS>
 where
@@ -299,6 +299,9 @@ where
             }
             InstructionType::ADD => {
                 proc_add(self, inst);
+            }
+            InstructionType::CALL => {
+                proc_call(self, inst);
             }
         }
     }

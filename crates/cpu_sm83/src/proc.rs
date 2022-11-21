@@ -135,3 +135,17 @@ where
     cpu.write_data(inst.operand1.as_ref().unwrap(), 0, sum);
     cpu.set_flags(z, Some(false), h, c);
 }
+
+pub(crate) fn proc_call<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    if check_condition(inst.cond.as_ref(), cpu) {
+        cpu.sp -= 1;
+        cpu.bus_write(cpu.sp, (value >> 8) as u8);
+        cpu.sp -= 1;
+        cpu.bus_write(cpu.sp, value as u8);
+        cpu.pc = value;
+    }
+}

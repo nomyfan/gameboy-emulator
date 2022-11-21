@@ -15,6 +15,7 @@ pub(crate) enum InstructionType {
     DEC,
     JR,
     JP,
+    CALL,
     ADD,
     // TODO
 }
@@ -134,6 +135,27 @@ macro_rules! inst_jr {
     };
 }
 
+macro_rules! inst_call {
+    ($opcode:expr, $cond:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::CALL,
+            cond: Some($cond),
+            operand1: Some(AddressingMode::PC2),
+            operand2: None,
+        }
+    };
+    ($opcode:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::CALL,
+            cond: None,
+            operand1: Some(AddressingMode::PC2),
+            operand2: None,
+        }
+    };
+}
+
 macro_rules! inst_add {
     ($opcode:expr, $op1:expr, $op2:expr) => {
         Instruction {
@@ -146,7 +168,7 @@ macro_rules! inst_add {
     };
 }
 
-const INSTRUCTIONS: [Instruction; 142] = [
+const INSTRUCTIONS: [Instruction; 147] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
@@ -294,11 +316,16 @@ const INSTRUCTIONS: [Instruction; 142] = [
     // 0xCx
     inst_jp!(0xC2, AddressingMode::PC2, Condition::NZ),
     inst_jp!(0xC3, AddressingMode::PC2),
+    inst_call!(0xC4, Condition::NZ),
     inst_add!(0xC6, AddressingMode::Direct(Register::A), AddressingMode::PC1),
     inst_jp!(0xCA, AddressingMode::PC2, Condition::Z),
+    inst_call!(0xCC, Condition::Z),
+    inst_call!(0xCC),
     // 0xDx
     inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
+    inst_call!(0xD4, Condition::NC),
     inst_jp!(0xDA, AddressingMode::PC2, Condition::C),
+    inst_call!(0xDC, Condition::C),
     // 0xEx
     inst_ld!(0xE0, AddressingMode::PC1, AddressingMode::Direct(Register::A)),
     inst_ld!(0xE2, AddressingMode::Direct(Register::C), AddressingMode::Direct(Register::A)),
