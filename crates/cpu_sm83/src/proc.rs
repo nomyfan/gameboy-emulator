@@ -142,10 +142,7 @@ where
 {
     let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
     if check_condition(inst.cond.as_ref(), cpu) {
-        cpu.sp -= 1;
-        cpu.bus_write(cpu.sp, (value >> 8) as u8);
-        cpu.sp -= 1;
-        cpu.bus_write(cpu.sp, value as u8);
+        cpu.stack_push2(value);
         cpu.pc = value;
     }
 }

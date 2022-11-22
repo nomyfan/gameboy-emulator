@@ -272,6 +272,30 @@ where
         convert_u8_tuple_to_u16(hi, lo)
     }
 
+    fn stack_push(&mut self, value: u8) {
+        self.sp -= 1;
+        self.bus_write(self.sp, value);
+    }
+
+    fn stack_push2(&mut self, value: u16) {
+        self.stack_push((value >> 8) as u8);
+        self.stack_push(value as u8);
+    }
+
+    fn stack_pop(&mut self) -> u8 {
+        let value = self.bus_read(self.sp);
+        self.sp += 1;
+
+        value
+    }
+
+    fn stack_pop2(&mut self) -> u16 {
+        let lo = self.stack_pop();
+        let hi = self.stack_pop();
+
+        convert_u8_tuple_to_u16(hi, lo)
+    }
+
     pub fn execute(&mut self) {
         let opcode = self.read_pc();
         debug!("opcode 0x{opcode:02X}");
