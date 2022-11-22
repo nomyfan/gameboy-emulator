@@ -146,3 +146,19 @@ where
         cpu.pc = value;
     }
 }
+
+pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    cpu.stack_push2(value);
+}
+
+pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let value = cpu.stack_pop2();
+    cpu.write_data(inst.operand1.as_ref().unwrap(), 0, value);
+}
