@@ -179,3 +179,22 @@ where
     proc_ret(cpu, inst);
     cpu.interrupt_master_enable = true;
 }
+
+pub(crate) fn proc_rst<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let value: u16 = match inst.opcode {
+        0xC7 => 0x00,
+        0xCF => 0x08,
+        0xD7 => 0x10,
+        0xDF => 0x18,
+        0xE7 => 0x20,
+        0xEF => 0x28,
+        0xF7 => 0x30,
+        0xFF => 0x38,
+        _ => unreachable!(),
+    };
+    cpu.stack_push2(value);
+    cpu.pc = value;
+}

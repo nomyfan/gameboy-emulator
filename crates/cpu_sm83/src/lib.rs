@@ -5,10 +5,8 @@ use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
 use proc::{
     proc_add, proc_call, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld, proc_pop, proc_push,
-    proc_ret,
+    proc_ret, proc_reti, proc_rst,
 };
-
-use crate::proc::proc_reti;
 
 pub struct Cpu<BUS>
 where
@@ -343,6 +341,9 @@ where
             }
             InstructionType::RETI => {
                 proc_reti(self, inst);
+            }
+            InstructionType::RST => {
+                proc_rst(self, inst);
             }
         }
     }

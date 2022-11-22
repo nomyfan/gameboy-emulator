@@ -21,6 +21,7 @@ pub(crate) enum InstructionType {
     POP,
     RET,
     RETI,
+    RST,
     // TODO
 }
 
@@ -59,6 +60,12 @@ pub(crate) enum Register {
     DE,
     HL,
     SP,
+}
+
+macro_rules! inst_simple {
+    ($opcode:expr, $ty:expr) => {
+        Instruction { opcode: $opcode, ty: $ty, cond: None, operand1: None, operand2: None }
+    };
 }
 
 macro_rules! inst_ld {
@@ -207,29 +214,23 @@ macro_rules! inst_ret {
         }
     };
     ($opcode:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::RET,
-            cond: None,
-            operand1: None,
-            operand2: None,
-        }
+        inst_simple!($opcode, InstructionType::RET)
     };
 }
 
 macro_rules! inst_reti {
     ($opcode:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::RETI,
-            cond: None,
-            operand1: None,
-            operand2: None,
-        }
+        inst_simple!($opcode, InstructionType::RETI)
     };
 }
 
-const INSTRUCTIONS: [Instruction; 161] = [
+macro_rules! inst_rst {
+    ($opcode:expr) => {
+        inst_simple!($opcode, InstructionType::RST)
+    };
+}
+
+const INSTRUCTIONS: [Instruction; 169] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
@@ -382,34 +383,41 @@ const INSTRUCTIONS: [Instruction; 161] = [
     inst_call!(0xC4, Condition::NZ),
     inst_push!(0xC5, AddressingMode::Direct(Register::BC)),
     inst_add!(0xC6, AddressingMode::Direct(Register::A), AddressingMode::PC1),
+    inst_rst!(0xC7),
     inst_ret!(0xC8, Condition::Z),
     inst_ret!(0xC9),
     inst_jp!(0xCA, AddressingMode::PC2, Condition::Z),
     inst_call!(0xCC, Condition::Z),
     inst_call!(0xCC),
+    inst_rst!(0xCF),
     // 0xDx
     inst_ret!(0xD0, Condition::NC),
     inst_pop!(0xD1, AddressingMode::Direct(Register::DE)),
     inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
     inst_call!(0xD4, Condition::NC),
     inst_push!(0xD5, AddressingMode::Direct(Register::DE)),
+    inst_rst!(0xD7),
     inst_ret!(0xD8, Condition::C),
     inst_reti!(0xD9),
     inst_jp!(0xDA, AddressingMode::PC2, Condition::C),
     inst_call!(0xDC, Condition::C),
+    inst_rst!(0xDF),
     // 0xEx
     inst_ld!(0xE0, AddressingMode::PC1, AddressingMode::Direct(Register::A)),
     inst_pop!(0xE1, AddressingMode::Direct(Register::HL)),
     inst_ld!(0xE2, AddressingMode::Direct(Register::C), AddressingMode::Direct(Register::A)),
     inst_push!(0xE5, AddressingMode::Direct(Register::HL)),
+    inst_rst!(0xE7),
     inst_add!(0xE8, AddressingMode::Direct(Register::SP), AddressingMode::PC1),
     inst_jp!(0xE9, AddressingMode::Indirect(Register::HL)),
     inst_ld!(0xEA, AddressingMode::PC2, AddressingMode::Direct(Register::A)),
+    inst_rst!(0xEF),
     // 0xFx
     inst_ld!(0xF0, AddressingMode::Direct(Register::A), AddressingMode::PC1),
     inst_pop!(0xF1, AddressingMode::Direct(Register::AF)),
     inst_ld!(0xF2, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::C)),
     inst_push!(0xF5, AddressingMode::Direct(Register::AF)),
+    inst_rst!(0xF7),
     inst_ld!(
         0xF8,
         AddressingMode::Direct(Register::HL),
@@ -417,6 +425,7 @@ const INSTRUCTIONS: [Instruction; 161] = [
     ),
     inst_ld!(0xF9, AddressingMode::Direct(Register::SP), AddressingMode::Direct(Register::HL)),
     inst_ld!(0xFA, AddressingMode::Direct(Register::A), AddressingMode::PC2),
+    inst_rst!(0xFF),
 ];
 
 #[inline]

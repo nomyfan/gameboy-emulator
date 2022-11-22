@@ -141,7 +141,7 @@ fn main() {
 
     let mut rom_path = std::env::current_dir().unwrap();
     rom_path.push("roms");
-    rom_path.push("06-ld r,r.gb");
+    rom_path.push("07-jr,jp,call,ret,rst.gb");
     let cart = cartridge::Cartridge::load(&rom_path).unwrap();
 
     // Delegate all RWs.
