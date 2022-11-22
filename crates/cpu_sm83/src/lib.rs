@@ -5,7 +5,10 @@ use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
 use proc::{
     proc_add, proc_call, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld, proc_pop, proc_push,
+    proc_ret,
 };
+
+use crate::proc::proc_reti;
 
 pub struct Cpu<BUS>
 where
@@ -334,6 +337,12 @@ where
             }
             InstructionType::POP => {
                 proc_pop(self, inst);
+            }
+            InstructionType::RET => {
+                proc_ret(self, inst);
+            }
+            InstructionType::RETI => {
+                proc_reti(self, inst);
             }
         }
     }

@@ -19,6 +19,8 @@ pub(crate) enum InstructionType {
     ADD,
     PUSH,
     POP,
+    RET,
+    RETI,
     // TODO
 }
 
@@ -194,7 +196,40 @@ macro_rules! inst_pop {
     };
 }
 
-const INSTRUCTIONS: [Instruction; 155] = [
+macro_rules! inst_ret {
+    ($opcode:expr, $cond:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::RET,
+            cond: Some($cond),
+            operand1: None,
+            operand2: None,
+        }
+    };
+    ($opcode:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::RET,
+            cond: None,
+            operand1: None,
+            operand2: None,
+        }
+    };
+}
+
+macro_rules! inst_reti {
+    ($opcode:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::RETI,
+            cond: None,
+            operand1: None,
+            operand2: None,
+        }
+    };
+}
+
+const INSTRUCTIONS: [Instruction; 161] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
@@ -340,20 +375,26 @@ const INSTRUCTIONS: [Instruction; 155] = [
     // 0xAx
     // 0xBx
     // 0xCx
+    inst_ret!(0xC0, Condition::NZ),
     inst_pop!(0xC1, AddressingMode::Direct(Register::BC)),
     inst_jp!(0xC2, AddressingMode::PC2, Condition::NZ),
     inst_jp!(0xC3, AddressingMode::PC2),
     inst_call!(0xC4, Condition::NZ),
     inst_push!(0xC5, AddressingMode::Direct(Register::BC)),
     inst_add!(0xC6, AddressingMode::Direct(Register::A), AddressingMode::PC1),
+    inst_ret!(0xC8, Condition::Z),
+    inst_ret!(0xC9),
     inst_jp!(0xCA, AddressingMode::PC2, Condition::Z),
     inst_call!(0xCC, Condition::Z),
     inst_call!(0xCC),
     // 0xDx
+    inst_ret!(0xD0, Condition::NC),
     inst_pop!(0xD1, AddressingMode::Direct(Register::DE)),
     inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
     inst_call!(0xD4, Condition::NC),
     inst_push!(0xD5, AddressingMode::Direct(Register::DE)),
+    inst_ret!(0xD8, Condition::C),
+    inst_reti!(0xD9),
     inst_jp!(0xDA, AddressingMode::PC2, Condition::C),
     inst_call!(0xDC, Condition::C),
     // 0xEx

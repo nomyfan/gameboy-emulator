@@ -162,3 +162,20 @@ where
     let value = cpu.stack_pop2();
     cpu.write_data(inst.operand1.as_ref().unwrap(), 0, value);
 }
+
+pub(crate) fn proc_ret<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    if check_condition(inst.cond.as_ref(), cpu) {
+        cpu.pc = cpu.stack_pop2();
+    }
+}
+
+pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    proc_ret(cpu, inst);
+    cpu.interrupt_master_enable = true;
+}
