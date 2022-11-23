@@ -1,5 +1,5 @@
 use crate::{
-    instructions::{AddressingMode, Condition, Instruction, Register},
+    instructions::{Condition, Instruction},
     Cpu,
 };
 
@@ -147,7 +147,7 @@ where
     let h = (cpu.reg_a as i16 & 0xF) - (data as i16 & 0xF) < 0;
     let c = (cpu.reg_a as i16) - (data as i16) < 0;
 
-    cpu.write_data(&AddressingMode::Direct(Register::A), 0, value as u16);
+    cpu.reg_a = value;
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
 }
 
@@ -212,4 +212,37 @@ where
     };
     cpu.stack_push2(value);
     cpu.pc = value;
+}
+
+pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let value = cpu.reg_a & operand;
+
+    cpu.reg_a = value;
+    cpu.set_flags(Some(value == 0), Some(false), Some(true), Some(false));
+}
+
+pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let value = cpu.reg_a | operand;
+
+    cpu.reg_a = value;
+    cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
+}
+
+pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let value = cpu.reg_a ^ operand;
+
+    cpu.reg_a = value;
+    cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
 }

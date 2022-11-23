@@ -141,7 +141,7 @@ fn main() {
 
     let mut rom_path = std::env::current_dir().unwrap();
     rom_path.push("roms");
-    rom_path.push("07-jr,jp,call,ret,rst.gb");
+    rom_path.push("cpu_instrs.gb");
     let cart = cartridge::Cartridge::load(&rom_path).unwrap();
 
     // Delegate all RWs.
@@ -152,7 +152,7 @@ fn main() {
     // loop {
     //     cpu.execute();
     // }
-    for _ in 1..10 {
+    for _ in 1..20 {
         cpu.execute();
         debug!(
             "SP: 0x{:04X}, PC: 0x{:04X}, AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
