@@ -253,12 +253,12 @@ where
 
     #[inline]
     fn inc_hl(&mut self) {
-        self.set_hl(self.hl() + 1);
+        self.set_hl(self.hl().wrapping_add(1));
     }
 
     #[inline]
     fn dec_hl(&mut self) {
-        self.set_hl(self.hl() - 1);
+        self.set_hl(self.hl().wrapping_sub(1));
     }
 
     #[inline]
