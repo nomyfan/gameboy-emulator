@@ -5,7 +5,7 @@ use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
 use proc::{
     proc_add, proc_call, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld, proc_pop, proc_push,
-    proc_ret, proc_reti, proc_rst,
+    proc_ret, proc_reti, proc_rst, proc_sub,
 };
 
 pub struct Cpu<BUS>
@@ -344,6 +344,9 @@ where
             }
             InstructionType::RST => {
                 proc_rst(self, inst);
+            }
+            InstructionType::SUB => {
+                proc_sub(self, inst);
             }
         }
     }

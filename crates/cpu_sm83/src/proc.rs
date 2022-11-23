@@ -1,5 +1,5 @@
 use crate::{
-    instructions::{Condition, Instruction},
+    instructions::{AddressingMode, Condition, Instruction, Register},
     Cpu,
 };
 
@@ -134,6 +134,21 @@ where
 
     cpu.write_data(inst.operand1.as_ref().unwrap(), 0, sum);
     cpu.set_flags(z, Some(false), h, c);
+}
+
+pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let data = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    let value = cpu.reg_a - data as u8;
+
+    let z = value == 0;
+    let h = (cpu.reg_a as i16 & 0xF) - (data as i16 & 0xF) < 0;
+    let c = (cpu.reg_a as i16) - (data as i16) < 0;
+
+    cpu.write_data(&AddressingMode::Direct(Register::A), 0, value as u16);
+    cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
 }
 
 pub(crate) fn proc_call<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)

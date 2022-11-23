@@ -17,6 +17,7 @@ pub(crate) enum InstructionType {
     JP,
     CALL,
     ADD,
+    SUB,
     PUSH,
     POP,
     RET,
@@ -179,6 +180,18 @@ macro_rules! inst_add {
     };
 }
 
+macro_rules! inst_sub {
+    ($opcode:expr, $op1:expr) => {
+        Instruction {
+            opcode: $opcode,
+            ty: InstructionType::SUB,
+            cond: None,
+            operand1: Some($op1),
+            operand2: None,
+        }
+    };
+}
+
 macro_rules! inst_push {
     ($opcode:expr, $op1:expr) => {
         Instruction {
@@ -230,7 +243,7 @@ macro_rules! inst_rst {
     };
 }
 
-const INSTRUCTIONS: [Instruction; 169] = [
+const INSTRUCTIONS: [Instruction; 178] = [
     // 0x0x
     Instruction {
         opcode: 0x00,
@@ -373,6 +386,14 @@ const INSTRUCTIONS: [Instruction; 169] = [
     inst_add!(0x86, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::HL)),
     inst_add!(0x87, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::A)),
     // 0x9x
+    inst_sub!(0x90, AddressingMode::Direct(Register::B)),
+    inst_sub!(0x91, AddressingMode::Direct(Register::C)),
+    inst_sub!(0x92, AddressingMode::Direct(Register::D)),
+    inst_sub!(0x93, AddressingMode::Direct(Register::E)),
+    inst_sub!(0x94, AddressingMode::Direct(Register::H)),
+    inst_sub!(0x95, AddressingMode::Direct(Register::L)),
+    inst_sub!(0x96, AddressingMode::Indirect(Register::HL)),
+    inst_sub!(0x97, AddressingMode::Direct(Register::A)),
     // 0xAx
     // 0xBx
     // 0xCx
@@ -396,6 +417,7 @@ const INSTRUCTIONS: [Instruction; 169] = [
     inst_jp!(0xD2, AddressingMode::PC2, Condition::NZ),
     inst_call!(0xD4, Condition::NC),
     inst_push!(0xD5, AddressingMode::Direct(Register::DE)),
+    inst_sub!(0xD6, AddressingMode::PC1),
     inst_rst!(0xD7),
     inst_ret!(0xD8, Condition::C),
     inst_reti!(0xD9),
