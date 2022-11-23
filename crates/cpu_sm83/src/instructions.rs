@@ -92,25 +92,13 @@ macro_rules! inst_ld {
 
 macro_rules! inst_inc {
     ($opcode:expr, $op1:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::INC,
-            cond: None,
-            operand1: Some($op1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::INC, $op1)
     };
 }
 
 macro_rules! inst_dec {
     ($opcode:expr, $op1:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::DEC,
-            cond: None,
-            operand1: Some($op1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::DEC, $op1)
     };
 }
 
@@ -125,13 +113,7 @@ macro_rules! inst_jp {
         }
     };
     ($opcode:expr, $op1:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::JP,
-            cond: None,
-            operand1: Some($op1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::JP, $op1)
     };
 }
 
@@ -146,13 +128,7 @@ macro_rules! inst_jr {
         }
     };
     ($opcode:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::JR,
-            cond: None,
-            operand1: Some(AddressingMode::PC1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::JR, AddressingMode::PC1)
     };
 }
 
@@ -167,13 +143,7 @@ macro_rules! inst_call {
         }
     };
     ($opcode:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::CALL,
-            cond: None,
-            operand1: Some(AddressingMode::PC2),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::CALL, AddressingMode::PC2)
     };
 }
 
@@ -191,13 +161,7 @@ macro_rules! inst_add {
 
 macro_rules! inst_sub {
     ($opcode:expr, $op1:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::SUB,
-            cond: None,
-            operand1: Some($op1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::SUB, $op1)
     };
 }
 
@@ -221,25 +185,13 @@ macro_rules! inst_xor {
 
 macro_rules! inst_push {
     ($opcode:expr, $op1:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::PUSH,
-            cond: None,
-            operand1: Some($op1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::PUSH, $op1)
     };
 }
 
 macro_rules! inst_pop {
     ($opcode:expr, $op1:expr) => {
-        Instruction {
-            opcode: $opcode,
-            ty: InstructionType::POP,
-            cond: None,
-            operand1: Some($op1),
-            operand2: None,
-        }
+        inst_operand1!($opcode, InstructionType::POP, $op1)
     };
 }
 
@@ -272,13 +224,7 @@ macro_rules! inst_rst {
 
 const INSTRUCTIONS: [Instruction; 205] = [
     // 0x0x
-    Instruction {
-        opcode: 0x00,
-        ty: InstructionType::NOP,
-        cond: None,
-        operand1: None,
-        operand2: None,
-    },
+    inst_simple!(0x00, InstructionType::NOP),
     inst_ld!(0x01, AddressingMode::Direct(Register::BC), AddressingMode::PC2),
     inst_ld!(0x02, AddressingMode::Indirect(Register::BC), AddressingMode::Direct(Register::A)),
     inst_inc!(0x03, AddressingMode::Direct(Register::BC)),
@@ -289,9 +235,9 @@ const INSTRUCTIONS: [Instruction; 205] = [
     inst_add!(0x09, AddressingMode::Direct(Register::HL), AddressingMode::Direct(Register::BC)),
     inst_ld!(0x0A, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::BC)),
     inst_dec!(0x0B, AddressingMode::Direct(Register::BC)),
-    inst_ld!(0x0E, AddressingMode::Direct(Register::C), AddressingMode::PC1),
     inst_inc!(0x0C, AddressingMode::Direct(Register::C)),
     inst_dec!(0x0D, AddressingMode::Direct(Register::C)),
+    inst_ld!(0x0E, AddressingMode::Direct(Register::C), AddressingMode::PC1),
     // 0x1x
     inst_ld!(0x11, AddressingMode::Direct(Register::DE), AddressingMode::PC2),
     inst_ld!(0x12, AddressingMode::Indirect(Register::DE), AddressingMode::Direct(Register::A)),
