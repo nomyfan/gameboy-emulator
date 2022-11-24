@@ -265,7 +265,7 @@ pub(crate) fn proc_halt<BUS>(cpu: &mut Cpu<BUS>)
 where
     BUS: io::IO,
 {
-    cpu.halt = true;
+    cpu.halted = true;
 }
 
 pub(crate) fn proc_stop<BUS>(cpu: &mut Cpu<BUS>)

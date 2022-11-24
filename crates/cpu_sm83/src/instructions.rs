@@ -1,10 +1,21 @@
-#[derive(Debug)]
 pub(crate) struct Instruction {
     pub(crate) opcode: u8,
     pub(crate) ty: InstructionType,
     pub(crate) cond: Option<Condition>,
     pub(crate) operand1: Option<AddressingMode>,
     pub(crate) operand2: Option<AddressingMode>,
+}
+
+impl core::fmt::Debug for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Instruction")
+            .field("opcode", &format_args!("{:#02X}", &self.opcode))
+            .field("ty", &self.ty)
+            .field("cond", &self.cond)
+            .field("operand1", &self.operand1)
+            .field("operand2", &self.operand2)
+            .finish()
+    }
 }
 
 #[derive(Debug)]
@@ -463,5 +474,5 @@ pub(crate) fn get_instruction(opcode: u8) -> &'static Instruction {
     INSTRUCTIONS
         .iter()
         .find(|it| it.opcode == opcode)
-        .expect(&format!("Expect an instruction whose opcode is 0x{:04X}", opcode))
+        .expect(&format!("Expect an instruction whose opcode is {:#02X}", opcode))
 }

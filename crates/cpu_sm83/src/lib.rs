@@ -65,12 +65,33 @@ where
     /// while IME='0' will only make the CPU continue executing
     /// instructions, but the jump won't be performed(and the IF flag
     /// won't be cleared).
-    pub halt: bool,
+    pub halted: bool,
     /// Set by instruction STOP
     pub stopped: bool,
 
     bus: BUS,
     // TODO
+}
+
+impl<BUS> core::fmt::Debug for Cpu<BUS>
+where
+    BUS: io::IO,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Cpu")
+            .field("SP", &format_args!("{:#04X}", &self.sp))
+            .field("PC", &format_args!("{:#04X}", &self.pc))
+            .field("AF", &format_args!("{:#04X}", &self.af()))
+            .field("BC", &format_args!("{:#04X}", &self.bc()))
+            .field("DE", &format_args!("{:#04X}", &self.de()))
+            .field("HL", &format_args!("{:#04X}", &self.hl()))
+            .field("IME", &self.interrupt_master_enable)
+            .field("IE", &format_args!("{:#08b}", &self.interrupt_enable))
+            .field("IF", &format_args!("{:#08b}", &self.interrupt_flags))
+            .field("HALTED", &self.halted)
+            .field("STOPPED", &self.stopped)
+            .finish()
+    }
 }
 
 #[inline]
@@ -111,7 +132,7 @@ where
             interrupt_enable: 0,
             interrupt_flags: 0,
             interrupt_master_enable: false,
-            halt: false,
+            halted: false,
             stopped: false,
             bus,
         }
@@ -341,9 +362,8 @@ where
 
     pub fn execute(&mut self) {
         let opcode = self.read_pc();
-        debug!("opcode 0x{opcode:02X}");
         let inst = get_instruction(opcode);
-        debug!("inst {:?}", inst);
+        debug!("{:?}", inst);
 
         match inst.ty {
             InstructionType::NOP => {
@@ -410,5 +430,7 @@ where
                 proc_halt(self);
             }
         }
+
+        debug!("{:?}", &self);
     }
 }

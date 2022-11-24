@@ -63,7 +63,7 @@ struct Bus {
 
 impl io::IO for Bus {
     fn write(&mut self, addr: u16, value: u8) {
-        debug!("bus write at 0x{:04X}, value: 0x{:02X}", addr, value);
+        debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
 
         if addr < 0x8000 {
             // ROM data
@@ -131,7 +131,7 @@ impl io::IO for Bus {
             0
         };
 
-        debug!("bus read at 0x{:04X}, value: 0x{:04X}", addr, value);
+        debug!("bus read at {:#04X}, value: {:#04X}", addr, value);
         value
     }
 }
@@ -155,16 +155,6 @@ fn main() {
     for _ in 1..20 {
         cpu.handle_interrupts();
         cpu.execute();
-
-        debug!(
-            "SP: 0x{:04X}, PC: 0x{:04X}, AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
-            cpu.sp,
-            cpu.pc,
-            cpu.af(),
-            cpu.bc(),
-            cpu.de(),
-            cpu.hl(),
-        );
 
         if cpu.stopped {
             println!("Stopping...");
