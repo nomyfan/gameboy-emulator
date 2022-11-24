@@ -1,27 +1,27 @@
 use log::debug;
 
 struct WorkRam {
-    /// [C000, D000)
-    /// 4KiB
-    ram: [u8; 0x1000],
+    /// [C000, E000)
+    /// (4 + 4)KiB
+    ram: [u8; 0x2000],
 }
 
 impl WorkRam {
     fn new() -> Self {
-        Self { ram: [0; 0x1000] }
+        Self { ram: [0; 0x2000] }
     }
 }
 
 impl io::IO for WorkRam {
     fn write(&mut self, addr: u16, value: u8) {
-        debug_assert!(addr >= 0xC000 && addr <= 0xCFFF);
+        debug_assert!(addr >= 0xC000 && addr <= 0xDFFF);
 
         let addr = (addr as usize) - 0xC000;
         self.ram[addr] = value;
     }
 
     fn read(&self, addr: u16) -> u8 {
-        debug_assert!(addr >= 0xC000 && addr <= 0xCFFF);
+        debug_assert!(addr >= 0xC000 && addr <= 0xDFFF);
 
         let addr = (addr as usize) - 0xC000;
         self.ram[addr]

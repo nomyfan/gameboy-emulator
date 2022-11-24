@@ -336,7 +336,7 @@ where
     /// are only cleared when the CPU jumps to an interrupt vector because
     /// of an interrupt(or IF is written manually).
     pub fn handle_interrupts(&mut self) {
-        todo!()
+        // todo!()
     }
 
     pub fn execute(&mut self) {
