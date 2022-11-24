@@ -27,7 +27,9 @@ pub(crate) enum InstructionType {
     OR,
     XOR,
     STOP,
-    // TODO
+    DI,
+    EI,
+    HALT, // TODO
 }
 
 #[derive(Debug)]
@@ -223,7 +225,7 @@ macro_rules! inst_rst {
     };
 }
 
-const INSTRUCTIONS: [Instruction; 205] = [
+const INSTRUCTIONS: [Instruction; 209] = [
     // 0x0x
     inst_simple!(0x00, InstructionType::NOP),
     inst_ld!(0x01, AddressingMode::Direct(Register::BC), AddressingMode::PC2),
@@ -240,6 +242,7 @@ const INSTRUCTIONS: [Instruction; 205] = [
     inst_dec!(0x0D, AddressingMode::Direct(Register::C)),
     inst_ld!(0x0E, AddressingMode::Direct(Register::C), AddressingMode::PC1),
     // 0x1x
+    inst_simple!(0x10, InstructionType::STOP),
     inst_ld!(0x11, AddressingMode::Direct(Register::DE), AddressingMode::PC2),
     inst_ld!(0x12, AddressingMode::Indirect(Register::DE), AddressingMode::Direct(Register::A)),
     inst_inc!(0x13, AddressingMode::Direct(Register::DE)),
@@ -343,6 +346,7 @@ const INSTRUCTIONS: [Instruction; 205] = [
     inst_ld!(0x75, AddressingMode::Indirect(Register::HL), AddressingMode::Direct(Register::L)),
     inst_ld!(0x77, AddressingMode::Indirect(Register::HL), AddressingMode::Direct(Register::A)),
     inst_ld!(0x78, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::B)),
+    inst_simple!(0x76, InstructionType::HALT),
     inst_ld!(0x79, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::C)),
     inst_ld!(0x7A, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::D)),
     inst_ld!(0x7B, AddressingMode::Direct(Register::A), AddressingMode::Direct(Register::E)),
@@ -438,6 +442,7 @@ const INSTRUCTIONS: [Instruction; 205] = [
     inst_ld!(0xF0, AddressingMode::Direct(Register::A), AddressingMode::PC1),
     inst_pop!(0xF1, AddressingMode::Direct(Register::AF)),
     inst_ld!(0xF2, AddressingMode::Direct(Register::A), AddressingMode::Indirect(Register::C)),
+    inst_simple!(0xF3, InstructionType::DI),
     inst_push!(0xF5, AddressingMode::Direct(Register::AF)),
     inst_or!(0xF6, AddressingMode::PC1),
     inst_rst!(0xF7),
@@ -448,6 +453,7 @@ const INSTRUCTIONS: [Instruction; 205] = [
     ),
     inst_ld!(0xF9, AddressingMode::Direct(Register::SP), AddressingMode::Direct(Register::HL)),
     inst_ld!(0xFA, AddressingMode::Direct(Register::A), AddressingMode::PC2),
+    inst_simple!(0xFB, InstructionType::EI),
     inst_rst!(0xFF),
 ];
 

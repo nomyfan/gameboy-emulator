@@ -246,3 +246,31 @@ where
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
 }
+
+pub(crate) fn proc_di<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.interrupt_master_enable = false;
+}
+
+pub(crate) fn proc_ei<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.interrupt_master_enable = true;
+}
+
+pub(crate) fn proc_halt<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.halt = true;
+}
+
+pub(crate) fn proc_stop<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.stopped = true;
+}

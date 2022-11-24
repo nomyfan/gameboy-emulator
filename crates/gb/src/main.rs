@@ -153,7 +153,9 @@ fn main() {
     //     cpu.execute();
     // }
     for _ in 1..20 {
+        cpu.handle_interrupts();
         cpu.execute();
+
         debug!(
             "SP: 0x{:04X}, PC: 0x{:04X}, AF: 0x{:04X}, BC: 0x{:04X}, DE: 0x{:04X}, HL: 0x{:04X}",
             cpu.sp,
@@ -163,5 +165,11 @@ fn main() {
             cpu.de(),
             cpu.hl(),
         );
+
+        if cpu.stopped {
+            println!("Stopping...");
+            // TODO
+            std::process::exit(0);
+        }
     }
 }

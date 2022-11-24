@@ -4,8 +4,9 @@ mod proc;
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
 use proc::{
-    proc_add, proc_and, proc_call, proc_dec, proc_inc, proc_jp, proc_jr, proc_ld, proc_or,
-    proc_pop, proc_push, proc_ret, proc_reti, proc_rst, proc_sub, proc_xor,
+    proc_add, proc_and, proc_call, proc_dec, proc_di, proc_ei, proc_halt, proc_inc, proc_jp,
+    proc_jr, proc_ld, proc_or, proc_pop, proc_push, proc_ret, proc_reti, proc_rst, proc_stop,
+    proc_sub, proc_xor,
 };
 
 pub struct Cpu<BUS>
@@ -37,10 +38,36 @@ where
 
     /// Set by instructions(EI, RETI, DI).
     pub interrupt_master_enable: bool,
-    /// R/W
+    /// R/W. Set the bit to be 1 if interrupt
+    /// is enabled
+    ///
+    /// - Bit 4, Joypad
+    /// - Bit 3, Serial
+    /// - Bit 2, Timer
+    /// - Bit 1, LCD STAT
+    /// - Bit 0, Vertical Blank
     pub interrupt_enable: u8,
-    /// R/W
+    /// R/W. Set the bit to be 1 if interrupt
+    /// is requested.
+    ///
+    /// - Bit 4, Joypad
+    /// - Bit 3, Serial
+    /// - Bit 2, Timer
+    /// - Bit 1, LCD STAT
+    /// - Bit 0, Vertical Blank
     pub interrupt_flags: u8,
+    /// Set by instruction HALT
+    ///
+    /// HALT mode is exited when a flag in register IF is set and
+    /// the corresponding flag in IE is also set, regardless of
+    /// the value of IME. The only difference is that IME='1' will
+    /// make CPU jump to the interrupt vector(and clear the IF flag),
+    /// while IME='0' will only make the CPU continue executing
+    /// instructions, but the jump won't be performed(and the IF flag
+    /// won't be cleared).
+    pub halt: bool,
+    /// Set by instruction STOP
+    pub stopped: bool,
 
     bus: BUS,
     // TODO
@@ -84,6 +111,8 @@ where
             interrupt_enable: 0,
             interrupt_flags: 0,
             interrupt_master_enable: false,
+            halt: false,
+            stopped: false,
             bus,
         }
     }
@@ -299,6 +328,17 @@ where
         convert_u8_tuple_to_u16(hi, lo)
     }
 
+    /// Interrupts are checked before fetching a new instruction.
+    /// If any IF flag and the corresponding IE flag are both '1',
+    /// and IME is set to '1' too, the CPU will push the current PC
+    /// into the stack, will jump to the corresponding interrupt vector
+    /// and set IME to '0'. If IME is '0', this won't happen. This flags
+    /// are only cleared when the CPU jumps to an interrupt vector because
+    /// of an interrupt(or IF is written manually).
+    pub fn handle_interrupts(&mut self) {
+        todo!()
+    }
+
     pub fn execute(&mut self) {
         let opcode = self.read_pc();
         debug!("opcode 0x{opcode:02X}");
@@ -356,6 +396,18 @@ where
             }
             InstructionType::XOR => {
                 proc_xor(self, inst);
+            }
+            InstructionType::STOP => {
+                proc_stop(self);
+            }
+            InstructionType::DI => {
+                proc_di(self);
+            }
+            InstructionType::EI => {
+                proc_ei(self);
+            }
+            InstructionType::HALT => {
+                proc_halt(self);
             }
         }
     }
