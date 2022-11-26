@@ -136,16 +136,51 @@ where
     cpu.set_flags(z, Some(false), h, c);
 }
 
+pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let data = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let a = cpu.reg_a;
+    let c = if cpu.flag_c() { 1u8 } else { 0u8 };
+
+    let value = a.wrapping_add(data).wrapping_add(c);
+    let h = (value & 0xF) + (a & 0xF) + (c & 0xF) > 0xF;
+    let c = (value as u16) + (a as u16) + (c as u16) > 0xFF;
+
+    cpu.reg_a = value;
+    cpu.set_flags(Some(value == 0), Some(false), Some(h), Some(c));
+}
+
 pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
     BUS: io::IO,
 {
     let data = cpu.fetch_data(inst.operand1.as_ref().unwrap());
-    let value = cpu.reg_a.wrapping_sub(data as u8);
+    let a = cpu.reg_a;
+    let value = a.wrapping_sub(data as u8);
 
     let z = value == 0;
-    let h = (cpu.reg_a as i16 & 0xF) - (data as i16 & 0xF) < 0;
-    let c = (cpu.reg_a as i16) - (data as i16) < 0;
+    let h = ((a & 0xF) as i16) - ((data & 0xF) as i16) < 0;
+    let c = (a as i16) - (data as i16) < 0;
+
+    cpu.reg_a = value;
+    cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
+}
+
+pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let data = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let a = cpu.reg_a;
+    let c = if cpu.flag_c() { 1u8 } else { 0u8 };
+
+    let value = a.wrapping_sub(data).wrapping_sub(c);
+
+    let z = value == 0;
+    let h = ((a & 0xF) as i16) - ((data & 0xF) as i16) - ((c & 0xF) as i16) < 0;
+    let c = (a as i16) - (data as i16) - (c as i16) < 0;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
@@ -273,4 +308,52 @@ where
     BUS: io::IO,
 {
     cpu.stopped = true;
+}
+
+pub(crate) fn proc_rlca<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    let value = cpu.reg_a;
+    let c = (value >> 7) & 1;
+
+    // Move the MSB(it) to the LSB(it)
+    cpu.reg_a = (value << 1) | c;
+    cpu.set_flags(Some(false), Some(false), Some(false), Some(c == 1));
+}
+
+pub(crate) fn proc_rla<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    let value = cpu.reg_a;
+    let c = (value >> 7) & 1 == 1;
+    let carry = if cpu.flag_c() { 1u8 } else { 0u8 };
+
+    cpu.reg_a = (value << 1) | carry;
+    cpu.set_flags(Some(false), Some(false), Some(false), Some(c));
+}
+
+pub(crate) fn proc_rrca<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    let value = cpu.reg_a;
+    let c = value & 1;
+
+    // Move the LSB(it) to the MSB(it)
+    cpu.reg_a = (value >> 1) | (c << 7);
+    cpu.set_flags(Some(false), Some(false), Some(false), Some(c == 1));
+}
+
+pub(crate) fn proc_rra<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    let value = cpu.reg_a;
+    let c = value & 1 == 1;
+    let carry = if cpu.flag_c() { 1u8 } else { 0u8 };
+
+    cpu.reg_a = (value >> 1) | (carry << 7);
+    cpu.set_flags(Some(false), Some(false), Some(false), Some(c));
 }

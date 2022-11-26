@@ -4,9 +4,9 @@ mod proc;
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
 use proc::{
-    proc_add, proc_and, proc_call, proc_dec, proc_di, proc_ei, proc_halt, proc_inc, proc_jp,
-    proc_jr, proc_ld, proc_or, proc_pop, proc_push, proc_ret, proc_reti, proc_rst, proc_stop,
-    proc_sub, proc_xor,
+    proc_adc, proc_add, proc_and, proc_call, proc_dec, proc_di, proc_ei, proc_halt, proc_inc,
+    proc_jp, proc_jr, proc_ld, proc_or, proc_pop, proc_push, proc_ret, proc_reti, proc_rla,
+    proc_rlca, proc_rra, proc_rrca, proc_rst, proc_sbc, proc_stop, proc_sub, proc_xor,
 };
 
 pub struct Cpu<BUS>
@@ -429,6 +429,33 @@ where
             InstructionType::HALT => {
                 proc_halt(self);
             }
+            InstructionType::NONE => {
+                panic!("No such instruction");
+            }
+            InstructionType::ADC => {
+                proc_adc(self, inst);
+            }
+            InstructionType::SBC => {
+                proc_sbc(self, inst);
+            }
+            InstructionType::RLA => {
+                proc_rla(self);
+            }
+            InstructionType::RRA => {
+                proc_rra(self);
+            }
+            InstructionType::RLCA => {
+                proc_rlca(self);
+            }
+            InstructionType::RRCA => {
+                proc_rrca(self);
+            }
+            InstructionType::DAA => todo!(),
+            InstructionType::CPL => todo!(),
+            InstructionType::SCF => todo!(),
+            InstructionType::CCF => todo!(),
+            InstructionType::CP => todo!(),
+            InstructionType::CB => todo!(),
         }
 
         debug!("{:?}", &self);
