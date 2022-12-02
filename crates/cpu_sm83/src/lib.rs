@@ -3,11 +3,6 @@ mod proc;
 
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use log::debug;
-use proc::{
-    proc_adc, proc_add, proc_and, proc_call, proc_dec, proc_di, proc_ei, proc_halt, proc_inc,
-    proc_jp, proc_jr, proc_ld, proc_or, proc_pop, proc_push, proc_ret, proc_reti, proc_rla,
-    proc_rlca, proc_rra, proc_rrca, proc_rst, proc_sbc, proc_stop, proc_sub, proc_xor,
-};
 
 pub struct Cpu<BUS>
 where
@@ -370,91 +365,101 @@ where
                 //
             }
             InstructionType::LD => {
-                proc_ld(self, inst);
+                proc::proc_ld(self, inst);
             }
             InstructionType::INC => {
-                proc_inc(self, inst);
+                proc::proc_inc(self, inst);
             }
             InstructionType::DEC => {
-                proc_dec(self, inst);
+                proc::proc_dec(self, inst);
             }
             InstructionType::JP => {
-                proc_jp(self, inst);
+                proc::proc_jp(self, inst);
             }
             InstructionType::JR => {
-                proc_jr(self, inst);
+                proc::proc_jr(self, inst);
             }
             InstructionType::ADD => {
-                proc_add(self, inst);
+                proc::proc_add(self, inst);
             }
             InstructionType::CALL => {
-                proc_call(self, inst);
+                proc::proc_call(self, inst);
             }
             InstructionType::PUSH => {
-                proc_push(self, inst);
+                proc::proc_push(self, inst);
             }
             InstructionType::POP => {
-                proc_pop(self, inst);
+                proc::proc_pop(self, inst);
             }
             InstructionType::RET => {
-                proc_ret(self, inst);
+                proc::proc_ret(self, inst);
             }
             InstructionType::RETI => {
-                proc_reti(self, inst);
+                proc::proc_reti(self, inst);
             }
             InstructionType::RST => {
-                proc_rst(self, inst);
+                proc::proc_rst(self, inst);
             }
             InstructionType::SUB => {
-                proc_sub(self, inst);
+                proc::proc_sub(self, inst);
             }
             InstructionType::AND => {
-                proc_and(self, inst);
+                proc::proc_and(self, inst);
             }
             InstructionType::OR => {
-                proc_or(self, inst);
+                proc::proc_or(self, inst);
             }
             InstructionType::XOR => {
-                proc_xor(self, inst);
+                proc::proc_xor(self, inst);
             }
             InstructionType::STOP => {
-                proc_stop(self);
+                proc::proc_stop(self);
             }
             InstructionType::DI => {
-                proc_di(self);
+                proc::proc_di(self);
             }
             InstructionType::EI => {
-                proc_ei(self);
+                proc::proc_ei(self);
             }
             InstructionType::HALT => {
-                proc_halt(self);
+                proc::proc_halt(self);
             }
             InstructionType::NONE => {
                 panic!("No such instruction");
             }
             InstructionType::ADC => {
-                proc_adc(self, inst);
+                proc::proc_adc(self, inst);
             }
             InstructionType::SBC => {
-                proc_sbc(self, inst);
+                proc::proc_sbc(self, inst);
             }
             InstructionType::RLA => {
-                proc_rla(self);
+                proc::proc_rla(self);
             }
             InstructionType::RRA => {
-                proc_rra(self);
+                proc::proc_rra(self);
             }
             InstructionType::RLCA => {
-                proc_rlca(self);
+                proc::proc_rlca(self);
             }
             InstructionType::RRCA => {
-                proc_rrca(self);
+                proc::proc_rrca(self);
             }
-            InstructionType::DAA => todo!(),
-            InstructionType::CPL => todo!(),
-            InstructionType::SCF => todo!(),
-            InstructionType::CCF => todo!(),
-            InstructionType::CP => todo!(),
+            InstructionType::DAA => {
+                proc::proc_daa(self);
+            }
+            InstructionType::CPL => {
+                proc::proc_cpl(self);
+            }
+            InstructionType::SCF => {
+                proc::proc_scf(self);
+            }
+            InstructionType::CCF => {
+                proc::proc_ccf(self);
+            }
+            InstructionType::CP => {
+                proc::proc_cp(self, inst);
+            }
             InstructionType::CB => todo!(),
         }
 

@@ -357,3 +357,60 @@ where
     cpu.reg_a = (value >> 1) | (carry << 7);
     cpu.set_flags(Some(false), Some(false), Some(false), Some(c));
 }
+
+pub(crate) fn proc_daa<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    let mut acc = 0;
+    let mut c = false;
+    let a = cpu.reg_a;
+
+    let flag_h = cpu.flag_h();
+    let flag_c = cpu.flag_c();
+    let flag_n = cpu.flag_n();
+
+    if flag_h || (!flag_n && (a & 0xF) > 9) {
+        acc |= 0x06;
+    }
+
+    if flag_c || (!flag_n && (a & 0xFF) > 99) {
+        acc |= 0x60;
+        c = true;
+    }
+
+    cpu.reg_a = if flag_n { a.wrapping_sub(acc) } else { a.wrapping_add(acc) };
+    cpu.set_flags(Some(cpu.reg_a == 0), None, Some(false), Some(c));
+}
+
+pub(crate) fn proc_cpl<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.reg_a = !cpu.reg_a;
+    cpu.set_flags(None, Some(true), Some(true), None);
+}
+
+pub(crate) fn proc_scf<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.set_flags(None, Some(false), Some(false), Some(true));
+}
+
+pub(crate) fn proc_ccf<BUS>(cpu: &mut Cpu<BUS>)
+where
+    BUS: io::IO,
+{
+    cpu.set_flags(None, Some(false), Some(false), Some(!cpu.flag_c()));
+}
+
+pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let a = cpu.reg_a;
+
+    cpu.set_flags(Some(value == a), Some(true), Some((a & 0x0F) < (value & 0x0F)), Some(a < value));
+}
