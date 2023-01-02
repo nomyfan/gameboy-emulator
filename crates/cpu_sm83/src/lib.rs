@@ -460,7 +460,9 @@ where
             InstructionType::CP => {
                 proc::proc_cp(self, inst);
             }
-            InstructionType::CB => todo!(),
+            InstructionType::CB => {
+                proc::proc_cb(self, inst);
+            }
         }
 
         debug!("{:?}", &self);

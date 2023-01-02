@@ -1,5 +1,5 @@
 use crate::{
-    instructions::{Condition, Instruction},
+    instructions::{AddressingMode, CbInstructionType, Condition, Instruction, Register},
     Cpu,
 };
 
@@ -413,4 +413,129 @@ where
     let a = cpu.reg_a;
 
     cpu.set_flags(Some(value == a), Some(true), Some((a & 0x0F) < (value & 0x0F)), Some(a < value));
+}
+
+pub(crate) fn proc_cb<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+where
+    BUS: io::IO,
+{
+    fn decode_addressing_mode(value: u8) -> AddressingMode {
+        match value {
+            0 => AddressingMode::Direct(Register::B),
+            1 => AddressingMode::Direct(Register::C),
+            2 => AddressingMode::Direct(Register::D),
+            3 => AddressingMode::Direct(Register::E),
+            4 => AddressingMode::Direct(Register::H),
+            5 => AddressingMode::Direct(Register::L),
+            6 => AddressingMode::Indirect(Register::HL),
+            7 => AddressingMode::Direct(Register::A),
+            _ => unreachable!("Only B,C,D,E,H,L,HL,A are valid for CB instruction."),
+        }
+    }
+
+    fn decode_inst(value: u8) -> CbInstructionType {
+        match value {
+            0x00..=0x07 => CbInstructionType::RLC,
+            0x08..=0x0F => CbInstructionType::RRC,
+            0x10..=0x17 => CbInstructionType::RL,
+            0x18..=0x1F => CbInstructionType::RR,
+            0x20..=0x27 => CbInstructionType::SLA,
+            0x28..=0x2F => CbInstructionType::SRA,
+            0x30..=0x37 => CbInstructionType::SWAP,
+            0x38..=0x3F => CbInstructionType::SRL,
+            0x40..=0x7F => CbInstructionType::BIT,
+            0x80..=0xBF => CbInstructionType::RES,
+            0xC0..=0xFF => CbInstructionType::SET,
+        }
+    }
+
+    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let am = decode_addressing_mode(value & 0b111);
+
+    match decode_inst(value) {
+        CbInstructionType::RLC => {
+            // 左移1位，MSB换到MLB。
+            let msb = (value >> 7) & 1;
+            let new_value = (value << 1) | msb;
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
+        }
+        CbInstructionType::RRC => {
+            // 右移1位，MLB换到MSB。
+            let mlb = value & 1;
+            let new_value = (value >> 1) | (mlb << 7);
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+        }
+        CbInstructionType::RL => {
+            // 左移1位，Flag C作为MLB。
+            let msb = (value >> 7) & 1;
+            let mlb = if cpu.flag_c() { 1 } else { 0 };
+            let new_value = (value << 1) | mlb;
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
+        }
+        CbInstructionType::RR => {
+            // 右移1位，Flag C作为MSB。
+            let mlb = value & 1;
+            let msb = if cpu.flag_c() { 1 } else { 0 };
+            let new_value = (value >> 1) | (msb << 7);
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+        }
+        CbInstructionType::SLA => {
+            // 左移1位。
+            let msb = (value >> 7) & 1;
+            let new_value = value << 1;
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
+        }
+        CbInstructionType::SRA => {
+            // 右移1位。Arithmetic shift.
+            let mlb = value & 1;
+            let new_value = (value as i8) >> 1;
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+        }
+        CbInstructionType::SWAP => {
+            // 高低4位交换。
+            let new_value = ((value & 0xF0) >> 4) | ((value & 0x0F) << 4);
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(false));
+        }
+        CbInstructionType::SRL => {
+            // 右移1位。Logical shift.
+            let mlb = value & 1;
+            let new_value = value >> 1;
+
+            cpu.write_data(&am, 0, new_value as u16);
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+        }
+        CbInstructionType::BIT => {
+            // BIT tests.
+            let bit = (value - 0x40) / 8;
+            cpu.set_flags(Some((value & (1 << bit)) == 0), Some(false), Some(true), None);
+        }
+        CbInstructionType::RES => {
+            // Set specific bit to be zero.
+            let bit = (value - 0x80) / 8;
+            let new_value = value & (!(1 << bit));
+
+            cpu.write_data(&am, 0, new_value as u16);
+        }
+        CbInstructionType::SET => {
+            // Set specific bit to be one.
+            let bit = (value - 0xC0) / 8;
+            let new_value = value | (1 << bit);
+
+            cpu.write_data(&am, 0, new_value as u16);
+        }
+    }
 }
