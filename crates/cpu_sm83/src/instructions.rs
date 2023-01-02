@@ -57,6 +57,21 @@ pub(crate) enum InstructionType {
 }
 
 #[derive(Debug)]
+pub(crate) enum CbInstructionType {
+    RLC,
+    RRC,
+    RL,
+    RR,
+    SLA,
+    SRA,
+    SWAP,
+    SRL,
+    BIT,
+    RES,
+    SET,
+}
+
+#[derive(Debug)]
 pub(crate) enum AddressingMode {
     /// Register direct
     Direct(Register),
@@ -490,7 +505,7 @@ const INSTRUCTIONS: [Instruction; 256] = [
     inst_ret!(0xC8, Condition::Z),
     inst_ret!(0xC9),
     inst_jp!(0xCA, AddressingMode::PC2, Condition::Z),
-    inst_simple!(0xCB, InstructionType::CB),
+    inst_operand1!(0xCB, InstructionType::CB, AddressingMode::PC1),
     inst_call!(0xCC, Condition::Z),
     inst_call!(0xCD),
     inst_adc!(0xCE, AddressingMode::PC1),
