@@ -1,3 +1,5 @@
+mod mbc;
+
 use anyhow::Result;
 use log::debug;
 use std::{borrow::Cow, fmt::Display, path::Path};
@@ -54,10 +56,7 @@ const OLD_LICENSEE_CODE: [(u8, &str); 147] = [
     (0x30, "Infogrames"),
     (0x31, "Nintendo"),
     (0x32, "Bandai"),
-    (
-        0x33,
-        "Indicates that the New licensee code should be used instead.",
-    ),
+    (0x33, "Indicates that the New licensee code should be used instead."),
     (0x34, "Konami"),
     (0x35, "HectorSoft"),
     (0x38, "Capcom"),
@@ -320,10 +319,9 @@ impl Display for CartridgeHeader {
                 .iter()
                 .find(|c| c.0 as u16 == self.new_licensee_code)
                 .and_then(|c| Some(c.1)),
-            _ => NEW_LICENSEE_CODE
-                .iter()
-                .find(|c| c.0 == self.licensee_code)
-                .and_then(|c| Some(c.1)),
+            _ => {
+                NEW_LICENSEE_CODE.iter().find(|c| c.0 == self.licensee_code).and_then(|c| Some(c.1))
+            }
         }
         .unwrap_or("Unkown");
 
@@ -375,6 +373,7 @@ impl Display for CartridgeHeader {
 pub struct Cartridge {
     pub header: CartridgeHeader,
     pub rom: Vec<u8>,
+    mbc: Box<dyn mbc::Mbc>,
 }
 
 impl Cartridge {
@@ -397,17 +396,29 @@ impl Cartridge {
 
         debug!("{}", &header);
 
-        Ok(Cartridge { header, rom })
+        let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
+            0x00 => Box::new(mbc::none_mbc::NoneMbc::new()),
+            0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new()),
+            _ => panic!(
+                "MBC {} is not supported yet",
+                CARRIAGE_TYPE
+                    .iter()
+                    .find(|c| c.0 == header.cart_type)
+                    .and_then(|c| Some(c.1))
+                    .unwrap_or("Unknown")
+            ),
+        };
+
+        Ok(Cartridge { header, rom, mbc })
     }
 }
 
 impl io::IO for Cartridge {
     fn write(&mut self, addr: u16, value: u8) {
-        // todo!()
+        self.mbc.write(addr, value)
     }
 
     fn read(&self, addr: u16) -> u8 {
-        // todo!();
-        self.rom[addr as usize]
+        self.mbc.read(addr, &self.rom)
     }
 }
