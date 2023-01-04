@@ -3,12 +3,12 @@ use log::debug;
 struct WorkRam {
     /// [C000, E000)
     /// (4 + 4)KiB
-    ram: [u8; 0x2000],
+    ram: Box<[u8]>,
 }
 
 impl WorkRam {
     fn new() -> Self {
-        Self { ram: [0; 0x2000] }
+        Self { ram: vec![0u8; 0x2000].into_boxed_slice() }
     }
 }
 
@@ -30,12 +30,12 @@ impl io::IO for WorkRam {
 
 struct HighRam {
     /// [FF80, FFFF)
-    ram: [u8; 0x7F],
+    ram: Box<[u8]>,
 }
 
 impl HighRam {
     fn new() -> Self {
-        Self { ram: [0; 0x7F] }
+        Self { ram: vec![0; 0x80].into_boxed_slice() }
     }
 }
 
