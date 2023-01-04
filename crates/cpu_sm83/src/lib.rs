@@ -33,24 +33,6 @@ where
 
     /// Set by instructions(EI, RETI, DI).
     pub interrupt_master_enable: bool,
-    /// R/W. Set the bit to be 1 if interrupt
-    /// is enabled
-    ///
-    /// - Bit 4, Joypad
-    /// - Bit 3, Serial
-    /// - Bit 2, Timer
-    /// - Bit 1, LCD STAT
-    /// - Bit 0, Vertical Blank
-    pub interrupt_enable: u8,
-    /// R/W. Set the bit to be 1 if interrupt
-    /// is requested.
-    ///
-    /// - Bit 4, Joypad
-    /// - Bit 3, Serial
-    /// - Bit 2, Timer
-    /// - Bit 1, LCD STAT
-    /// - Bit 0, Vertical Blank
-    pub interrupt_flags: u8,
     /// Set by instruction HALT
     ///
     /// HALT mode is exited when a flag in register IF is set and
@@ -81,8 +63,6 @@ where
             .field("DE", &format_args!("{:#04X}", &self.de()))
             .field("HL", &format_args!("{:#04X}", &self.hl()))
             .field("IME", &self.interrupt_master_enable)
-            .field("IE", &format_args!("{:#08b}", &self.interrupt_enable))
-            .field("IF", &format_args!("{:#08b}", &self.interrupt_flags))
             .field("HALTED", &self.halted)
             .field("STOPPED", &self.stopped)
             .finish()
@@ -124,8 +104,6 @@ where
             sp: 0xFFFE,
             pc: 0x100,
 
-            interrupt_enable: 0,
-            interrupt_flags: 0,
             interrupt_master_enable: false,
             halted: false,
             stopped: false,
@@ -134,19 +112,11 @@ where
     }
 
     fn bus_read(&self, addr: u16) -> u8 {
-        if addr == 0xFFFF {
-            return self.interrupt_enable;
-        }
-
         self.bus.read(addr)
     }
 
     fn bus_write(&mut self, addr: u16, value: u8) {
-        if addr == 0xFFFF {
-            self.interrupt_enable = value;
-        } else {
-            self.bus.write(addr, value);
-        }
+        self.bus.write(addr, value);
     }
 
     pub(crate) fn fetch_data(&mut self, am: &AddressingMode) -> u16 {

@@ -55,10 +55,73 @@ impl io::IO for HighRam {
     }
 }
 
+struct Interrupts {
+    /// R/W. Set the bit to be 1 if interrupt
+    /// is enabled
+    ///
+    /// - Bit 4, Joypad
+    /// - Bit 3, Serial
+    /// - Bit 2, Timer
+    /// - Bit 1, LCD STAT
+    /// - Bit 0, Vertical Blank
+    enable: u8,
+    /// R/W. Set the bit to be 1 if interrupt
+    /// is requested.
+    ///
+    /// - Bit 4, Joypad
+    /// - Bit 3, Serial
+    /// - Bit 2, Timer
+    /// - Bit 1, LCD STAT
+    /// - Bit 0, Vertical Blank
+    flag: u8,
+}
+
+impl Interrupts {
+    fn new() -> Self {
+        Self { enable: 0, flag: 0 }
+    }
+}
+
+/// IO devices
+struct Devices {
+    interrupts: Interrupts,
+}
+
+impl Devices {
+    fn new() -> Self {
+        Self { interrupts: Interrupts::new() }
+    }
+}
+
+impl io::IO for Devices {
+    fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            // IF
+            0xFF0F => self.interrupts.flag = value,
+            // IE
+            0xFFFF => self.interrupts.enable = value,
+            // TODO
+            _ => {}
+        }
+    }
+
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
+            // IF
+            0xFF0F => self.interrupts.flag,
+            // IE
+            0xFFFF => self.interrupts.enable,
+            // TODO
+            _ => 0,
+        }
+    }
+}
+
 struct Bus {
     cart: cartridge::Cartridge,
     wram: WorkRam,
     hram: HighRam,
+    devices: Devices,
 }
 
 impl io::IO for Bus {
@@ -82,12 +145,13 @@ impl io::IO for Bus {
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => todo!("OAM"),
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
-            0xFF00..=0xFF7F => todo!("IO registers"),
+            0xFF00..=0xFF7F | 0xFFFF => {
+                self.devices.write(addr, value);
+            }
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.write(addr, value);
             }
-            0xFFFF => unreachable!("CPU IE(Handled in CPU)"),
         }
     }
 
@@ -109,12 +173,11 @@ impl io::IO for Bus {
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => todo!("OAM"),
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
-            0xFF00..=0xFF7F => todo!("IO registers"),
+            0xFF00..=0xFF7F | 0xFFFF => self.devices.read(addr),
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
             }
-            0xFFFF => unreachable!("CPU IE(Handle In CPU)"),
         };
 
         debug!("bus read at {:#04X}, value: {:#04X}", addr, value);
@@ -131,7 +194,7 @@ fn main() {
     let cart = cartridge::Cartridge::load(&rom_path).unwrap();
 
     // Delegate all RWs.
-    let bus = Bus { cart, wram: WorkRam::new(), hram: HighRam::new() };
+    let bus = Bus { cart, wram: WorkRam::new(), hram: HighRam::new(), devices: Devices::new() };
 
     let mut cpu = cpu_sm83::Cpu::new(bus);
 
