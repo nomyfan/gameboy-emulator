@@ -65,70 +65,56 @@ impl io::IO for Bus {
     fn write(&mut self, addr: u16, value: u8) {
         debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
 
-        if addr < 0x8000 {
-            // ROM data
-            self.cart.write(addr, value);
-        } else if addr < 0xA000 {
-            // VRAM
-        } else if addr < 0xC000 {
-            // EXT-RAM, from cartridge
-            self.cart.write(addr, value);
-        } else if addr < 0xE000 {
-            // WRAM
-            self.wram.write(addr, value);
-        } else if addr < 0xFE00 {
-            // Reserved echo RAM
-        } else if addr < 0xFEA0 {
-            // OAM
-        } else if addr < 0xFF00 {
-            // Reserved
-        } else if addr < 0xFF80 {
-            // IO registers
-        } else if addr < 0xFFFF {
-            // HRAM
-            self.hram.write(addr, value);
-        } else {
-            // addr == 0xFFFF
-            // CPU IE
+        match addr {
+            0x0000..=0x7FFF => {
+                // ROM data
+                self.cart.write(addr, value);
+            }
+            0x8000..=0x9FFF => todo!("VRAM"),
+            0xA000..=0xBFFF => {
+                // EXT-RAM, from cartridge
+                self.cart.write(addr, value);
+            }
+            0xC000..=0xDFFF => {
+                // WRAM
+                self.wram.write(addr, value);
+            }
+            0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
+            0xFE00..=0xFE9F => todo!("OAM"),
+            0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
+            0xFF00..=0xFF7F => todo!("IO registers"),
+            0xFF80..=0xFFFE => {
+                // HRAM
+                self.hram.write(addr, value);
+            }
+            0xFFFF => unreachable!("CPU IE(Handled in CPU)"),
         }
     }
 
     fn read(&self, addr: u16) -> u8 {
-        let value = if addr < 0x8000 {
-            // ROM data
-            self.cart.read(addr)
-        } else if addr < 0xA000 {
-            // VRAM
-            // TODO
-            0
-        } else if addr < 0xC000 {
-            // EXT-RAM, from cartridge
-            self.cart.read(addr)
-        } else if addr < 0xE000 {
-            // WRAM
-            self.wram.read(addr)
-        } else if addr < 0xFE00 {
-            // Reserved echo RAM
-            0
-        } else if addr < 0xFEA0 {
-            // OAM
-            // TODO
-            0
-        } else if addr < 0xFF00 {
-            // Reserved
-            0
-        } else if addr < 0xFF80 {
-            // IO registers
-            // TODO
-            0
-        } else if addr < 0xFFFF {
-            // HRAM
-            self.hram.read(addr)
-        } else {
-            // addr == 0xFFFF
-            // CPU IE
-            // TODO
-            0
+        let value = match addr {
+            0x0000..=0x7FFF => {
+                // ROM data
+                self.cart.read(addr)
+            }
+            0x8000..=0x9FFF => todo!("VRAM"),
+            0xA000..=0xBFFF => {
+                // EXT-RAM, from cartridge
+                self.cart.read(addr)
+            }
+            0xC000..=0xDFFF => {
+                // WRAM
+                self.wram.read(addr)
+            }
+            0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
+            0xFE00..=0xFE9F => todo!("OAM"),
+            0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
+            0xFF00..=0xFF7F => todo!("IO registers"),
+            0xFF80..=0xFFFE => {
+                // HRAM
+                self.hram.read(addr)
+            }
+            0xFFFF => unreachable!("CPU IE(Handle In CPU)"),
         };
 
         debug!("bus read at {:#04X}, value: {:#04X}", addr, value);
