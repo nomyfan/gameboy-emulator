@@ -1,4 +1,5 @@
 use super::{RamBank, RomBank};
+use shared::boxed_array_fn;
 
 pub(crate) struct Mbc1 {
     /// 00h = ROM Banking Mode (up to 8KiB RAM, 2MiB ROM) (default)
@@ -10,8 +11,8 @@ pub(crate) struct Mbc1 {
     rom_banking_num: usize,
     /// Current RAM bank number, in range of [0x00, 0x03], 4 in total.
     ram_banking_num: usize,
-    rom_banks: Vec<RomBank>,
-    ram_banks: Vec<RamBank>,
+    rom_banks: Box<[RomBank; 127]>,
+    ram_banks: Box<[RamBank; 4]>,
 }
 
 impl Mbc1 {
@@ -21,8 +22,8 @@ impl Mbc1 {
             ram_enabled: false,
             rom_banking_num: 1,
             ram_banking_num: 0,
-            rom_banks: (0..127).map(|_| [0u8; 0x4000]).collect(),
-            ram_banks: (0..4).map(|_| [0u8; 0x2000]).collect(),
+            rom_banks: boxed_array_fn(|_| [0u8; 0x4000]),
+            ram_banks: boxed_array_fn(|_| [0u8; 0x2000]),
         }
     }
 }

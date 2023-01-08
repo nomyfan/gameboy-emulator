@@ -1,14 +1,15 @@
+use shared::boxed_array;
 use log::debug;
 
 struct WorkRam {
     /// [C000, E000)
     /// (4 + 4)KiB
-    ram: Box<[u8]>,
+    ram: Box<[u8; 0x2000]>,
 }
 
 impl WorkRam {
     fn new() -> Self {
-        Self { ram: vec![0u8; 0x2000].into_boxed_slice() }
+        Self { ram: boxed_array(0) }
     }
 }
 
@@ -30,12 +31,12 @@ impl io::IO for WorkRam {
 
 struct HighRam {
     /// [FF80, FFFF)
-    ram: Box<[u8]>,
+    ram: Box<[u8; 0x80]>,
 }
 
 impl HighRam {
     fn new() -> Self {
-        Self { ram: vec![0; 0x80].into_boxed_slice() }
+        Self { ram: boxed_array(0) }
     }
 }
 
