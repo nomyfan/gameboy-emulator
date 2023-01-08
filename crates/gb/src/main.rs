@@ -1,5 +1,5 @@
-use shared::boxed_array;
 use log::debug;
+use shared::boxed_array;
 
 struct WorkRam {
     /// [C000, E000)
@@ -56,7 +56,8 @@ impl io::IO for HighRam {
     }
 }
 
-struct Interrupts {
+/// IO devices
+struct Devices {
     /// R/W. Set the bit to be 1 if interrupt
     /// is enabled
     ///
@@ -65,7 +66,7 @@ struct Interrupts {
     /// - Bit 2, Timer
     /// - Bit 1, LCD STAT
     /// - Bit 0, Vertical Blank
-    enable: u8,
+    interrupt_enable: u8,
     /// R/W. Set the bit to be 1 if interrupt
     /// is requested.
     ///
@@ -74,23 +75,12 @@ struct Interrupts {
     /// - Bit 2, Timer
     /// - Bit 1, LCD STAT
     /// - Bit 0, Vertical Blank
-    flag: u8,
-}
-
-impl Interrupts {
-    fn new() -> Self {
-        Self { enable: 0, flag: 0 }
-    }
-}
-
-/// IO devices
-struct Devices {
-    interrupts: Interrupts,
+    interrupt_flag: u8,
 }
 
 impl Devices {
     fn new() -> Self {
-        Self { interrupts: Interrupts::new() }
+        Self { interrupt_enable: 0, interrupt_flag: 0 }
     }
 }
 
@@ -98,9 +88,9 @@ impl io::IO for Devices {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             // IF
-            0xFF0F => self.interrupts.flag = value,
+            0xFF0F => self.interrupt_flag = value,
             // IE
-            0xFFFF => self.interrupts.enable = value,
+            0xFFFF => self.interrupt_enable = value,
             // TODO
             _ => {}
         }
@@ -109,9 +99,9 @@ impl io::IO for Devices {
     fn read(&self, addr: u16) -> u8 {
         match addr {
             // IF
-            0xFF0F => self.interrupts.flag,
+            0xFF0F => self.interrupt_flag,
             // IE
-            0xFFFF => self.interrupts.enable,
+            0xFFFF => self.interrupt_enable,
             // TODO
             _ => 0,
         }
