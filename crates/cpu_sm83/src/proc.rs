@@ -226,8 +226,8 @@ pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
     BUS: io::IO,
 {
-    proc_ret(cpu, inst);
     cpu.interrupt_master_enable = true;
+    proc_ret(cpu, inst);
 }
 
 pub(crate) fn proc_rst<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
