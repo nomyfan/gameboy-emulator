@@ -1,7 +1,9 @@
 mod instructions;
+mod interrupt;
 mod proc;
 
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
+use interrupt::INTERRUPTS;
 use log::debug;
 
 pub struct Cpu<BUS>
@@ -314,15 +316,25 @@ where
         convert_u8_tuple_to_u16(hi, lo)
     }
 
-    /// Interrupts are checked before fetching a new instruction.
-    /// If any IF flag and the corresponding IE flag are both '1',
-    /// and IME is set to '1' too, the CPU will push the current PC
-    /// into the stack, will jump to the corresponding interrupt vector
-    /// and set IME to '0'. If IME is '0', this won't happen. This flags
-    /// are only cleared when the CPU jumps to an interrupt vector because
-    /// of an interrupt(or IF is written manually).
+    /// Push current PC to stack, and jump to corresponding
+    /// interrupt handler address.
     pub fn handle_interrupts(&mut self) {
-        // todo!()
+        // TODO abstract interrupts RW
+        let interrupt_flag = self.bus_read(0xFF0F);
+        let interrupt_enable = self.bus_read(0xFFFF);
+
+        if let Some(interrupt_source) = INTERRUPTS
+            .iter()
+            .find(|it| (interrupt_flag & it.flag) != 0 && (interrupt_enable & it.flag) != 0)
+        {
+            self.stack_push2(self.pc);
+            self.pc = interrupt_source.handler_address;
+            self.bus_write(0xFF0F, interrupt_flag & (!interrupt_source.flag));
+            self.halted = false;
+            // Interrupt handler can let CPU continue to handle
+            // interrupts via RETI instruction.
+            self.interrupt_master_enable = false;
+        }
     }
 
     pub fn execute(&mut self) {
@@ -434,7 +446,5 @@ where
                 proc::proc_cb(self, inst);
             }
         }
-
-        debug!("{:?}", &self);
     }
 }

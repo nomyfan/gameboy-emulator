@@ -58,8 +58,9 @@ impl io::IO for HighRam {
 
 /// IO devices
 struct Devices {
-    /// R/W. Set the bit to be 1 if interrupt
-    /// is enabled
+    /// R/W. Set the bit to be 1 if the corresponding
+    /// interrupt is enabled. Lower bits have higher
+    /// priorities.
     ///
     /// - Bit 4, Joypad
     /// - Bit 3, Serial
@@ -67,8 +68,9 @@ struct Devices {
     /// - Bit 1, LCD STAT
     /// - Bit 0, Vertical Blank
     interrupt_enable: u8,
-    /// R/W. Set the bit to be 1 if interrupt
-    /// is requested.
+    /// R/W. Set the bit to be 1 if the corresponding
+    /// interrupt is requested. Lower bits have higher
+    /// priorities.
     ///
     /// - Bit 4, Joypad
     /// - Bit 3, Serial
@@ -193,13 +195,18 @@ fn main() {
     //     cpu.execute();
     // }
     for _ in 1..20 {
-        cpu.handle_interrupts();
-        cpu.execute();
+        debug!("{:?}", &cpu);
 
         if cpu.stopped {
             println!("Stopping...");
             // TODO
             std::process::exit(0);
         }
+
+        if cpu.interrupt_master_enable {
+            cpu.handle_interrupts();
+        }
+
+        cpu.execute();
     }
 }
