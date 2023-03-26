@@ -105,7 +105,10 @@ impl io::IO for Bus {
                 self.wram.write(addr, value);
             }
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
-            0xFE00..=0xFE9F => todo!("OAM"),
+            0xFE00..=0xFE9F => {
+                // OAM
+                self.ppu.write(addr, value);
+            }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
                 // IF
@@ -143,7 +146,10 @@ impl io::IO for Bus {
                 self.wram.read(addr)
             }
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
-            0xFE00..=0xFE9F => todo!("OAM"),
+            0xFE00..=0xFE9F => {
+                // OAM
+                self.ppu.read(addr)
+            }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
                 // IF
