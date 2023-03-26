@@ -5,4 +5,5 @@ members = [
   "crates/cartridge",
   "crates/io",
   "crates/shared",
+  "crates/ppu"
 ]

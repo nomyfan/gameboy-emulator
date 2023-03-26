@@ -12,3 +12,4 @@ io = { path = "../io" }
 log = "0.4.17"
 env_logger = "0.9.1"
 shared = { path = "../shared" }
+ppu = { path = "../ppu" }
