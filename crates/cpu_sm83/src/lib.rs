@@ -84,10 +84,6 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
     ((hi as u16) << 8) | (lo as u16)
 }
 
-fn cycles(c: u8) {
-    todo!()
-}
-
 impl<BUS> Cpu<BUS>
 where
     BUS: io::IO,
@@ -337,7 +333,7 @@ where
         }
     }
 
-    pub fn execute(&mut self) {
+    pub fn step(&mut self) -> u8 {
         let opcode = self.read_pc();
         let inst = get_instruction(opcode);
         debug!("{:?}", inst);
@@ -446,5 +442,7 @@ where
                 proc::proc_cb(self, inst);
             }
         }
+
+        1 // TODO return real cycles
     }
 }
