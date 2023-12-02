@@ -16,14 +16,14 @@ impl WorkRam {
 
 impl io::IO for WorkRam {
     fn write(&mut self, addr: u16, value: u8) {
-        debug_assert!(addr >= 0xC000 && addr <= 0xDFFF);
+        debug_assert!((0xC000..=0xDFFF).contains(&addr));
 
         let addr = (addr as usize) - 0xC000;
         self.ram[addr] = value;
     }
 
     fn read(&self, addr: u16) -> u8 {
-        debug_assert!(addr >= 0xC000 && addr <= 0xDFFF);
+        debug_assert!((0xC000..=0xDFFF).contains(&addr));
 
         let addr = (addr as usize) - 0xC000;
         self.ram[addr]
@@ -43,14 +43,14 @@ impl HighRam {
 
 impl io::IO for HighRam {
     fn write(&mut self, addr: u16, value: u8) {
-        debug_assert!(addr >= 0xFF80 && addr <= 0xFFFE);
+        debug_assert!((0xFF80..=0xFFFE).contains(&addr));
 
         let addr = (addr as usize) - 0xFF80;
         self.ram[addr] = value;
     }
 
     fn read(&self, addr: u16) -> u8 {
-        debug_assert!(addr >= 0xFF80 && addr <= 0xFFFE);
+        debug_assert!((0xFF80..=0xFFFE).contains(&addr));
 
         let addr = (addr as usize) - 0xFF80;
         self.ram[addr]
@@ -267,6 +267,7 @@ fn main() {
         ppu: ppu.clone(),
     };
 
+    // TODO: 修改组成结构，现在的结构不合理。
     let mut cpu = cpu_sm83::Cpu::new(gb);
     // loop {
     //     cpu.execute();
