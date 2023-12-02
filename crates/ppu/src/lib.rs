@@ -97,7 +97,7 @@ pub struct PPU {
     /// - Bit 4: palette number. Non CGB only.
     /// - Bit 5: X flip(0=normal, 1=horizontally mirrored).
     /// - Bit 6: Y flip(0=normal, 1=vertically mirrored).
-    /// - Bit 7: BG and Window over OBJ(0=No, 1=BG and Window colors 1-3 over the OBJ)
+    /// - Bit 7: BG and Window over OBJ(0=No, 1=BG and Window colors 1-3 are drawn over the OBJ)
     oam: Box<[u8; 4 * 40]>,
     lcd: LCD,
     // Up to 10 sprites per scanline.
@@ -159,9 +159,9 @@ impl PPU {
         self.dots += 1; // TODO cycles
         if self.dots == 1 {
             let obj_size = self.obj_size();
-            for sprite_idx in 0..40 {
+            for sprite_idx in 0..40usize {
                 let sprite = unsafe {
-                    let base_addr = sprite_idx as usize * 4;
+                    let base_addr = sprite_idx * 4;
                     std::mem::transmute_copy::<[u8; 4], Sprite>(
                         &self.oam[base_addr..base_addr + 4].try_into().unwrap(),
                     )
@@ -178,7 +178,15 @@ impl PPU {
                     break;
                 }
             }
-            // TODO: is it necessary?
+            // https://gbdev.io/pandocs/OAM.html#drawing-priority
+            //
+            // For Non-CGB, the smaller X, the higher priority.
+            // If the X is same, sprite located first has higher priority.
+            //
+            // For CGB, the priority is determined by the location in OAM.
+            // The earlier the sprite, the higher its priority.
+            //
+            // It's worth to mention that `sort_by` is stable.
             self.sprites.sort_by(|a, b| a.x.cmp(&b.x));
         } else if self.dots == 80 {
             self.set_mode(Mode::Drawing);
