@@ -5,7 +5,7 @@ use crate::{
 
 fn check_condition<BUS>(cond: Option<&Condition>, cpu: &Cpu<BUS>) -> bool
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     match cond {
         None => true,
@@ -19,7 +19,7 @@ where
 
 pub(crate) fn proc_inc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     // Register only
     let addr = inst.operand1.as_ref().unwrap();
@@ -35,7 +35,7 @@ where
 
 pub(crate) fn proc_dec<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     // Register only
     let addr = inst.operand1.as_ref().unwrap();
@@ -51,7 +51,7 @@ where
 
 pub(crate) fn proc_jp<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let addr = cpu.fetch_data(inst.operand1.as_ref().unwrap());
     if check_condition(inst.cond.as_ref(), cpu) {
@@ -61,7 +61,7 @@ where
 
 pub(crate) fn proc_jr<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let addr = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     if check_condition(inst.cond.as_ref(), cpu) {
@@ -71,7 +71,7 @@ where
 
 pub(crate) fn proc_ld<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let mut operand2 = cpu.fetch_data(inst.operand2.as_ref().unwrap());
     let mut operand1 = cpu.fetch_data(inst.operand1.as_ref().unwrap());
@@ -105,7 +105,7 @@ where
 
 pub(crate) fn proc_add<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let opcode = inst.opcode;
     let operand2 = cpu.fetch_data(inst.operand2.as_ref().unwrap());
@@ -138,7 +138,7 @@ where
 
 pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let data = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     let a = cpu.reg_a;
@@ -154,7 +154,7 @@ where
 
 pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let data = cpu.fetch_data(inst.operand1.as_ref().unwrap());
     let a = cpu.reg_a;
@@ -170,7 +170,7 @@ where
 
 pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let data = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     let a = cpu.reg_a;
@@ -188,7 +188,7 @@ where
 
 pub(crate) fn proc_call<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
     if check_condition(inst.cond.as_ref(), cpu) {
@@ -199,7 +199,7 @@ where
 
 pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
     cpu.stack_push2(value);
@@ -207,7 +207,7 @@ where
 
 pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.stack_pop2();
     cpu.write_data(inst.operand1.as_ref().unwrap(), 0, value);
@@ -215,7 +215,7 @@ where
 
 pub(crate) fn proc_ret<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     if check_condition(inst.cond.as_ref(), cpu) {
         cpu.pc = cpu.stack_pop2();
@@ -224,7 +224,7 @@ where
 
 pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.interrupt_master_enable = true;
     proc_ret(cpu, inst);
@@ -232,7 +232,7 @@ where
 
 pub(crate) fn proc_rst<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value: u16 = match inst.opcode {
         0xC7 => 0x00,
@@ -251,7 +251,7 @@ where
 
 pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     let value = cpu.reg_a & operand;
@@ -262,7 +262,7 @@ where
 
 pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     let value = cpu.reg_a | operand;
@@ -273,7 +273,7 @@ where
 
 pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     let value = cpu.reg_a ^ operand;
@@ -284,35 +284,35 @@ where
 
 pub(crate) fn proc_di<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.interrupt_master_enable = false;
 }
 
 pub(crate) fn proc_ei<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.interrupt_master_enable = true;
 }
 
 pub(crate) fn proc_halt<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.halted = true;
 }
 
 pub(crate) fn proc_stop<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.stopped = true;
 }
 
 pub(crate) fn proc_rlca<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.reg_a;
     let c = (value >> 7) & 1;
@@ -324,7 +324,7 @@ where
 
 pub(crate) fn proc_rla<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.reg_a;
     let c = (value >> 7) & 1 == 1;
@@ -336,7 +336,7 @@ where
 
 pub(crate) fn proc_rrca<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.reg_a;
     let c = value & 1;
@@ -348,7 +348,7 @@ where
 
 pub(crate) fn proc_rra<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.reg_a;
     let c = value & 1 == 1;
@@ -360,7 +360,7 @@ where
 
 pub(crate) fn proc_daa<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let mut acc = 0;
     let mut c = false;
@@ -385,7 +385,7 @@ where
 
 pub(crate) fn proc_cpl<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.reg_a = !cpu.reg_a;
     cpu.set_flags(None, Some(true), Some(true), None);
@@ -393,21 +393,21 @@ where
 
 pub(crate) fn proc_scf<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.set_flags(None, Some(false), Some(false), Some(true));
 }
 
 pub(crate) fn proc_ccf<BUS>(cpu: &mut Cpu<BUS>)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     cpu.set_flags(None, Some(false), Some(false), Some(!cpu.flag_c()));
 }
 
 pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     let value = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
     let a = cpu.reg_a;
@@ -417,7 +417,7 @@ where
 
 pub(crate) fn proc_cb<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
 where
-    BUS: io::IO,
+    BUS: gb_io::IO,
 {
     fn decode_addressing_mode(value: u8) -> AddressingMode {
         match value {

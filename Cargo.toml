@@ -9,10 +9,10 @@ members = [
 ]
 
 [workspace.dependencies]
-cpu_sm83 = { path = "crates/cpu_sm83" }
-cartridge = { path = "crates/cartridge" }
-ppu = { path = "crates/ppu" }
-io = { path = "crates/io" }
-shared = { path = "crates/shared" }
+gb_cpu_sm83 = { path = "crates/cpu_sm83" }
+gb_cartridge = { path = "crates/cartridge" }
+gb_ppu = { path = "crates/ppu" }
+gb_io = { path = "crates/io" }
+gb_shared = { path = "crates/shared" }
 log = "0.4.17"
 anyhow = "1.0.66"

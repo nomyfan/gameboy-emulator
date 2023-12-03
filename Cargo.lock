@@ -29,28 +29,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "cartridge"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "io",
- "log",
- "shared",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cpu_sm83"
-version = "0.1.0"
-dependencies = [
- "io",
- "log",
-]
 
 [[package]]
 name = "env_logger"
@@ -69,14 +51,49 @@ dependencies = [
 name = "gb"
 version = "0.1.0"
 dependencies = [
- "cartridge",
- "cpu_sm83",
  "env_logger",
- "io",
+ "gb_cartridge",
+ "gb_cpu_sm83",
+ "gb_io",
+ "gb_ppu",
+ "gb_shared",
  "log",
- "ppu",
- "shared",
 ]
+
+[[package]]
+name = "gb_cartridge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "gb_io",
+ "gb_shared",
+ "log",
+]
+
+[[package]]
+name = "gb_cpu_sm83"
+version = "0.1.0"
+dependencies = [
+ "gb_io",
+ "log",
+]
+
+[[package]]
+name = "gb_io"
+version = "0.1.0"
+
+[[package]]
+name = "gb_ppu"
+version = "0.1.0"
+dependencies = [
+ "gb_io",
+ "gb_shared",
+ "log",
+]
+
+[[package]]
+name = "gb_shared"
+version = "0.1.0"
 
 [[package]]
 name = "hermit-abi"
@@ -92,10 +109,6 @@ name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
-
-[[package]]
-name = "io"
-version = "0.1.0"
 
 [[package]]
 name = "libc"
@@ -119,15 +132,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
-name = "ppu"
-version = "0.1.0"
-dependencies = [
- "io",
- "log",
- "shared",
-]
-
-[[package]]
 name = "regex"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -143,10 +147,6 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
-
-[[package]]
-name = "shared"
-version = "0.1.0"
 
 [[package]]
 name = "termcolor"

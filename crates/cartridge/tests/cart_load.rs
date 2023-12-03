@@ -1,4 +1,4 @@
-use cartridge::Cartridge;
+use gb_cartridge::Cartridge;
 
 const ROMS: [&str; 14] = [
     "../../roms/01-special.gb",

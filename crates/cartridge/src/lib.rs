@@ -413,7 +413,7 @@ impl Cartridge {
     }
 }
 
-impl io::IO for Cartridge {
+impl gb_io::IO for Cartridge {
     fn write(&mut self, addr: u16, value: u8) {
         self.mbc.write(addr, value)
     }

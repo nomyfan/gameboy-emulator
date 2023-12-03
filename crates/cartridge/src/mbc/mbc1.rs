@@ -1,5 +1,5 @@
 use super::{RamBank, RomBank};
-use shared::boxed_array_fn;
+use gb_shared::boxed_array_fn;
 
 pub(crate) struct Mbc1 {
     /// 00h = ROM Banking Mode (up to 8KiB RAM, 2MiB ROM) (default)

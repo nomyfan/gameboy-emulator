@@ -1,9 +1,9 @@
 [package]
-name = "ppu"
+name = "gb_ppu"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-io = { workspace = true }
-shared = { workspace = true }
+gb_io = { workspace = true }
+gb_shared = { workspace = true }
 log = { workspace = true }

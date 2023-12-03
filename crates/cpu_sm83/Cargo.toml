@@ -1,5 +1,5 @@
 [package]
-name = "cpu_sm83"
+name = "gb_cpu_sm83"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 log = { workspace = true }
-io = { workspace = true }
+gb_io = { workspace = true }

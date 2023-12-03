@@ -1,5 +1,5 @@
 [package]
-name = "cartridge"
+name = "gb_cartridge"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 log = { workspace = true }
-io = { workspace = true }
-shared = { workspace = true }
+gb_io = { workspace = true }
+gb_shared = { workspace = true }

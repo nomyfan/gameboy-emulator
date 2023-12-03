@@ -1,5 +1,5 @@
+use gb_shared::boxed_array;
 use log::debug;
-use shared::boxed_array;
 use std::{cell::RefCell, rc::Rc};
 
 struct WorkRam {
@@ -14,7 +14,7 @@ impl WorkRam {
     }
 }
 
-impl io::IO for WorkRam {
+impl gb_io::IO for WorkRam {
     fn write(&mut self, addr: u16, value: u8) {
         debug_assert!((0xC000..=0xDFFF).contains(&addr));
 
@@ -41,7 +41,7 @@ impl HighRam {
     }
 }
 
-impl io::IO for HighRam {
+impl gb_io::IO for HighRam {
     fn write(&mut self, addr: u16, value: u8) {
         debug_assert!((0xFF80..=0xFFFE).contains(&addr));
 
@@ -78,13 +78,13 @@ struct GameBoy {
     /// - Bit 1, LCD STAT
     /// - Bit 0, Vertical Blank
     interrupt_flag: u8,
-    cart: cartridge::Cartridge,
+    cart: gb_cartridge::Cartridge,
     wram: WorkRam,
     hram: HighRam,
-    ppu: Rc<RefCell<ppu::PPU>>,
+    ppu: Rc<RefCell<gb_ppu::PPU>>,
 }
 
-impl io::IO for GameBoy {
+impl gb_io::IO for GameBoy {
     fn write(&mut self, addr: u16, value: u8) {
         debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
 
@@ -255,9 +255,9 @@ fn main() {
     let mut rom_path = std::env::current_dir().unwrap();
     rom_path.push("roms");
     rom_path.push("cpu_instrs.gb");
-    let cart = cartridge::Cartridge::load(&rom_path).unwrap();
+    let cart = gb_cartridge::Cartridge::load(&rom_path).unwrap();
 
-    let ppu = Rc::new(RefCell::new(ppu::PPU::new()));
+    let ppu = Rc::new(RefCell::new(gb_ppu::PPU::new()));
     let gb = GameBoy {
         cart,
         wram: WorkRam::new(),
@@ -268,7 +268,7 @@ fn main() {
     };
 
     // TODO: 修改组成结构，现在的结构不合理。
-    let mut cpu = cpu_sm83::Cpu::new(gb);
+    let mut cpu = gb_cpu_sm83::Cpu::new(gb);
     // loop {
     //     cpu.execute();
     // }

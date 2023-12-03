@@ -1,5 +1,5 @@
+use gb_shared::boxed_array;
 use log::debug;
-use shared::boxed_array;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -168,7 +168,7 @@ impl PPU {
                         &self.oam[base_addr..base_addr + 4].try_into().unwrap(),
                     )
                 };
-                // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20ppu%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
+                // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
                 // The sprite intersects with current line.
                 if (self.lcd.ly + 16 >= sprite.y) && (self.lcd.ly + 16 < sprite.y + (8 * obj_size))
                 {
@@ -212,7 +212,7 @@ impl PPU {
     }
 }
 
-impl io::IO for PPU {
+impl gb_io::IO for PPU {
     fn write(&mut self, addr: u16, value: u8) {
         // TODO: block some writes while PPU operating on it.
         match addr {
