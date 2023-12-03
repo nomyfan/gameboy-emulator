@@ -79,11 +79,11 @@ where
     let opcode = inst.opcode;
     if opcode == 0xE0 || opcode == 0xE2 {
         // (a8), (C)
-        operand1 = 0xFF00 | operand1;
+        operand1 |= 0xFF00;
     }
     if opcode == 0xF0 || opcode == 0xF2 {
         // (a8), (C)
-        operand2 = 0xFF00 | operand2;
+        operand2 |= 0xFF00;
     }
     if opcode == 0xF8 {
         // SP+r8
@@ -374,7 +374,7 @@ where
         acc |= 0x06;
     }
 
-    if flag_c || (!flag_n && (a & 0xFF) > 99) {
+    if flag_c || (!flag_n && a > 99) {
         acc |= 0x60;
         c = true;
     }

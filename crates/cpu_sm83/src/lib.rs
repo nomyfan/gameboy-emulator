@@ -222,7 +222,7 @@ where
     fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
         /// Turn on or off for specific bit.
         fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
-            debug_assert!(bit <= 8 && bit >= 1);
+            debug_assert!((1..=8).contains(&bit));
 
             match flag {
                 None => value,

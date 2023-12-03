@@ -317,10 +317,9 @@ impl Display for CartridgeHeader {
         let licensee_code = match self.licensee_code {
             0x33 => OLD_LICENSEE_CODE
                 .iter()
-                .find(|c| c.0 as u16 == self.new_licensee_code)
-                .and_then(|c| Some(c.1)),
+                .find(|c| c.0 as u16 == self.new_licensee_code).map(|c| c.1),
             _ => {
-                NEW_LICENSEE_CODE.iter().find(|c| c.0 == self.licensee_code).and_then(|c| Some(c.1))
+                NEW_LICENSEE_CODE.iter().find(|c| c.0 == self.licensee_code).map(|c| c.1)
             }
         }
         .unwrap_or("Unkown");
@@ -332,8 +331,7 @@ impl Display for CartridgeHeader {
 
         let cart_type = CARRIAGE_TYPE
             .iter()
-            .find(|c| c.0 == self.cart_type)
-            .and_then(|c| Some(c.1))
+            .find(|c| c.0 == self.cart_type).map(|c| c.1)
             .unwrap_or("Unknown");
 
         let rom_size = 32 * (1 << self.rom_size); // KiB
@@ -403,8 +401,7 @@ impl Cartridge {
                 "MBC {} is not supported yet",
                 CARRIAGE_TYPE
                     .iter()
-                    .find(|c| c.0 == header.cart_type)
-                    .and_then(|c| Some(c.1))
+                    .find(|c| c.0 == header.cart_type).map(|c| c.1)
                     .unwrap_or("Unknown")
             ),
         };
