@@ -108,8 +108,9 @@ pub struct PPU {
     dots: u16,
 }
 
-impl Default for PPU {
-    fn default() -> Self {
+impl PPU {
+    pub fn new() -> Self {
+        // TODO: check init
         PPU {
             vram: boxed_array(0),
             tile_map: boxed_array(0),
@@ -118,12 +119,6 @@ impl Default for PPU {
             sprites: Vec::with_capacity(10), // There are up to 10 sprites.
             dots: 0,
         }
-    }
-}
-
-impl PPU {
-    pub fn new() -> Self {
-        Self::default()
     }
 
     fn mode(&self) -> Mode {
