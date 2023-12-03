@@ -1,6 +1,8 @@
+use log::debug;
 use shared::boxed_array;
 
 #[repr(C)]
+#[derive(Debug)]
 struct Sprite {
     y: u8,
     x: u8,
@@ -112,7 +114,7 @@ impl Default for PPU {
             vram: boxed_array(0),
             tile_map: boxed_array(0),
             oam: boxed_array(0),
-            lcd: LCD { lcdc: 0, stat: 0, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 },
+            lcd: LCD { lcdc: 0b10010001, stat: 0b10, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 },
             sprites: Vec::with_capacity(10), // There are up to 10 sprites.
             dots: 0,
         }
@@ -166,12 +168,10 @@ impl PPU {
                         &self.oam[base_addr..base_addr + 4].try_into().unwrap(),
                     )
                 };
-                let sprite_y_top = sprite.y - 16;
-                let sprite_y_bottom_exclusive = sprite_y_top + (8 * obj_size);
-
                 // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20ppu%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
                 // The sprite intersects with current line.
-                if (self.lcd.ly >= sprite_y_top) && (self.lcd.ly < sprite_y_bottom_exclusive) {
+                if (self.lcd.ly + 16 >= sprite.y) && (self.lcd.ly + 16 < sprite.y + (8 * obj_size))
+                {
                     self.sprites.push(sprite);
                 }
                 if self.sprites.len() >= 10 {
@@ -188,6 +188,7 @@ impl PPU {
             //
             // It's worth to mention that `sort_by` is stable.
             self.sprites.sort_by(|a, b| a.x.cmp(&b.x));
+            debug!("{:?}", &self.sprites);
         } else if self.dots == 80 {
             self.set_mode(Mode::Drawing);
         }

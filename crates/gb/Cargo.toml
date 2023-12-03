@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cpu_sm83 = { path = "../cpu_sm83" }
-cartridge = { path = "../cartridge" }
-io = { path = "../io" }
-log = "0.4.17"
+cpu_sm83 = { workspace = true }
+cartridge = { workspace = true }
+io = { workspace = true }
+log = { workspace = true }
 env_logger = "0.9.1"
-shared = { path = "../shared" }
-ppu = { path = "../ppu" }
+shared = { workspace = true }
+ppu = { workspace = true }

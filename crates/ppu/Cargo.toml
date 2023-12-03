@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-io = { path = "../io" }
-shared = { path = "../shared" }
+io = { workspace = true }
+shared = { workspace = true }
+log = { workspace = true }

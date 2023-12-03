@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.66"
-log = "0.4.17"
-io = { path = "../io" }
-shared = { path = "../shared" }
+anyhow = { workspace = true }
+log = { workspace = true }
+io = { workspace = true }
+shared = { workspace = true }
