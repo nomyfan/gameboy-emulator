@@ -3,7 +3,6 @@ members = [
   "crates/cpu_sm83",
   "crates/gb",
   "crates/cartridge",
-  "crates/io",
   "crates/shared",
   "crates/ppu",
 ]
@@ -12,7 +11,6 @@ members = [
 gb_cpu_sm83 = { path = "crates/cpu_sm83" }
 gb_cartridge = { path = "crates/cartridge" }
 gb_ppu = { path = "crates/ppu" }
-gb_io = { path = "crates/io" }
 gb_shared = { path = "crates/shared" }
 log = "0.4.17"
 anyhow = "1.0.66"

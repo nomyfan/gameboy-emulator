@@ -8,5 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 log = { workspace = true }
-gb_io = { workspace = true }
 gb_shared = { workspace = true }

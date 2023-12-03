@@ -15,3 +15,8 @@ pub fn boxed_array_fn<T: Copy, F: Fn(usize) -> T, const SIZE: usize>(init_fn: F)
 
     unsafe { Box::from_raw(ptr) }
 }
+
+pub trait Memory {
+    fn write(&mut self, addr: u16, value: u8);
+    fn read(&self, addr: u16) -> u8;
+}

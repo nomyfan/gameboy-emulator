@@ -54,7 +54,6 @@ dependencies = [
  "env_logger",
  "gb_cartridge",
  "gb_cpu_sm83",
- "gb_io",
  "gb_ppu",
  "gb_shared",
  "log",
@@ -65,7 +64,6 @@ name = "gb_cartridge"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "gb_io",
  "gb_shared",
  "log",
 ]
@@ -74,19 +72,14 @@ dependencies = [
 name = "gb_cpu_sm83"
 version = "0.1.0"
 dependencies = [
- "gb_io",
+ "gb_shared",
  "log",
 ]
-
-[[package]]
-name = "gb_io"
-version = "0.1.0"
 
 [[package]]
 name = "gb_ppu"
 version = "0.1.0"
 dependencies = [
- "gb_io",
  "gb_shared",
  "log",
 ]

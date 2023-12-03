@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 log = { workspace = true }
-gb_io = { workspace = true }
+gb_shared = { workspace = true }

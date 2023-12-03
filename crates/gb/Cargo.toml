@@ -9,7 +9,6 @@ edition = "2021"
 gb_ppu = { workspace = true }
 gb_cpu_sm83 = { workspace = true }
 gb_cartridge = { workspace = true }
-gb_io = { workspace = true }
 gb_shared = { workspace = true }
 log = { workspace = true }
 env_logger = "0.9.1"

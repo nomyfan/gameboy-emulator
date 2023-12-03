@@ -14,7 +14,7 @@ impl WorkRam {
     }
 }
 
-impl gb_io::IO for WorkRam {
+impl gb_shared::Memory for WorkRam {
     fn write(&mut self, addr: u16, value: u8) {
         debug_assert!((0xC000..=0xDFFF).contains(&addr));
 
@@ -41,7 +41,7 @@ impl HighRam {
     }
 }
 
-impl gb_io::IO for HighRam {
+impl gb_shared::Memory for HighRam {
     fn write(&mut self, addr: u16, value: u8) {
         debug_assert!((0xFF80..=0xFFFE).contains(&addr));
 
@@ -84,7 +84,7 @@ struct GameBoy {
     ppu: Rc<RefCell<gb_ppu::PPU>>,
 }
 
-impl gb_io::IO for GameBoy {
+impl gb_shared::Memory for GameBoy {
     fn write(&mut self, addr: u16, value: u8) {
         debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
 

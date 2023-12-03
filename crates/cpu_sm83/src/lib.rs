@@ -8,7 +8,7 @@ use log::debug;
 
 pub struct Cpu<BUS>
 where
-    BUS: gb_io::IO,
+    BUS: gb_shared::Memory,
 {
     /// Accumulator register
     pub reg_a: u8,
@@ -54,7 +54,7 @@ where
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
 where
-    BUS: gb_io::IO,
+    BUS: gb_shared::Memory,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Cpu")
@@ -86,7 +86,7 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
 
 impl<BUS> Cpu<BUS>
 where
-    BUS: gb_io::IO,
+    BUS: gb_shared::Memory,
 {
     pub fn new(bus: BUS) -> Self {
         // TODO init

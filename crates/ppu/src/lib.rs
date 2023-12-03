@@ -207,7 +207,7 @@ impl PPU {
     }
 }
 
-impl gb_io::IO for PPU {
+impl gb_shared::Memory for PPU {
     fn write(&mut self, addr: u16, value: u8) {
         // TODO: block some writes while PPU operating on it.
         match addr {
