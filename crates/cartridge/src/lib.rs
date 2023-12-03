@@ -370,10 +370,10 @@ pub struct Cartridge {
     mbc: Box<dyn mbc::Mbc>,
 }
 
-impl Cartridge {
-    pub fn load(path: &Path) -> Result<Cartridge> {
-        let rom = std::fs::read(path)?;
+impl TryFrom<Vec<u8>> for Cartridge {
+    type Error = anyhow::Error;
 
+    fn try_from(rom: Vec<u8>) -> std::result::Result<Self, Self::Error> {
         let mut header = unsafe {
             std::mem::transmute_copy::<[u8; 0x50], CartridgeHeader>(
                 &rom[0x0100..0x0150].try_into().unwrap(),
@@ -386,7 +386,7 @@ impl Cartridge {
             .iter()
             .fold(0u8, |checksum, v| checksum.wrapping_sub(v.wrapping_add(1)));
 
-        debug_assert_eq!(checksum, header.checksum);
+        assert_eq!(checksum, header.checksum);
 
         debug!("{}", &header);
 
@@ -404,6 +404,13 @@ impl Cartridge {
         };
 
         Ok(Cartridge { header, rom, mbc })
+    }
+}
+
+impl Cartridge {
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let rom = std::fs::read(path.as_ref())?;
+        Self::try_from(rom)
     }
 }
 

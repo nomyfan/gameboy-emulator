@@ -2,6 +2,8 @@ mod instructions;
 mod interrupt;
 mod proc;
 
+use std::{cell::RefCell, rc::Rc};
+
 use instructions::{get_instruction, AddressingMode, InstructionType, Register};
 use interrupt::INTERRUPTS;
 use log::debug;
@@ -48,7 +50,7 @@ where
     /// Set by instruction STOP
     pub stopped: bool,
 
-    bus: BUS,
+    bus: Rc<RefCell<BUS>>,
     // TODO
 }
 
@@ -88,7 +90,7 @@ impl<BUS> Cpu<BUS>
 where
     BUS: gb_shared::Memory,
 {
-    pub fn new(bus: BUS) -> Self {
+    pub fn new(bus: Rc<RefCell<BUS>>) -> Self {
         // TODO init
         Self {
             reg_a: 0xB0,
@@ -110,11 +112,11 @@ where
     }
 
     fn bus_read(&self, addr: u16) -> u8 {
-        self.bus.read(addr)
+        self.bus.borrow().read(addr)
     }
 
     fn bus_write(&mut self, addr: u16, value: u8) {
-        self.bus.write(addr, value);
+        self.bus.borrow_mut().write(addr, value);
     }
 
     pub(crate) fn fetch_data(&mut self, am: &AddressingMode) -> u16 {

@@ -1,4 +1,8 @@
+use gb_cartridge::Cartridge;
+use gb_cpu_sm83::Cpu;
+use gb_ppu::PPU;
 use gb_shared::boxed_array;
+use gb_shared::Memory;
 use log::debug;
 use std::{cell::RefCell, rc::Rc};
 
@@ -14,7 +18,7 @@ impl WorkRam {
     }
 }
 
-impl gb_shared::Memory for WorkRam {
+impl Memory for WorkRam {
     fn write(&mut self, addr: u16, value: u8) {
         debug_assert!((0xC000..=0xDFFF).contains(&addr));
 
@@ -41,7 +45,7 @@ impl HighRam {
     }
 }
 
-impl gb_shared::Memory for HighRam {
+impl Memory for HighRam {
     fn write(&mut self, addr: u16, value: u8) {
         debug_assert!((0xFF80..=0xFFFE).contains(&addr));
 
@@ -57,7 +61,7 @@ impl gb_shared::Memory for HighRam {
     }
 }
 
-struct GameBoy {
+struct Bus {
     /// R/W. Set the bit to be 1 if the corresponding
     /// interrupt is enabled. Lower bits have higher
     /// priorities.
@@ -78,13 +82,13 @@ struct GameBoy {
     /// - Bit 1, LCD STAT
     /// - Bit 0, Vertical Blank
     interrupt_flag: u8,
-    cart: gb_cartridge::Cartridge,
+    cart: Cartridge,
     wram: WorkRam,
     hram: HighRam,
-    ppu: Rc<RefCell<gb_ppu::PPU>>,
+    ppu: PPU,
 }
 
-impl gb_shared::Memory for GameBoy {
+impl Memory for Bus {
     fn write(&mut self, addr: u16, value: u8) {
         debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
 
@@ -95,7 +99,7 @@ impl gb_shared::Memory for GameBoy {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu.borrow_mut().write(addr, value);
+                self.ppu.write(addr, value);
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -108,7 +112,7 @@ impl gb_shared::Memory for GameBoy {
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
                 // OAM
-                self.ppu.borrow_mut().write(addr, value);
+                self.ppu.write(addr, value);
             }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
@@ -174,7 +178,7 @@ impl gb_shared::Memory for GameBoy {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu.borrow().read(addr)
+                self.ppu.read(addr)
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -187,7 +191,7 @@ impl gb_shared::Memory for GameBoy {
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
                 // OAM
-                self.ppu.borrow().read(addr)
+                self.ppu.read(addr)
             }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
@@ -249,45 +253,55 @@ impl gb_shared::Memory for GameBoy {
     }
 }
 
+impl Bus {
+    fn step(&mut self, cycles: u8) {
+        // TODO: cycles
+        self.ppu.step();
+    }
+}
+
+struct GameBoy {
+    bus: Rc<RefCell<Bus>>,
+    cpu: Cpu<Bus>,
+}
+
+impl GameBoy {
+    fn new(cart: Cartridge) -> Self {
+        let bus = Rc::new(RefCell::new(Bus {
+            cart,
+            wram: WorkRam::new(),
+            hram: HighRam::new(),
+            interrupt_enable: 0,
+            interrupt_flag: 0,
+            ppu: PPU::new(),
+        }));
+
+        let cpu = Cpu::new(bus.clone());
+        GameBoy { bus, cpu }
+    }
+}
+
 fn main() {
     env_logger::init();
 
-    let mut rom_path = std::env::current_dir().unwrap();
-    rom_path.push("roms");
-    rom_path.push("cpu_instrs.gb");
-    let cart = gb_cartridge::Cartridge::load(&rom_path).unwrap();
+    let cart = Cartridge::load(std::env::current_dir().unwrap().join("roms").join("cpu_instrs.gb"))
+        .unwrap();
 
-    let ppu = Rc::new(RefCell::new(gb_ppu::PPU::new()));
-    let gb = GameBoy {
-        cart,
-        wram: WorkRam::new(),
-        hram: HighRam::new(),
-        interrupt_enable: 0,
-        interrupt_flag: 0,
-        ppu: ppu.clone(),
-    };
-
-    // TODO: 修改组成结构，现在的结构不合理。
-    let mut cpu = gb_cpu_sm83::Cpu::new(gb);
-    // loop {
-    //     cpu.execute();
-    // }
+    let mut gb = GameBoy::new(cart);
     for _ in 1..20 {
-        debug!("{:?}", &cpu);
+        debug!("{:?}", &gb.cpu);
 
-        if cpu.stopped {
+        if gb.cpu.stopped {
             println!("Stopping...");
             // TODO
             std::process::exit(0);
         }
 
-        if cpu.interrupt_master_enable {
-            cpu.handle_interrupts();
+        if gb.cpu.interrupt_master_enable {
+            gb.cpu.handle_interrupts();
         }
 
-        let cycles = cpu.step();
-        for _ in 0..cycles {
-            ppu.borrow_mut().step();
-        }
+        let cycles = gb.cpu.step();
+        gb.bus.borrow_mut().step(cycles);
     }
 }

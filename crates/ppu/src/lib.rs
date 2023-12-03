@@ -11,7 +11,7 @@ struct Sprite {
 }
 
 #[repr(u8)]
-enum Mode {
+enum LCDMode {
     /// OAM is inaccessible(except DMA) during this period.
     OamScan = 2,
     /// VRAM is inaccessible during this period.
@@ -21,7 +21,7 @@ enum Mode {
     VBlank = 1,
 }
 
-impl From<&LCD> for Mode {
+impl From<&LCD> for LCDMode {
     fn from(lcd: &LCD) -> Self {
         let value = lcd.stat & 0b11;
         unsafe { std::mem::transmute::<[u8; 1], Self>([value]) }
@@ -121,11 +121,11 @@ impl PPU {
         }
     }
 
-    fn mode(&self) -> Mode {
-        Mode::from(&self.lcd)
+    fn mode(&self) -> LCDMode {
+        LCDMode::from(&self.lcd)
     }
 
-    fn set_mode(&mut self, mode: Mode) {
+    fn set_mode(&mut self, mode: LCDMode) {
         // Unset bit 0 and bit 1
         let mut lcdc = self.lcd.lcdc & (!0b11);
         // Set bit 0 and bit 1
@@ -135,10 +135,10 @@ impl PPU {
 
     pub fn step(&mut self) {
         match self.mode() {
-            Mode::OamScan => self.step_oam_scan(),
-            Mode::Drawing => self.step_drawing(),
-            Mode::HBlank => self.step_hblank(),
-            Mode::VBlank => self.step_vblank(),
+            LCDMode::OamScan => self.step_oam_scan(),
+            LCDMode::Drawing => self.step_drawing(),
+            LCDMode::HBlank => self.step_hblank(),
+            LCDMode::VBlank => self.step_vblank(),
         }
     }
 
@@ -185,7 +185,7 @@ impl PPU {
             self.sprites.sort_by(|a, b| a.x.cmp(&b.x));
             debug!("{:?}", &self.sprites);
         } else if self.dots == 80 {
-            self.set_mode(Mode::Drawing);
+            self.set_mode(LCDMode::Drawing);
         }
     }
 
