@@ -10,6 +10,14 @@ struct Sprite {
     attrs: u8,
 }
 
+enum FifoState {
+    GetTileIndex,
+    GetTileDataLow,
+    GetTileDataHigh,
+    Sleep,
+    Push,
+}
+
 #[repr(u8)]
 enum LCDMode {
     /// OAM is inaccessible(except DMA) during this period.
@@ -104,8 +112,13 @@ pub struct PPU {
     lcd: LCD,
     // Up to 10 sprites per scanline.
     sprites: Vec<Sprite>,
-    // Up to 456 dots per scanline.
-    dots: u16,
+    /// One dot equals 4 CPU cycles. It's 2 cycles when it's CGB
+    /// and CPU is in double speed mode.
+    ///
+    /// There are 456 dots per scanline, so there are 70224(456 * 154)
+    /// dots per frame.
+    /// TODO: reset this to zero when enter new scanline.
+    scanline_dots: u16,
 }
 
 impl PPU {
@@ -117,7 +130,7 @@ impl PPU {
             oam: boxed_array(0),
             lcd: LCD { lcdc: 0b10010001, stat: 0b10, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 },
             sprites: Vec::with_capacity(10), // There are up to 10 sprites.
-            dots: 0,
+            scanline_dots: 0,
         }
     }
 
@@ -153,8 +166,8 @@ impl PPU {
 
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
-        self.dots += 1; // TODO cycles
-        if self.dots == 1 {
+        self.scanline_dots += 1;
+        if self.scanline_dots == 1 {
             let obj_size = self.obj_size();
             for sprite_idx in 0..40usize {
                 let sprite = unsafe {
@@ -184,7 +197,7 @@ impl PPU {
             // It's worth to mention that `sort_by` is stable.
             self.sprites.sort_by(|a, b| a.x.cmp(&b.x));
             debug!("{:?}", &self.sprites);
-        } else if self.dots == 80 {
+        } else if self.scanline_dots == 80 {
             self.set_mode(LCDMode::Drawing);
         }
     }

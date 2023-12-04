@@ -255,8 +255,11 @@ impl Memory for Bus {
 
 impl Bus {
     fn step(&mut self, cycles: u8) {
-        // TODO: cycles
-        self.ppu.step();
+        for _ in 0..cycles {
+            for _ in 0..4 {
+                self.ppu.step();
+            }
+        }
     }
 }
 
