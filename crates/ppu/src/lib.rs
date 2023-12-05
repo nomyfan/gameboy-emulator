@@ -8,7 +8,7 @@ const RESOLUTION_X: u8 = 160;
 
 /// https://gbdev.io/pandocs/OAM.html
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 struct Sprite {
     /// Sprite's Y position on the screen + 16.
     y: u8,
@@ -49,20 +49,50 @@ impl TileDataBuilder {
         TileDataBuilder { index, _low: None, _high: None }
     }
 
-    fn low(mut self, data: [u8; 16]) -> Self {
+    fn low(&mut self, data: [u8; 16]) -> &mut Self {
         self._low = Some(data);
         self
     }
 
-    fn high(mut self, data: [u8; 16]) -> Self {
+    fn high(&mut self, data: [u8; 16]) -> &mut Self {
         self._high = Some(data);
         self
     }
 
-    fn build(mut self) -> TileData {
+    fn build(self) -> TileData {
         let Some(low) = self._low else { panic!("low data is not set") };
         let Some(high) = self._high else { panic!("high data is not set") };
         TileData { index: self.index, low, high }
+    }
+}
+
+#[derive(Debug, Default)]
+struct SpriteTileDataBuilder {
+    _sprite: Sprite,
+    _low: Option<[u8; 16]>,
+    _high: Option<[u8; 16]>,
+}
+
+impl SpriteTileDataBuilder {
+    fn new(sprite: Sprite) -> Self {
+        SpriteTileDataBuilder { _sprite: sprite, _low: None, _high: None }
+    }
+
+    fn low(&mut self, data: [u8; 16]) -> &mut Self {
+        self._low = Some(data);
+        self
+    }
+
+    fn high(&mut self, data: [u8; 16]) -> &mut Self {
+        self._high = Some(data);
+        self
+    }
+
+    fn build(self) -> TileData {
+        let Some(low) = self._low else { panic!("low data is not set") };
+        let Some(high) = self._high else { panic!("high data is not set") };
+        // TODO: apply attributes
+        TileData { index: self._sprite.tile_index, low, high }
     }
 }
 
@@ -76,11 +106,9 @@ struct PPUWorkState {
     /// Y coordination of current pixel.
     /// scy + ly
     map_y: u8,
-    wip_bgw_tile: TileDataBuilder,
-    /// Sprite for current tile.
-    wip_sprite: Option<Sprite>,
+    bgw_tile_builder: TileDataBuilder,
     /// Sprite tile data
-    wip_sprite_tile: Option<TileDataBuilder>,
+    sprite_tile_builder: Option<SpriteTileDataBuilder>,
 }
 
 #[repr(u8)]
@@ -332,7 +360,7 @@ impl PPU {
                                 self.work_state.map_y,
                                 true,
                             );
-                            self.work_state.wip_bgw_tile = TileDataBuilder::new(index);
+                            self.work_state.bgw_tile_builder = TileDataBuilder::new(index);
                         }
                     } else {
                         let index = self.get_tile_index(
@@ -340,7 +368,7 @@ impl PPU {
                             self.work_state.map_y,
                             false,
                         );
-                        self.work_state.wip_bgw_tile = TileDataBuilder::new(index);
+                        self.work_state.bgw_tile_builder = TileDataBuilder::new(index);
                     }
                 }
                 // Sprite is enabled.
@@ -350,7 +378,8 @@ impl PPU {
                         self.work_state.scanline_x as i16 >= x
                             && (self.work_state.scanline_x as i16) < x + 8
                     }) {
-                        self.work_state.wip_sprite = Some(*sprite);
+                        self.work_state.sprite_tile_builder =
+                            Some(SpriteTileDataBuilder::new(*sprite));
                     }
                 }
 
@@ -358,11 +387,27 @@ impl PPU {
                 self.work_state.render_status = RenderStatus::GetTileDataLow;
             }
             RenderStatus::GetTileDataLow => {
-                todo!("get tile data low");
+                self.work_state
+                    .bgw_tile_builder
+                    .low(self.get_tile_data(self.work_state.bgw_tile_builder.index, false));
+
+                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
+                    builder.low(self.get_tile_data(builder._sprite.tile_index, true));
+                    self.work_state.sprite_tile_builder = Some(builder);
+                }
+
                 self.work_state.render_status = RenderStatus::GetTileDataHigh;
             }
             RenderStatus::GetTileDataHigh => {
-                todo!("get tile data high");
+                self.work_state
+                    .bgw_tile_builder
+                    .high(self.get_tile_data(self.work_state.bgw_tile_builder.index + 1, false));
+
+                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
+                    builder.high(self.get_tile_data(builder._sprite.tile_index + 1, true));
+                    self.work_state.sprite_tile_builder = Some(builder);
+                }
+
                 self.work_state.render_status = RenderStatus::Sleep;
             }
             RenderStatus::Sleep => {
