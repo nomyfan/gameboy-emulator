@@ -16,66 +16,69 @@ pub(crate) trait TileDataBuilder {
 #[derive(Debug, Default)]
 pub(crate) struct BackgroundTileDataBuilder {
     pub(crate) index: u8,
-    _low: Option<[u8; 16]>,
-    _high: Option<[u8; 16]>,
+    low: Option<[u8; 16]>,
+    high: Option<[u8; 16]>,
 }
 
 impl BackgroundTileDataBuilder {
     pub(crate) fn new(index: u8) -> Self {
-        BackgroundTileDataBuilder { index, _low: None, _high: None }
+        BackgroundTileDataBuilder { index, low: None, high: None }
     }
 }
 
 impl TileDataBuilder for BackgroundTileDataBuilder {
     fn low(&mut self, data: [u8; 16]) -> &mut Self {
-        self._low = Some(data);
+        self.low = Some(data);
         self
     }
 
     fn high(&mut self, data: [u8; 16]) -> &mut Self {
-        self._high = Some(data);
+        self.high = Some(data);
         self
     }
 
     fn build(self) -> TileData {
-        let Some(low) = self._low else { panic!("low data is not set") };
-        let Some(high) = self._high else { panic!("high data is not set") };
+        let Some(low) = self.low else { panic!("low data is not set") };
+        let Some(high) = self.high else { panic!("high data is not set") };
         TileData { index: self.index, low, high }
     }
 }
 
 #[derive(Debug, Default)]
 pub(crate) struct SpriteTileDataBuilder {
-    _sprite: Sprite,
-    _low: Option<[u8; 16]>,
-    _high: Option<[u8; 16]>,
+    sprite: Sprite,
+    tile_index: u8,
+    low: Option<[u8; 16]>,
+    high: Option<[u8; 16]>,
 }
 
 impl SpriteTileDataBuilder {
-    pub(crate) fn new(sprite: Sprite) -> Self {
-        SpriteTileDataBuilder { _sprite: sprite, _low: None, _high: None }
+    pub(crate) fn new(sprite: Sprite, object_size: u8) -> Self {
+        let tile_index =
+            if object_size == 16 { sprite.tile_index & 0b1111_1110 } else { sprite.tile_index };
+        SpriteTileDataBuilder { sprite, low: None, high: None, tile_index }
     }
 
     pub(crate) fn tile_index(&self) -> u8 {
-        self._sprite.tile_index
+        self.tile_index
     }
 }
 
 impl TileDataBuilder for SpriteTileDataBuilder {
     fn low(&mut self, data: [u8; 16]) -> &mut Self {
-        self._low = Some(data);
+        self.low = Some(data);
         self
     }
 
     fn high(&mut self, data: [u8; 16]) -> &mut Self {
-        self._high = Some(data);
+        self.high = Some(data);
         self
     }
 
     fn build(self) -> TileData {
-        let Some(low) = self._low else { panic!("low data is not set") };
-        let Some(high) = self._high else { panic!("high data is not set") };
+        let Some(low) = self.low else { panic!("low data is not set") };
+        let Some(high) = self.high else { panic!("high data is not set") };
         // TODO: apply attributes
-        TileData { index: self._sprite.tile_index, low, high }
+        TileData { index: self.tile_index(), low, high }
     }
 }

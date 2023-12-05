@@ -1,5 +1,6 @@
 mod config;
 mod lcd;
+mod pixel;
 mod sprite;
 mod tile;
 
@@ -149,19 +150,10 @@ impl PPU {
         }
     }
 
-    #[inline]
-    fn obj_size(&self) -> u8 {
-        if self.lcd.lcdc & 0b100 != 0 {
-            2 // 8x16
-        } else {
-            1 // 8x8
-        }
-    }
-
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
         if self.scanline_dots == 1 {
-            let obj_size = self.obj_size();
+            let obj_size = self.lcd.object_size();
             for sprite_idx in 0..40usize {
                 let sprite = unsafe {
                     let base_addr = sprite_idx * 4;
@@ -171,8 +163,7 @@ impl PPU {
                 };
                 // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
                 // The sprite intersects with current line.
-                if (self.lcd.ly + 16 >= sprite.y) && (self.lcd.ly + 16 < sprite.y + (8 * obj_size))
-                {
+                if (self.lcd.ly + 16 >= sprite.y) && (self.lcd.ly + 16 < sprite.y + obj_size) {
                     self.scanline_sprites.push(sprite);
                 }
                 // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
@@ -248,7 +239,7 @@ impl PPU {
                             && (self.work_state.scanline_x as i16) < x + 8
                     }) {
                         self.work_state.sprite_tile_builder =
-                            Some(SpriteTileDataBuilder::new(*sprite));
+                            Some(SpriteTileDataBuilder::new(*sprite, self.lcd.object_size()));
                     }
                 }
 

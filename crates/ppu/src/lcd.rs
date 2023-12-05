@@ -1,3 +1,5 @@
+use gb_shared::is_bit_set;
+
 #[repr(u8)]
 pub(crate) enum LCDMode {
     /// OAM is inaccessible(except DMA) during this period.
@@ -59,5 +61,16 @@ pub(crate) struct LCD {
 impl Default for LCD {
     fn default() -> Self {
         Self { lcdc: 0b10010001, stat: 0b10, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 }
+    }
+}
+
+impl LCD {
+    #[inline]
+    pub(crate) fn object_size(&self) -> u8 {
+        if is_bit_set!(self.lcdc, 2) {
+            16
+        } else {
+            8
+        }
     }
 }
