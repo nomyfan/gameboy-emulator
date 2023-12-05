@@ -1,27 +1,19 @@
+mod config;
+mod lcd;
+mod sprite;
+mod tile;
+
+use config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use gb_shared::{boxed_array, is_bit_set};
+use lcd::{LCDMode, LCD};
 use log::debug;
-
-const DOTS_PER_SCANLINE: u16 = 456;
-const SCANLINES_PER_FRAME: u8 = 154;
-const RESOLUTION_Y: u8 = 144;
-const RESOLUTION_X: u8 = 160;
-
-/// https://gbdev.io/pandocs/OAM.html
-#[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
-struct Sprite {
-    /// Sprite's Y position on the screen + 16.
-    y: u8,
-    /// Sprite's X position on the screen + 8.
-    x: u8,
-    tile_index: u8,
-    attrs: u8,
-}
+use sprite::Sprite;
+use tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileDataBuilder};
 
 /// The first fourth steps takes 2 dots each.
 /// The fifth step is attempted every dot until it succeeds.
 #[derive(Debug, Default)]
-enum RenderStatus {
+pub(crate) enum RenderStatus {
     #[default]
     GetTileIndex,
     GetTileDataLow,
@@ -31,73 +23,7 @@ enum RenderStatus {
 }
 
 #[derive(Debug, Default)]
-struct TileData {
-    index: u8,
-    low: [u8; 16],
-    high: [u8; 16],
-}
-
-#[derive(Debug, Default)]
-struct TileDataBuilder {
-    index: u8,
-    _low: Option<[u8; 16]>,
-    _high: Option<[u8; 16]>,
-}
-
-impl TileDataBuilder {
-    fn new(index: u8) -> Self {
-        TileDataBuilder { index, _low: None, _high: None }
-    }
-
-    fn low(&mut self, data: [u8; 16]) -> &mut Self {
-        self._low = Some(data);
-        self
-    }
-
-    fn high(&mut self, data: [u8; 16]) -> &mut Self {
-        self._high = Some(data);
-        self
-    }
-
-    fn build(self) -> TileData {
-        let Some(low) = self._low else { panic!("low data is not set") };
-        let Some(high) = self._high else { panic!("high data is not set") };
-        TileData { index: self.index, low, high }
-    }
-}
-
-#[derive(Debug, Default)]
-struct SpriteTileDataBuilder {
-    _sprite: Sprite,
-    _low: Option<[u8; 16]>,
-    _high: Option<[u8; 16]>,
-}
-
-impl SpriteTileDataBuilder {
-    fn new(sprite: Sprite) -> Self {
-        SpriteTileDataBuilder { _sprite: sprite, _low: None, _high: None }
-    }
-
-    fn low(&mut self, data: [u8; 16]) -> &mut Self {
-        self._low = Some(data);
-        self
-    }
-
-    fn high(&mut self, data: [u8; 16]) -> &mut Self {
-        self._high = Some(data);
-        self
-    }
-
-    fn build(self) -> TileData {
-        let Some(low) = self._low else { panic!("low data is not set") };
-        let Some(high) = self._high else { panic!("high data is not set") };
-        // TODO: apply attributes
-        TileData { index: self._sprite.tile_index, low, high }
-    }
-}
-
-#[derive(Debug, Default)]
-struct PPUWorkState {
+pub(crate) struct PPUWorkState {
     render_status: RenderStatus,
     scanline_x: u8,
     /// X coordination of current pixel.
@@ -106,67 +32,9 @@ struct PPUWorkState {
     /// Y coordination of current pixel.
     /// scy + ly
     map_y: u8,
-    bgw_tile_builder: TileDataBuilder,
+    bgw_tile_builder: BackgroundTileDataBuilder,
     /// Sprite tile data
     sprite_tile_builder: Option<SpriteTileDataBuilder>,
-}
-
-#[repr(u8)]
-enum LCDMode {
-    /// OAM is inaccessible(except DMA) during this period.
-    Scan = 2,
-    /// VRAM is inaccessible during this period.
-    Render = 3,
-    HBlank = 0,
-    /// Everything is accessible during this period.
-    VBlank = 1,
-}
-
-impl From<&LCD> for LCDMode {
-    fn from(lcd: &LCD) -> Self {
-        let value = lcd.stat & 0b11;
-        unsafe { std::mem::transmute::<[u8; 1], Self>([value]) }
-    }
-}
-
-struct LCD {
-    /// LCD control, at 0xFF40.
-    /// - Bit 0: BG and Window enable/priority, 0=off, 1=on.
-    /// - Bit 1: OBJ enable, 0=off, 1=on.
-    /// - Bit 2: OBJ size, 0=8x8, 1=8x16.
-    /// - Bit 3: BG tile map area, 0=0x9800-0x9BFF, 1=0x9C00-0x9FFF.
-    /// - Bit 4: BG and Window tile data area(VRAM), 0=0x8800-0x97FF, 1=0x8000-0x8FFF.
-    /// - Bit 5: Window enable, 0=off, 1=on
-    /// - Bit 6: Window tile map area, 0=0x9800-0x9BFF, 1=0x9C00-0x9FFF.
-    /// - Bit 7: LCD and PPU enable 0=off, 1=on.
-    lcdc: u8,
-    /// LCD status, at 0xFF41.
-    /// TODO: since bit 0-2 is read only, we need to ignore write operations on these bits.
-    /// - Bit 6 - LYC=LY STAT Interrupt source         (1=Enable) (Read/Write)
-    /// - Bit 5 - Mode 2 OAM STAT Interrupt source     (1=Enable) (Read/Write)
-    /// - Bit 4 - Mode 1 VBlank STAT Interrupt source  (1=Enable) (Read/Write)
-    /// - Bit 3 - Mode 0 HBlank STAT Interrupt source  (1=Enable) (Read/Write)
-    /// - Bit 2 - LYC=LY Flag                          (0=Different, 1=Equal) (Read Only)
-    /// - Bit 1-0 - Mode Flag                          (Mode 0-3, see below) (Read Only)
-    ///           0: HBlank
-    ///           1: VBlank
-    ///           2: Searching OAM
-    ///           3: Transferring Data to LCD Controller
-    stat: u8,
-    /// LCD Y coordinate, at 0xFF44.
-    /// Read only, it represents current scanline.
-    ly: u8,
-    /// LCD Y compare, at 0xFF45.
-    /// When LYC == LY, LYC=LY flag is set, and (if enabled) a STAT interrupt is requested.
-    lyc: u8,
-    /// Window Y position, at 0xFF4A.
-    wy: u8,
-    /// Window X position plus 7, at 0xFF4B.
-    wx: u8,
-    /// Viewport Y position, at 0xFF42.
-    scy: u8,
-    /// Viewport X position, at 0xFF43.
-    scx: u8,
 }
 
 pub struct PPU {
@@ -227,7 +95,7 @@ impl PPU {
         PPU {
             vram: boxed_array(0),
             oam: boxed_array(0),
-            lcd: LCD { lcdc: 0b10010001, stat: 0b10, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 },
+            lcd: LCD::default(),
             scanline_sprites: Vec::with_capacity(10), // There are up to 10 sprites.
             scanline_dots: 0,
             work_state: PPUWorkState::default(),
@@ -360,7 +228,8 @@ impl PPU {
                                 self.work_state.map_y,
                                 true,
                             );
-                            self.work_state.bgw_tile_builder = TileDataBuilder::new(index);
+                            self.work_state.bgw_tile_builder =
+                                BackgroundTileDataBuilder::new(index);
                         }
                     } else {
                         let index = self.get_tile_index(
@@ -368,7 +237,7 @@ impl PPU {
                             self.work_state.map_y,
                             false,
                         );
-                        self.work_state.bgw_tile_builder = TileDataBuilder::new(index);
+                        self.work_state.bgw_tile_builder = BackgroundTileDataBuilder::new(index);
                     }
                 }
                 // Sprite is enabled.
@@ -392,7 +261,7 @@ impl PPU {
                     .low(self.get_tile_data(self.work_state.bgw_tile_builder.index, false));
 
                 if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
-                    builder.low(self.get_tile_data(builder._sprite.tile_index, true));
+                    builder.low(self.get_tile_data(builder.tile_index(), true));
                     self.work_state.sprite_tile_builder = Some(builder);
                 }
 
@@ -404,7 +273,7 @@ impl PPU {
                     .high(self.get_tile_data(self.work_state.bgw_tile_builder.index + 1, false));
 
                 if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
-                    builder.high(self.get_tile_data(builder._sprite.tile_index + 1, true));
+                    builder.high(self.get_tile_data(builder.tile_index() + 1, true));
                     self.work_state.sprite_tile_builder = Some(builder);
                 }
 
@@ -486,15 +355,5 @@ impl gb_shared::Memory for PPU {
             0xFF4B => self.lcd.wx,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Sprite;
-
-    #[test]
-    fn sprite_size() {
-        assert_eq!(4, std::mem::size_of::<Sprite>())
     }
 }
