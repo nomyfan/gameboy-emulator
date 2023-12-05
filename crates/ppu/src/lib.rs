@@ -280,7 +280,6 @@ impl PPU {
                 self.work_state.render_status = RenderStatus::Sleep;
             }
             RenderStatus::Sleep => {
-                todo!("sleep");
                 self.work_state.render_status = RenderStatus::Push;
             }
             RenderStatus::Push => {
