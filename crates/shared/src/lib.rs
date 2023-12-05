@@ -20,3 +20,10 @@ pub trait Memory {
     fn write(&mut self, addr: u16, value: u8);
     fn read(&self, addr: u16) -> u8;
 }
+
+#[macro_export]
+macro_rules! is_bit_set {
+    ($value:expr, $bit:expr) => {
+        ($value & (1 << $bit)) != 0
+    };
+}
