@@ -3,8 +3,11 @@ use crate::sprite::Sprite;
 #[derive(Debug, Default)]
 pub(crate) struct TileData {
     pub(crate) index: u8,
-    pub(crate) low: u8,
-    pub(crate) high: u8,
+    /// The first four lines.
+    pub(crate) low: [u8; 8],
+    /// The last four lines.
+    pub(crate) high: [u8; 8],
+    pub(crate) sprite: Option<Sprite>,
 }
 
 pub(crate) trait TileDataBuilder {
@@ -41,11 +44,7 @@ impl TileDataBuilder for BackgroundTileDataBuilder {
     fn build(self) -> TileData {
         let Some(low) = self.low else { panic!("low data is not set") };
         let Some(high) = self.high else { panic!("high data is not set") };
-
-        let low = low[self.row as usize];
-        let high = high[self.row as usize];
-
-        TileData { index: self.index, low, high }
+        TileData { index: self.index, low, high, sprite: None }
     }
 }
 
@@ -86,10 +85,6 @@ impl TileDataBuilder for SpriteTileDataBuilder {
         let Some(low) = self.low else { panic!("low data is not set") };
         let Some(high) = self.high else { panic!("high data is not set") };
 
-        let low = low[self.row as usize];
-        let high = high[self.row as usize];
-
-        // TODO: apply attributes
-        TileData { index: self.tile_index(), low, high }
+        TileData { index: self.tile_index(), low, high, sprite: Some(self.sprite) }
     }
 }

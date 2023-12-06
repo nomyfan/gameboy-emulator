@@ -33,9 +33,8 @@ pub(crate) struct PPUWorkState {
     /// Y coordination of current pixel.
     /// scy + ly
     map_y: u8,
-    bgw_tile_builder: BackgroundTileDataBuilder,
-    /// Sprite tile data
-    sprite_tile_builder: Option<SpriteTileDataBuilder>,
+    bgw_tile_builder: Option<BackgroundTileDataBuilder>,
+    sprite_tile_builders: Option<Vec<SpriteTileDataBuilder>>,
 }
 
 pub struct PPU {
@@ -203,6 +202,12 @@ impl PPU {
                 let row_index = self.work_state.map_y % 8;
                 // BGW is enabled.
                 if is_bit_set!(self.lcd.lcdc, 0) {
+                    let index =
+                        self.get_tile_index(self.work_state.map_x, self.work_state.map_y, false);
+                    self.work_state
+                        .bgw_tile_builder
+                        .replace(BackgroundTileDataBuilder::new(index, row_index));
+
                     // Window is enabled.
                     if is_bit_set!(self.lcd.lcdc, 5) {
                         if self.work_state.map_x as i16 + 7 >= self.lcd.wx as i16
@@ -217,61 +222,63 @@ impl PPU {
                                 self.work_state.map_y,
                                 true,
                             );
-                            self.work_state.bgw_tile_builder =
-                                BackgroundTileDataBuilder::new(index, row_index);
+
+                            self.work_state
+                                .bgw_tile_builder
+                                .replace(BackgroundTileDataBuilder::new(index, row_index));
                         }
-                    } else {
-                        let index = self.get_tile_index(
-                            self.work_state.map_x,
-                            self.work_state.map_y,
-                            false,
-                        );
-                        self.work_state.bgw_tile_builder =
-                            BackgroundTileDataBuilder::new(index, row_index);
                     }
                 }
                 // Sprite is enabled.
                 if is_bit_set!(self.lcd.lcdc, 1) {
-                    if let Some(sprite) = self.scanline_sprites.iter().find(|sprite| {
-                        let x = sprite.x as i16 - 8 + self.lcd.scx as i16;
-                        self.work_state.scanline_x as i16 >= x
-                            && (self.work_state.scanline_x as i16) < x + 8
-                    }) {
-                        self.work_state.sprite_tile_builder = Some(SpriteTileDataBuilder::new(
-                            *sprite,
-                            self.lcd.object_size(),
-                            row_index,
-                        ));
-                    }
+                    let builders = self
+                        .scanline_sprites
+                        .iter()
+                        .filter(|sprite| {
+                            let x = sprite.x as i16 - 8 + self.lcd.scx as i16;
+                            let scanline_x = self.work_state.scanline_x as i16;
+
+                            // Two rectangles intersect.
+                            x + 8 >= scanline_x && x < scanline_x + 8
+                        })
+                        .map(|sprite| {
+                            SpriteTileDataBuilder::new(*sprite, self.lcd.object_size(), row_index)
+                        })
+                        .collect();
+
+                    self.work_state.sprite_tile_builders.replace(builders);
                 }
 
                 self.work_state.scanline_x += 8;
                 self.work_state.render_status = RenderStatus::GetTileDataLow;
             }
             RenderStatus::GetTileDataLow => {
-                self.work_state.bgw_tile_builder.low(self.read_tile_data(
-                    self.work_state.bgw_tile_builder.index,
-                    false,
-                    false,
-                ));
+                if let Some(mut builder) = self.work_state.bgw_tile_builder.take() {
+                    builder.low(self.read_tile_data(builder.index, false, false));
+                    self.work_state.bgw_tile_builder.replace(builder);
+                }
 
-                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
-                    builder.low(self.read_tile_data(builder.tile_index(), true, false));
-                    self.work_state.sprite_tile_builder = Some(builder);
+                if let Some(mut builders) = self.work_state.sprite_tile_builders.take() {
+                    for builder in builders.iter_mut() {
+                        builder.low(self.read_tile_data(builder.tile_index(), true, false));
+                    }
+                    self.work_state.sprite_tile_builders.replace(builders);
                 }
 
                 self.work_state.render_status = RenderStatus::GetTileDataHigh;
             }
             RenderStatus::GetTileDataHigh => {
-                self.work_state.bgw_tile_builder.high(self.read_tile_data(
-                    self.work_state.bgw_tile_builder.index,
-                    false,
-                    true,
-                ));
+                if let Some(mut builder) = self.work_state.bgw_tile_builder.take() {
+                    builder.high(self.read_tile_data(builder.index, false, true));
+                    self.work_state.bgw_tile_builder.replace(builder);
+                }
 
-                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
-                    builder.high(self.read_tile_data(builder.tile_index(), true, true));
-                    self.work_state.sprite_tile_builder = Some(builder);
+                if let Some(mut builders) = self.work_state.sprite_tile_builders.take() {
+                    for builder in builders.iter_mut() {
+                        builder.high(self.read_tile_data(builder.tile_index(), true, true));
+                    }
+
+                    self.work_state.sprite_tile_builders = Some(builders);
                 }
 
                 self.work_state.render_status = RenderStatus::Sleep;
@@ -280,7 +287,16 @@ impl PPU {
                 self.work_state.render_status = RenderStatus::Push;
             }
             RenderStatus::Push => {
-                todo!("push");
+                // Background tile must present.
+                let bgw_tile = self.work_state.bgw_tile_builder.take().unwrap().build();
+                // Sprite might be empty.
+                let sprite_tiles = self.work_state.bgw_tile_builder.take();
+
+                // Mix color
+                for bit in 0..8 {
+                    //
+                }
+
                 self.work_state.render_status = RenderStatus::GetTileIndex;
             }
         }
