@@ -4,12 +4,12 @@ mod pixel;
 mod sprite;
 mod tile;
 
-use config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
+use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
+use crate::lcd::{LCDMode, LCD};
+use crate::sprite::Sprite;
+use crate::tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileData, TileDataBuilder};
 use gb_shared::{boxed_array, is_bit_set};
-use lcd::{LCDMode, LCD};
 use log::debug;
-use sprite::Sprite;
-use tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileDataBuilder};
 
 /// The first fourth steps takes 2 dots each.
 /// The fifth step is attempted every dot until it succeeds.
@@ -290,12 +290,12 @@ impl PPU {
                 // Background tile must present.
                 let bgw_tile = self.work_state.bgw_tile_builder.take().unwrap().build();
                 // Sprite might be empty.
-                let sprite_tiles = self.work_state.bgw_tile_builder.take();
-
-                // Mix color
-                for bit in 0..8 {
-                    //
-                }
+                let sprite_tiles: Vec<TileData> = self
+                    .work_state
+                    .sprite_tile_builders
+                    .take()
+                    .map(|builders| builders.into_iter().map(|b| b.build()).collect())
+                    .unwrap_or_default();
 
                 self.work_state.render_status = RenderStatus::GetTileIndex;
             }
