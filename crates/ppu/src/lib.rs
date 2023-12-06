@@ -4,11 +4,13 @@ mod pixel;
 mod sprite;
 mod tile;
 
-use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
+use crate::config::{
+    COLOR_PALETTES, DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME,
+};
 use crate::lcd::{LCDMode, LCD};
 use crate::sprite::Sprite;
 use crate::tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileData, TileDataBuilder};
-use gb_shared::{boxed_array, is_bit_set};
+use gb_shared::{boxed_array, boxed_array_fn, is_bit_set};
 use log::debug;
 
 /// The first fourth steps takes 2 dots each.
@@ -86,6 +88,7 @@ pub struct PPU {
     scanline_dots: u16,
     /// PPU work state.
     work_state: PPUWorkState,
+    video_buffer: Box<[[u32; RESOLUTION_X as usize]; RESOLUTION_Y as usize]>,
 }
 
 impl PPU {
@@ -99,6 +102,7 @@ impl PPU {
             scanline_sprites: Vec::with_capacity(10), // There are up to 10 sprites.
             scanline_dots: 0,
             work_state: PPUWorkState::default(),
+            video_buffer: boxed_array_fn(|_| [0; RESOLUTION_X as usize]),
         }
     }
 
@@ -200,16 +204,14 @@ impl PPU {
         match self.work_state.render_status {
             RenderStatus::GetTileIndex => {
                 let row_index = self.work_state.map_y % 8;
-                // BGW is enabled.
-                if is_bit_set!(self.lcd.lcdc, 0) {
+                if self.lcd.is_bgw_enabled() {
                     let index =
                         self.get_tile_index(self.work_state.map_x, self.work_state.map_y, false);
                     self.work_state
                         .bgw_tile_builder
                         .replace(BackgroundTileDataBuilder::new(index, row_index));
 
-                    // Window is enabled.
-                    if is_bit_set!(self.lcd.lcdc, 5) {
+                    if self.lcd.is_window_enabled() {
                         if self.work_state.map_x as i16 + 7 >= self.lcd.wx as i16
                             && self.work_state.map_x as i16 + 7
                                 < self.lcd.wx as i16 + RESOLUTION_X as i16
@@ -229,8 +231,8 @@ impl PPU {
                         }
                     }
                 }
-                // Sprite is enabled.
-                if is_bit_set!(self.lcd.lcdc, 1) {
+
+                if self.lcd.is_obj_enabled() {
                     let builders = self
                         .scanline_sprites
                         .iter()
@@ -296,6 +298,22 @@ impl PPU {
                     .take()
                     .map(|builders| builders.into_iter().map(|b| b.build()).collect())
                     .unwrap_or_default();
+
+                let viewport_x = self.work_state.scanline_x as usize - 8;
+                let viewport_y = self.lcd.ly as usize;
+                for i in 0..8 {
+                    let mut color = COLOR_PALETTES[0x00];
+                    if self.lcd.is_bgw_enabled() {
+                        let x = self.work_state.map_x % 8;
+                        let y = self.work_state.map_y % 8;
+                        color = bgw_tile.pick_color(x, y);
+                    }
+                    if self.lcd.is_obj_enabled() {
+                        todo!()
+                    }
+
+                    self.video_buffer[viewport_y][viewport_x] = color;
+                }
 
                 self.work_state.render_status = RenderStatus::GetTileIndex;
             }
