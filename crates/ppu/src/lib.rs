@@ -123,21 +123,18 @@ impl PPU {
         let vram_addr = vram_addr + ((map_y as u16 / 8) * 32 + (map_x as u16) / 8);
 
         let vram_offset = vram_addr - 0x8000;
-        // TODO: read from bus
         self.vram[vram_offset as usize]
     }
 
-    /// Get tile data from VRAM.
-    fn get_tile_data(&self, index: u8, for_sprite: bool) -> [u8; 16] {
+    fn read_tile_data(&self, index: u8, for_sprite: bool, is_high: bool) -> [u8; 8] {
         let index = if for_sprite || is_bit_set!(self.lcd.lcdc, 4) {
             index as usize
         } else {
             let index = index as i8; // Make it able to be negative.
             (256i16 + index as i16) as usize // It must be positive now before casting to usize.
         };
-        let addr = index * 16;
-        // TODO: read from bus
-        self.vram[addr..(addr + 16)].try_into().unwrap()
+        let addr = index * 16 + (if is_high { 8 } else { 0 });
+        self.vram[addr..(addr + 8)].try_into().unwrap()
     }
 
     pub fn step(&mut self) {
@@ -203,6 +200,7 @@ impl PPU {
 
         match self.work_state.render_status {
             RenderStatus::GetTileIndex => {
+                let row_index = self.work_state.map_y % 8;
                 // BGW is enabled.
                 if is_bit_set!(self.lcd.lcdc, 0) {
                     // Window is enabled.
@@ -220,7 +218,7 @@ impl PPU {
                                 true,
                             );
                             self.work_state.bgw_tile_builder =
-                                BackgroundTileDataBuilder::new(index);
+                                BackgroundTileDataBuilder::new(index, row_index);
                         }
                     } else {
                         let index = self.get_tile_index(
@@ -228,7 +226,8 @@ impl PPU {
                             self.work_state.map_y,
                             false,
                         );
-                        self.work_state.bgw_tile_builder = BackgroundTileDataBuilder::new(index);
+                        self.work_state.bgw_tile_builder =
+                            BackgroundTileDataBuilder::new(index, row_index);
                     }
                 }
                 // Sprite is enabled.
@@ -238,8 +237,11 @@ impl PPU {
                         self.work_state.scanline_x as i16 >= x
                             && (self.work_state.scanline_x as i16) < x + 8
                     }) {
-                        self.work_state.sprite_tile_builder =
-                            Some(SpriteTileDataBuilder::new(*sprite, self.lcd.object_size()));
+                        self.work_state.sprite_tile_builder = Some(SpriteTileDataBuilder::new(
+                            *sprite,
+                            self.lcd.object_size(),
+                            row_index,
+                        ));
                     }
                 }
 
@@ -247,24 +249,28 @@ impl PPU {
                 self.work_state.render_status = RenderStatus::GetTileDataLow;
             }
             RenderStatus::GetTileDataLow => {
-                self.work_state
-                    .bgw_tile_builder
-                    .low(self.get_tile_data(self.work_state.bgw_tile_builder.index, false));
+                self.work_state.bgw_tile_builder.low(self.read_tile_data(
+                    self.work_state.bgw_tile_builder.index,
+                    false,
+                    false,
+                ));
 
                 if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
-                    builder.low(self.get_tile_data(builder.tile_index(), true));
+                    builder.low(self.read_tile_data(builder.tile_index(), true, false));
                     self.work_state.sprite_tile_builder = Some(builder);
                 }
 
                 self.work_state.render_status = RenderStatus::GetTileDataHigh;
             }
             RenderStatus::GetTileDataHigh => {
-                self.work_state
-                    .bgw_tile_builder
-                    .high(self.get_tile_data(self.work_state.bgw_tile_builder.index + 1, false));
+                self.work_state.bgw_tile_builder.high(self.read_tile_data(
+                    self.work_state.bgw_tile_builder.index,
+                    false,
+                    true,
+                ));
 
                 if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
-                    builder.high(self.get_tile_data(builder.tile_index() + 1, true));
+                    builder.high(self.read_tile_data(builder.tile_index(), true, true));
                     self.work_state.sprite_tile_builder = Some(builder);
                 }
 
