@@ -3,7 +3,6 @@ use gb_shared::pick_bits;
 
 #[derive(Debug, Default)]
 pub(crate) struct TileData {
-    pub(crate) index: u8,
     pub(crate) colors: [u16; 8],
     pub(crate) sprite_attrs: Option<SpriteAttrs>,
 }
@@ -13,11 +12,11 @@ impl TileData {
     pub(crate) fn get_color_id(&self, x: u8, y: u8) -> u8 {
         assert!(x < 8 && y < 8);
 
-        let palettes = self.colors[y as usize];
-        let bit = (7 - x) as usize * 2;
-        let palette = (palettes >> bit) & 0b11;
+        let colors = self.colors[y as usize];
+        let offset = (7 - x) as usize * 2;
+        let color_id = (colors >> offset) & 0b11;
 
-        palette as u8
+        color_id as u8
     }
 }
 
@@ -108,7 +107,7 @@ impl TileDataBuilder for BackgroundTileDataBuilder {
         let Some(high) = self.high else { panic!("high data is not set") };
 
         let colors = mix_colors(low, high);
-        TileData { index: self.index, colors, sprite_attrs: None }
+        TileData { colors, sprite_attrs: None }
     }
 }
 
@@ -150,14 +149,14 @@ impl TileDataBuilder for SpriteTileDataBuilder {
 
         let mut colors = mix_colors(low, high);
         apply_attrs(&mut colors, &self.sprite.attrs);
-        TileData { index: self.tile_index(), colors, sprite_attrs: Some(self.sprite.attrs) }
+        TileData { colors, sprite_attrs: Some(self.sprite.attrs) }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{apply_attrs, mix_colors, TileData};
-    use crate::{config::COLOR_PALETTES, sprite::SpriteAttrs};
+    use crate::sprite::SpriteAttrs;
 
     #[test]
     fn test_build_colors() {

@@ -16,9 +16,9 @@ use log::debug;
 /// The first fourth steps takes 2 dots each.
 /// The fifth step is attempted every dot until it succeeds.
 #[derive(Debug, Default)]
-pub(crate) enum RenderStatus {
+pub(crate) enum RenderStage {
     #[default]
-    GetTileIndex,
+    GetTile,
     GetTileDataLow,
     GetTileDataHigh,
     Sleep,
@@ -27,15 +27,32 @@ pub(crate) enum RenderStatus {
 
 #[derive(Debug, Default)]
 pub(crate) struct PPUWorkState {
-    render_status: RenderStatus,
+    render_stage: RenderStage,
+    /// X of current scanline.
+    /// Reset when moving to next scanline.
     scanline_x: u8,
+    /// One dot equals 4 CPU cycles. It's 2 cycles when it's CGB
+    /// and CPU is in double speed mode.
+    ///
+    /// There are 456 dots per scanline, so there are 70224(456 * 154)
+    /// dots per frame.
+    /// Reset to 0 when enter to next scanline.
+    scanline_dots: u16,
+    /// Up to 10 sprites per scanline.
+    /// Appended in mode 2(OAM scan).
+    /// Reset when moving to next scanline.
+    scanline_sprites: Vec<Sprite>,
     /// X coordination of current pixel.
     /// scx + scanline_x
+    /// Updated in mode 3(render a pixel).
     map_x: u8,
     /// Y coordination of current pixel.
     /// scy + ly
+    /// Updated in mode3(render a pixel).
     map_y: u8,
+    /// Reset in FIFO push stage(by taking out the value).
     bgw_tile_builder: Option<BackgroundTileDataBuilder>,
+    /// Reset in FIFO push stage(by taking out the value).
     sprite_tile_builder: Option<SpriteTileDataBuilder>,
 }
 
@@ -69,15 +86,6 @@ pub struct PPU {
     /// - Byte 3: attributes.
     oam: Box<[u8; 4 * 40]>,
     lcd: LCD,
-    // Up to 10 sprites per scanline.
-    scanline_sprites: Vec<Sprite>,
-    /// One dot equals 4 CPU cycles. It's 2 cycles when it's CGB
-    /// and CPU is in double speed mode.
-    ///
-    /// There are 456 dots per scanline, so there are 70224(456 * 154)
-    /// dots per frame.
-    /// TODO: reset this to zero when enter new scanline.
-    scanline_dots: u16,
     /// BG palette, at 0xFF47.
     bgp: u8,
     /// OBJ palette 0, at 0xFF48.
@@ -98,8 +106,6 @@ impl PPU {
             vram: boxed_array(0),
             oam: boxed_array(0),
             lcd: LCD::default(),
-            scanline_sprites: Vec::with_capacity(10), // There are up to 10 sprites.
-            scanline_dots: 0,
             work_state: PPUWorkState::default(),
             video_buffer: boxed_array_fn(|_| [0; RESOLUTION_X as usize]),
             bgp: 0,
@@ -136,7 +142,7 @@ impl PPU {
             index as usize
         } else {
             let index = index as i8; // Make it able to be negative.
-            (256i16 + index as i16) as usize // It must be positive now before casting to usize.
+            (256 + index as i16) as usize // It must be positive now before casting to usize.
         };
         let addr = index * 16 + (if is_high { 8 } else { 0 });
         self.vram[addr..(addr + 8)].try_into().unwrap()
@@ -169,7 +175,7 @@ impl PPU {
                     color_id = tile.get_color_id(x, y);
                     let obp = if attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = color_id * 2;
-                    let palette = (pick_bits!(obp, offset, offset + 1)) >> offset;
+                    let palette = pick_bits!(obp, offset, offset + 1) >> offset;
                     color = COLOR_PALETTES[palette as usize];
                 }
             }
@@ -179,10 +185,10 @@ impl PPU {
     }
 
     pub fn step(&mut self) {
-        self.scanline_dots += 1;
+        self.work_state.scanline_dots += 1;
         match self.mode() {
-            LCDMode::Scan => self.step_oam_scan(),
-            LCDMode::Render => self.step_drawing(),
+            LCDMode::OamScan => self.step_oam_scan(),
+            LCDMode::RenderPixel => self.step_render_pixel(),
             LCDMode::HBlank => self.step_hblank(),
             LCDMode::VBlank => self.step_vblank(),
         }
@@ -190,7 +196,7 @@ impl PPU {
 
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
-        if self.scanline_dots == 1 {
+        if self.work_state.scanline_dots == 1 {
             let obj_size = self.lcd.object_size();
             for sprite_idx in 0..40usize {
                 let sprite = unsafe {
@@ -202,10 +208,10 @@ impl PPU {
                 // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
                 // The sprite intersects with current line.
                 if (self.lcd.ly + 16 >= sprite.y) && (self.lcd.ly + 16 < sprite.y + obj_size) {
-                    self.scanline_sprites.push(sprite);
+                    self.work_state.scanline_sprites.push(sprite);
                 }
                 // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
-                if self.scanline_sprites.len() >= 10 {
+                if self.work_state.scanline_sprites.len() >= 10 {
                     break;
                 }
             }
@@ -218,16 +224,16 @@ impl PPU {
             // The earlier the sprite, the higher its priority.
             //
             // It's worth to mention that `sort_by` is stable.
-            self.scanline_sprites.sort_by(|a, b| a.x.cmp(&b.x));
-            debug!("{:?}", &self.scanline_sprites);
-        } else if self.scanline_dots == 80 {
-            self.set_mode(LCDMode::Render);
+            self.work_state.scanline_sprites.sort_by(|a, b| a.x.cmp(&b.x));
+            debug!("{:?}", &self.work_state.scanline_sprites);
+        } else if self.work_state.scanline_dots == 80 {
+            self.set_mode(LCDMode::RenderPixel);
         }
     }
 
     /// 持续172-289dots，加载Win/BG的tile，和sprite做像素合成。
     /// 结束后进入HBlank状态。
-    fn step_drawing(&mut self) {
+    fn step_render_pixel(&mut self) {
         // TODO: penalty for canceling
         // https://gbdev.io/pandocs/pixel_fifo.html#object-fetch-canceling
         // https://gbdev.io/pandocs/Rendering.html#mode-3-length
@@ -236,12 +242,12 @@ impl PPU {
 
         // Extra 12 dots are needed for fetching two tiles at the beginning of mode 3.
         // https://gbdev.io/pandocs/Rendering.html#:~:text=the%2012%20extra%20cycles%20come%20from%20two%20tile%20fetches%20at%20the%20beginning%20of%20mode%203
-        if self.scanline_dots <= (80 + 12) {
+        if self.work_state.scanline_dots <= (80 + 12) {
             return;
         }
 
-        match self.work_state.render_status {
-            RenderStatus::GetTileIndex => {
+        match self.work_state.render_stage {
+            RenderStage::GetTile => {
                 if self.lcd.is_bgw_enabled() {
                     let index =
                         self.get_tile_index(self.work_state.map_x, self.work_state.map_y, false);
@@ -270,6 +276,7 @@ impl PPU {
 
                 if self.lcd.is_obj_enabled() {
                     let builder = self
+                        .work_state
                         .scanline_sprites
                         .iter()
                         .find(|sprite| {
@@ -284,9 +291,9 @@ impl PPU {
                     self.work_state.sprite_tile_builder = builder;
                 }
 
-                self.work_state.render_status = RenderStatus::GetTileDataLow;
+                self.work_state.render_stage = RenderStage::GetTileDataLow;
             }
-            RenderStatus::GetTileDataLow => {
+            RenderStage::GetTileDataLow => {
                 if let Some(mut builder) = self.work_state.bgw_tile_builder.take() {
                     builder.low(self.read_tile_data(builder.index, false, false));
                     self.work_state.bgw_tile_builder.replace(builder);
@@ -297,9 +304,9 @@ impl PPU {
                     self.work_state.sprite_tile_builder.replace(builder);
                 }
 
-                self.work_state.render_status = RenderStatus::GetTileDataHigh;
+                self.work_state.render_stage = RenderStage::GetTileDataHigh;
             }
-            RenderStatus::GetTileDataHigh => {
+            RenderStage::GetTileDataHigh => {
                 if let Some(mut builder) = self.work_state.bgw_tile_builder.take() {
                     builder.high(self.read_tile_data(builder.index, false, true));
                     self.work_state.bgw_tile_builder.replace(builder);
@@ -310,12 +317,12 @@ impl PPU {
                     self.work_state.sprite_tile_builder = Some(builder);
                 }
 
-                self.work_state.render_status = RenderStatus::Sleep;
+                self.work_state.render_stage = RenderStage::Sleep;
             }
-            RenderStatus::Sleep => {
-                self.work_state.render_status = RenderStatus::Push;
+            RenderStage::Sleep => {
+                self.work_state.render_stage = RenderStage::Push;
             }
-            RenderStatus::Push => {
+            RenderStage::Push => {
                 let bgw_tile =
                     self.work_state.bgw_tile_builder.take().map(|builder| builder.build());
                 let sprite_tile =
@@ -327,15 +334,14 @@ impl PPU {
                 self.video_buffer[viewport_y][viewport_x] = color;
 
                 self.work_state.scanline_x += 1;
-                self.work_state.render_status = RenderStatus::GetTileIndex;
+                self.work_state.render_stage = RenderStage::GetTile;
             }
         }
 
         // Pixels in current scanline are all rendered.
         if self.work_state.scanline_x >= RESOLUTION_X {
-            self.work_state.scanline_x = 0;
-            self.work_state.render_status = RenderStatus::GetTileIndex;
-            self.scanline_sprites.clear();
+            // TODO: LCD interrupts
+            self.work_state.render_stage = RenderStage::GetTile;
             self.set_mode(LCDMode::HBlank);
         }
     }
@@ -343,27 +349,32 @@ impl PPU {
     /// 持续到scanline结束（456dots），结束后如果当前scanline为153，
     /// 则进入VBlank状态。
     fn step_hblank(&mut self) {
-        if self.scanline_dots < DOTS_PER_SCANLINE {
+        if self.work_state.scanline_dots < DOTS_PER_SCANLINE {
             return;
         }
-        self.scanline_dots = 0;
-        // Enter VBlank state.
+        // Enter new line
+        self.work_state.scanline_dots = 0;
+        self.work_state.scanline_x = 0;
+        self.work_state.scanline_sprites.clear();
+        self.lcd.ly += 1;
+        // TODO: LCD interrupts
+
         if self.lcd.ly >= RESOLUTION_Y {
             self.set_mode(LCDMode::VBlank);
+        } else {
+            self.set_mode(LCDMode::OamScan);
         }
-        todo!()
     }
 
     /// 持续10scanlines，结束后进入OamScan状态。
     fn step_vblank(&mut self) {
-        if self.scanline_dots >= DOTS_PER_SCANLINE {
-            self.scanline_dots = 0;
-            todo!("enter new scanline");
+        if self.work_state.scanline_dots >= DOTS_PER_SCANLINE {
+            self.work_state.scanline_dots = 0;
+            self.lcd.ly += 1;
 
             if self.lcd.ly >= SCANLINES_PER_FRAME {
                 self.lcd.ly = 0;
-                self.set_mode(LCDMode::Scan);
-                todo!("finish one frame");
+                self.set_mode(LCDMode::OamScan);
             }
         }
     }

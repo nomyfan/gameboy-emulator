@@ -3,9 +3,9 @@ use gb_shared::is_bit_set;
 #[repr(u8)]
 pub(crate) enum LCDMode {
     /// OAM is inaccessible(except DMA) during this period.
-    Scan = 2,
+    OamScan = 2,
     /// VRAM is inaccessible during this period.
-    Render = 3,
+    RenderPixel = 3,
     HBlank = 0,
     /// Everything is accessible during this period.
     VBlank = 1,

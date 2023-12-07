@@ -24,7 +24,7 @@ pub trait Memory {
 #[macro_export]
 macro_rules! is_bit_set {
     ($value:expr, $bit:expr) => {
-        ($value & (1 << $bit)) != 0
+        (($value) & (1 << ($bit))) != 0
     };
 }
 
@@ -32,7 +32,7 @@ macro_rules! is_bit_set {
 macro_rules! pick_bits {
     ($value:expr, $($offset:expr),*) => {
         {
-            $value & (0 $(| (1 << $offset))*)
+            ($value) & (0 $(| (1 << ($offset)))*)
         }
     }
 }
