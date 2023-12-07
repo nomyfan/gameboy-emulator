@@ -31,7 +31,6 @@ pub(crate) struct LCD {
     /// - Bit 7: LCD and PPU enable 0=off, 1=on.
     pub(crate) lcdc: u8,
     /// LCD status, at 0xFF41.
-    /// TODO: since bit 0-2 is read only, we need to ignore write operations on these bits.
     /// - Bit 6 - LYC=LY STAT Interrupt source         (1=Enable) (Read/Write)
     /// - Bit 5 - Mode 2 OAM STAT Interrupt source     (1=Enable) (Read/Write)
     /// - Bit 4 - Mode 1 VBlank STAT Interrupt source  (1=Enable) (Read/Write)

@@ -98,7 +98,6 @@ pub struct PPU {
 }
 
 impl PPU {
-    // TODO: add utils to read tile data and tile map from vram.
     pub fn new() -> Self {
         // TODO: check init
         // TODO: impl Default trait
@@ -407,10 +406,18 @@ impl gb_shared::Memory for PPU {
             0x8000..=0x9FFF => self.vram[addr as usize - 8000] = value,
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => self.lcd.lcdc = value,
-            0xFF41 => self.lcd.stat = value,
+            0xFF41 => {
+                // TODO: STAT interrupts
+                // https://gbdev.io/pandocs/Interrupt_Sources.html#int-48--stat-interrupt
+                // https://gbdev.io/pandocs/STAT.html#ff41--stat-lcd-status
+                // Since bit 0..=2 is readonly, writes on them are ignored.
+                self.lcd.stat = (self.lcd.stat >> 3) << 3 | (value & 0b111);
+            }
             0xFF42 => self.lcd.scy = value,
             0xFF43 => self.lcd.scx = value,
-            0xFF44 => self.lcd.ly = value,
+            0xFF44 => {
+                // readonly
+            }
             0xFF45 => self.lcd.lyc = value,
             0xFF46 => todo!("DMA"),
             0xFF47 => self.bgp = value,
