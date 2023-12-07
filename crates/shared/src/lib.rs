@@ -27,3 +27,22 @@ macro_rules! is_bit_set {
         ($value & (1 << $bit)) != 0
     };
 }
+
+#[macro_export]
+macro_rules! pick_bits {
+    ($value:expr, $($offset:expr),*) => {
+        {
+            $value & (0 $(| (1 << $offset))*)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pick_bits;
+
+    #[test]
+    fn pick_bits() {
+        assert_eq!(0b1000_0100, pick_bits!(0b1111_1111u8, 2, 7));
+    }
+}

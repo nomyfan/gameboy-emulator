@@ -10,7 +10,7 @@ use crate::config::{
 use crate::lcd::{LCDMode, LCD};
 use crate::sprite::Sprite;
 use crate::tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileData, TileDataBuilder};
-use gb_shared::{boxed_array, boxed_array_fn, is_bit_set};
+use gb_shared::{boxed_array, boxed_array_fn, is_bit_set, pick_bits};
 use log::debug;
 
 /// The first fourth steps takes 2 dots each.
@@ -36,7 +36,7 @@ pub(crate) struct PPUWorkState {
     /// scy + ly
     map_y: u8,
     bgw_tile_builder: Option<BackgroundTileDataBuilder>,
-    sprite_tile_builders: Option<Vec<SpriteTileDataBuilder>>,
+    sprite_tile_builder: Option<SpriteTileDataBuilder>,
 }
 
 pub struct PPU {
@@ -67,14 +67,6 @@ pub struct PPU {
     /// - Byte 1: X position.
     /// - Byte 2: tile index.
     /// - Byte 3: attributes.
-    ///
-    /// Sprite attributes
-    /// - Bit 0-2: palette number. CGB only.
-    /// - Bit 3: tile VRAM bank. CGB only.
-    /// - Bit 4: palette number. Non CGB only.
-    /// - Bit 5: X flip(0=normal, 1=horizontally mirrored).
-    /// - Bit 6: Y flip(0=normal, 1=vertically mirrored).
-    /// - Bit 7: BG and Window over OBJ(0=No, 1=BG and Window colors 1-3 are drawn over the OBJ)
     oam: Box<[u8; 4 * 40]>,
     lcd: LCD,
     // Up to 10 sprites per scanline.
@@ -86,6 +78,12 @@ pub struct PPU {
     /// dots per frame.
     /// TODO: reset this to zero when enter new scanline.
     scanline_dots: u16,
+    /// BG palette, at 0xFF47.
+    bgp: u8,
+    /// OBJ palette 0, at 0xFF48.
+    obp0: u8,
+    /// OBJ palette 1, at 0xFF49.
+    obp1: u8,
     /// PPU work state.
     work_state: PPUWorkState,
     video_buffer: Box<[[u32; RESOLUTION_X as usize]; RESOLUTION_Y as usize]>,
@@ -95,6 +93,7 @@ impl PPU {
     // TODO: add utils to read tile data and tile map from vram.
     pub fn new() -> Self {
         // TODO: check init
+        // TODO: impl Default trait
         PPU {
             vram: boxed_array(0),
             oam: boxed_array(0),
@@ -103,6 +102,9 @@ impl PPU {
             scanline_dots: 0,
             work_state: PPUWorkState::default(),
             video_buffer: boxed_array_fn(|_| [0; RESOLUTION_X as usize]),
+            bgp: 0,
+            obp0: 0,
+            obp1: 0,
         }
     }
 
@@ -138,6 +140,42 @@ impl PPU {
         };
         let addr = index * 16 + (if is_high { 8 } else { 0 });
         self.vram[addr..(addr + 8)].try_into().unwrap()
+    }
+
+    fn select_color(&self, bgw: &Option<TileData>, sprite: &Option<TileData>) -> u32 {
+        let x = self.work_state.map_x % 8;
+        let y = self.work_state.map_y % 8;
+        // Priority definition
+        // 1. If BGW' color ID is 0, then render the sprite.
+        // 2. If LCDC.0 is 0, then render the sprite.
+        // 3. If OAM attributes.7 is 0, then render the sprite.
+        // 4. Otherwise, render the BGW.
+
+        let mut color = 0;
+        let mut color_id = 0;
+        if let Some(tile) = bgw {
+            if self.lcd.is_bgw_enabled() {
+                color_id = tile.get_color_id(x, y);
+                let offset = color_id * 2;
+                let palette = (pick_bits!(self.bgp, offset, offset + 1)) >> offset;
+                color = COLOR_PALETTES[palette as usize];
+            }
+        }
+
+        if color_id == 0 {
+            if let Some(tile) = sprite {
+                let attrs = tile.sprite_attrs.as_ref().unwrap();
+                if !attrs.bgw_over_object() {
+                    color_id = tile.get_color_id(x, y);
+                    let obp = if attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
+                    let offset = color_id * 2;
+                    let palette = (pick_bits!(obp, offset, offset + 1)) >> offset;
+                    color = COLOR_PALETTES[palette as usize];
+                }
+            }
+        }
+
+        color
     }
 
     pub fn step(&mut self) {
@@ -196,20 +234,18 @@ impl PPU {
         self.work_state.map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
         self.work_state.map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
 
-        // Run once every 2 dots.
-        if self.scanline_dots % 2 != 0 {
+        // Extra 12 dots are needed for fetching two tiles at the beginning of mode 3.
+        // https://gbdev.io/pandocs/Rendering.html#:~:text=the%2012%20extra%20cycles%20come%20from%20two%20tile%20fetches%20at%20the%20beginning%20of%20mode%203
+        if self.scanline_dots <= (80 + 12) {
             return;
         }
 
         match self.work_state.render_status {
             RenderStatus::GetTileIndex => {
-                let row_index = self.work_state.map_y % 8;
                 if self.lcd.is_bgw_enabled() {
                     let index =
                         self.get_tile_index(self.work_state.map_x, self.work_state.map_y, false);
-                    self.work_state
-                        .bgw_tile_builder
-                        .replace(BackgroundTileDataBuilder::new(index, row_index));
+                    self.work_state.bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
 
                     if self.lcd.is_window_enabled() {
                         if self.work_state.map_x as i16 + 7 >= self.lcd.wx as i16
@@ -227,31 +263,27 @@ impl PPU {
 
                             self.work_state
                                 .bgw_tile_builder
-                                .replace(BackgroundTileDataBuilder::new(index, row_index));
+                                .replace(BackgroundTileDataBuilder::new(index));
                         }
                     }
                 }
 
                 if self.lcd.is_obj_enabled() {
-                    let builders = self
+                    let builder = self
                         .scanline_sprites
                         .iter()
-                        .filter(|sprite| {
+                        .find(|sprite| {
                             let x = sprite.x as i16 - 8 + self.lcd.scx as i16;
                             let scanline_x = self.work_state.scanline_x as i16;
 
                             // Two rectangles intersect.
                             x + 8 >= scanline_x && x < scanline_x + 8
                         })
-                        .map(|sprite| {
-                            SpriteTileDataBuilder::new(*sprite, self.lcd.object_size(), row_index)
-                        })
-                        .collect();
+                        .map(|sprite| SpriteTileDataBuilder::new(*sprite, self.lcd.object_size()));
 
-                    self.work_state.sprite_tile_builders.replace(builders);
+                    self.work_state.sprite_tile_builder = builder;
                 }
 
-                self.work_state.scanline_x += 8;
                 self.work_state.render_status = RenderStatus::GetTileDataLow;
             }
             RenderStatus::GetTileDataLow => {
@@ -260,11 +292,9 @@ impl PPU {
                     self.work_state.bgw_tile_builder.replace(builder);
                 }
 
-                if let Some(mut builders) = self.work_state.sprite_tile_builders.take() {
-                    for builder in builders.iter_mut() {
-                        builder.low(self.read_tile_data(builder.tile_index(), true, false));
-                    }
-                    self.work_state.sprite_tile_builders.replace(builders);
+                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
+                    builder.low(self.read_tile_data(builder.tile_index(), true, false));
+                    self.work_state.sprite_tile_builder.replace(builder);
                 }
 
                 self.work_state.render_status = RenderStatus::GetTileDataHigh;
@@ -275,12 +305,9 @@ impl PPU {
                     self.work_state.bgw_tile_builder.replace(builder);
                 }
 
-                if let Some(mut builders) = self.work_state.sprite_tile_builders.take() {
-                    for builder in builders.iter_mut() {
-                        builder.high(self.read_tile_data(builder.tile_index(), true, true));
-                    }
-
-                    self.work_state.sprite_tile_builders = Some(builders);
+                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
+                    builder.high(self.read_tile_data(builder.tile_index(), true, true));
+                    self.work_state.sprite_tile_builder = Some(builder);
                 }
 
                 self.work_state.render_status = RenderStatus::Sleep;
@@ -289,38 +316,28 @@ impl PPU {
                 self.work_state.render_status = RenderStatus::Push;
             }
             RenderStatus::Push => {
-                // Background tile must present.
-                let bgw_tile = self.work_state.bgw_tile_builder.take().unwrap().build();
-                // Sprite might be empty.
-                let sprite_tiles: Vec<TileData> = self
-                    .work_state
-                    .sprite_tile_builders
-                    .take()
-                    .map(|builders| builders.into_iter().map(|b| b.build()).collect())
-                    .unwrap_or_default();
+                let bgw_tile =
+                    self.work_state.bgw_tile_builder.take().map(|builder| builder.build());
+                let sprite_tile =
+                    self.work_state.sprite_tile_builder.take().map(|builder| builder.build());
 
-                let viewport_x = self.work_state.scanline_x as usize - 8;
+                let color = self.select_color(&bgw_tile, &sprite_tile);
+                let viewport_x = self.work_state.scanline_x as usize;
                 let viewport_y = self.lcd.ly as usize;
-                for i in 0..8 {
-                    let mut color = COLOR_PALETTES[0x00];
-                    if self.lcd.is_bgw_enabled() {
-                        let x = self.work_state.map_x % 8;
-                        let y = self.work_state.map_y % 8;
-                        color = bgw_tile.pick_color(x, y);
-                    }
-                    if self.lcd.is_obj_enabled() {
-                        todo!()
-                    }
+                self.video_buffer[viewport_y][viewport_x] = color;
 
-                    self.video_buffer[viewport_y][viewport_x] = color;
-                }
-
+                self.work_state.scanline_x += 1;
                 self.work_state.render_status = RenderStatus::GetTileIndex;
             }
         }
 
-        todo!("only set mode to HBlank when all pixels pushed");
-        self.set_mode(LCDMode::HBlank);
+        // Pixels in current scanline are all rendered.
+        if self.work_state.scanline_x >= RESOLUTION_X {
+            self.work_state.scanline_x = 0;
+            self.work_state.render_status = RenderStatus::GetTileIndex;
+            self.scanline_sprites.clear();
+            self.set_mode(LCDMode::HBlank);
+        }
     }
 
     /// 持续到scanline结束（456dots），结束后如果当前scanline为153，
@@ -355,6 +372,7 @@ impl PPU {
 impl gb_shared::Memory for PPU {
     fn write(&mut self, addr: u16, value: u8) {
         // TODO: block some writes while PPU operating on it.
+        // https://gbdev.io/pandocs/Rendering.html#:~:text=accessible%20video%20memory
         match addr {
             0x8000..=0x9FFF => self.vram[addr as usize - 8000] = value,
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
@@ -364,6 +382,9 @@ impl gb_shared::Memory for PPU {
             0xFF43 => self.lcd.scx = value,
             0xFF44 => self.lcd.ly = value,
             0xFF45 => self.lcd.lyc = value,
+            0xFF46 => self.bgp = value,
+            0xFF47 => self.obp0 = value,
+            0xFF48 => self.obp1 = value,
             0xFF4A => self.lcd.wy = value,
             0xFF4B => self.lcd.wx = value,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
@@ -381,6 +402,9 @@ impl gb_shared::Memory for PPU {
             0xFF43 => self.lcd.scx,
             0xFF44 => self.lcd.ly,
             0xFF45 => self.lcd.lyc,
+            0xFF47 => self.bgp,
+            0xFF48 => self.obp0,
+            0xFF49 => self.obp1,
             0xFF4A => self.lcd.wy,
             0xFF4B => self.lcd.wx,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
