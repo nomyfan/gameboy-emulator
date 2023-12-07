@@ -95,6 +95,7 @@ pub struct PPU {
     /// PPU work state.
     work_state: PPUWorkState,
     video_buffer: Box<[[u32; RESOLUTION_X as usize]; RESOLUTION_Y as usize]>,
+    dam_active: bool,
 }
 
 impl PPU {
@@ -111,14 +112,15 @@ impl PPU {
             bgp: 0,
             obp0: 0,
             obp1: 0,
+            dam_active: false,
         }
     }
 
-    fn mode(&self) -> LCDMode {
+    fn lcd_mode(&self) -> LCDMode {
         LCDMode::from(&self.lcd)
     }
 
-    fn set_mode(&mut self, mode: LCDMode) {
+    fn set_lcd_mode(&mut self, mode: LCDMode) {
         // Unset bit 0 and bit 1
         let mut lcdc = self.lcd.lcdc & (!0b11);
         // Set bit 0 and bit 1
@@ -186,7 +188,7 @@ impl PPU {
 
     pub fn step(&mut self) {
         self.work_state.scanline_dots += 1;
-        match self.mode() {
+        match self.lcd_mode() {
             LCDMode::OamScan => self.step_oam_scan(),
             LCDMode::RenderPixel => self.step_render_pixel(),
             LCDMode::HBlank => self.step_hblank(),
@@ -227,7 +229,7 @@ impl PPU {
             self.work_state.scanline_sprites.sort_by(|a, b| a.x.cmp(&b.x));
             debug!("{:?}", &self.work_state.scanline_sprites);
         } else if self.work_state.scanline_dots == 80 {
-            self.set_mode(LCDMode::RenderPixel);
+            self.set_lcd_mode(LCDMode::RenderPixel);
         }
     }
 
@@ -342,7 +344,7 @@ impl PPU {
         if self.work_state.scanline_x >= RESOLUTION_X {
             // TODO: LCD interrupts
             self.work_state.render_stage = RenderStage::GetTile;
-            self.set_mode(LCDMode::HBlank);
+            self.set_lcd_mode(LCDMode::HBlank);
         }
     }
 
@@ -360,9 +362,9 @@ impl PPU {
         // TODO: LCD interrupts
 
         if self.lcd.ly >= RESOLUTION_Y {
-            self.set_mode(LCDMode::VBlank);
+            self.set_lcd_mode(LCDMode::VBlank);
         } else {
-            self.set_mode(LCDMode::OamScan);
+            self.set_lcd_mode(LCDMode::OamScan);
         }
     }
 
@@ -374,16 +376,34 @@ impl PPU {
 
             if self.lcd.ly >= SCANLINES_PER_FRAME {
                 self.lcd.ly = 0;
-                self.set_mode(LCDMode::OamScan);
+                self.set_lcd_mode(LCDMode::OamScan);
             }
         }
     }
 }
 
+impl PPU {
+    /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
+    fn block_vram(&self, addr: u16) -> bool {
+        addr >= 0x8000 && addr <= 0x9FFF && self.lcd_mode() == LCDMode::RenderPixel
+    }
+
+    /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
+    fn block_oam(&self, addr: u16) -> bool {
+        let lcd_mode = self.lcd_mode();
+        (addr >= 0xFE00
+            && addr <= 0xFE9F
+            && (lcd_mode == LCDMode::OamScan || lcd_mode == LCDMode::RenderPixel))
+            || self.dam_active
+    }
+}
+
 impl gb_shared::Memory for PPU {
     fn write(&mut self, addr: u16, value: u8) {
-        // TODO: block some writes while PPU operating on it.
-        // https://gbdev.io/pandocs/Rendering.html#:~:text=accessible%20video%20memory
+        if self.block_vram(addr) || self.block_oam(addr) {
+            return;
+        }
+
         match addr {
             0x8000..=0x9FFF => self.vram[addr as usize - 8000] = value,
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
@@ -393,9 +413,10 @@ impl gb_shared::Memory for PPU {
             0xFF43 => self.lcd.scx = value,
             0xFF44 => self.lcd.ly = value,
             0xFF45 => self.lcd.lyc = value,
-            0xFF46 => self.bgp = value,
-            0xFF47 => self.obp0 = value,
-            0xFF48 => self.obp1 = value,
+            0xFF46 => todo!("DMA"),
+            0xFF47 => self.bgp = value,
+            0xFF48 => self.obp0 = value,
+            0xFF49 => self.obp1 = value,
             0xFF4A => self.lcd.wy = value,
             0xFF4B => self.lcd.wx = value,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
@@ -403,7 +424,10 @@ impl gb_shared::Memory for PPU {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        // TODO: block some reads(return 0xFF) while PPU operating on it.
+        if self.block_oam(addr) || self.block_vram(addr) {
+            return 0xFF;
+        }
+
         match addr {
             0x8000..=0x9FFF => self.vram[addr as usize - 8000],
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00],
@@ -413,6 +437,7 @@ impl gb_shared::Memory for PPU {
             0xFF43 => self.lcd.scx,
             0xFF44 => self.lcd.ly,
             0xFF45 => self.lcd.lyc,
+            0xFF46 => todo!("DMA"),
             0xFF47 => self.bgp,
             0xFF48 => self.obp0,
             0xFF49 => self.obp1,

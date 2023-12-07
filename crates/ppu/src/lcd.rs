@@ -1,6 +1,7 @@
 use gb_shared::is_bit_set;
 
 #[repr(u8)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum LCDMode {
     /// OAM is inaccessible(except DMA) during this period.
     OamScan = 2,
