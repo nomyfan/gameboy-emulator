@@ -1,6 +1,5 @@
 mod config;
 mod lcd;
-mod pixel;
 mod sprite;
 mod tile;
 

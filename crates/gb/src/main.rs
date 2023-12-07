@@ -119,43 +119,8 @@ impl Memory for Bus {
                 // IF
                 self.interrupt_flag = value
             }
-            0xFF41 => {
-                // STAT: LCD status
-                todo!()
-            }
-            0xFF42 => {
-                // SCY Viewport Y position
-                todo!()
-            }
-            0xFF43 => {
-                // SCX Viewport X position
-                todo!()
-            }
-            0xFF44 => {
-                // LY Scanline Y position
-                todo!()
-            }
-            0xFF45 => {
-                // LYC Scanline Y position
-                todo!()
-            }
-            0xFF46 => {
-                // DMA
-                todo!()
-            }
-            0xFF47 => {
-                // BGP Background palette
-                todo!()
-            }
-            0xFF4A => {
-                // WY Window Y position
-                // [0,143]
-                todo!()
-            }
-            0xFF4B => {
-                // WX Window X position + 7
-                // [0,166]
-                todo!()
+            0xFF41..=0xFF4B => {
+                self.ppu.write(addr, value);
             }
             0xFF80..=0xFFFE => {
                 // HRAM
@@ -198,44 +163,7 @@ impl Memory for Bus {
                 // IF
                 self.interrupt_flag
             }
-            0xFF41 => {
-                // STAT: LCD status
-                todo!()
-            }
-            0xFF42 => {
-                // SCY Viewport Y position
-                todo!()
-            }
-            0xFF43 => {
-                // SCX Viewport X position
-                todo!()
-            }
-            0xFF44 => {
-                // LY Scanline Y position
-                todo!()
-            }
-            0xFF45 => {
-                // LYC Scanline Y position
-                todo!()
-            }
-            0xFF46 => {
-                // DMA
-                todo!("https://gbdev.io/pandocs/OAM_DMA_Transfer.html")
-            }
-            0xFF47 => {
-                // BGP Background palette
-                todo!()
-            }
-            0xFF4A => {
-                // WY Window Y position
-                // [0,143]
-                todo!()
-            }
-            0xFF4B => {
-                // WX Window X position + 7
-                // [0,166]
-                todo!()
-            }
+            0xFF41..=0xFF4B => self.ppu.read(addr),
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
