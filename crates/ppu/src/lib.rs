@@ -9,7 +9,8 @@ use crate::config::{
 use crate::lcd::{LCDMode, LCD};
 use crate::sprite::Sprite;
 use crate::tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileData, TileDataBuilder};
-use gb_shared::{boxed_array, boxed_array_fn, is_bit_set, pick_bits};
+use gb_shared::boxed::{BoxedArray, BoxedMatrix};
+use gb_shared::{is_bit_set, pick_bits};
 use log::debug;
 
 /// The first fourth steps takes 2 dots each.
@@ -55,6 +56,7 @@ pub(crate) struct PPUWorkState {
     sprite_tile_builder: Option<SpriteTileDataBuilder>,
 }
 
+#[derive(Default)]
 pub struct PPU {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
@@ -75,7 +77,7 @@ pub struct PPU {
     /// Tile map area(in size of 0x800).
     /// - Tile map 0: \[0x9800, 0x9BFF]
     /// - Tile map 1: \[0x9C00, 0x9FFF]
-    vram: Box<[u8; 0x2000]>,
+    vram: BoxedArray<u8, 0x2000>,
     /// \[0xFE00, 0xFE9F]
     /// OAM(Object Attribute Memory) is used to store sprites(or objects).
     /// There're up to 40 sprites. Each entry consists of 4 bytes.
@@ -83,7 +85,7 @@ pub struct PPU {
     /// - Byte 1: X position.
     /// - Byte 2: tile index.
     /// - Byte 3: attributes.
-    oam: Box<[u8; 4 * 40]>,
+    oam: BoxedArray<u8, 160>,
     lcd: LCD,
     /// BG palette, at 0xFF47.
     bgp: u8,
@@ -93,27 +95,15 @@ pub struct PPU {
     obp1: u8,
     /// PPU work state.
     work_state: PPUWorkState,
-    video_buffer: Box<[[u32; RESOLUTION_X as usize]; RESOLUTION_Y as usize]>,
+    video_buffer: BoxedMatrix<u32, RESOLUTION_X, RESOLUTION_Y>,
     dam_active: bool,
 }
 
 impl PPU {
     pub fn new() -> Self {
         // TODO: check init
-        // TODO: impl Default trait
-        PPU {
-            vram: boxed_array(0),
-            oam: boxed_array(0),
-            lcd: LCD::default(),
-            work_state: PPUWorkState::default(),
-            video_buffer: boxed_array_fn(|_| [0; RESOLUTION_X as usize]),
-            bgp: 0,
-            obp0: 0,
-            obp1: 0,
-            dam_active: false,
-        }
+        Self::default()
     }
-
     fn lcd_mode(&self) -> LCDMode {
         LCDMode::from(&self.lcd)
     }
@@ -339,7 +329,7 @@ impl PPU {
         }
 
         // Pixels in current scanline are all rendered.
-        if self.work_state.scanline_x >= RESOLUTION_X {
+        if self.work_state.scanline_x >= RESOLUTION_X as u8 {
             // TODO: LCD interrupts
             self.work_state.render_stage = RenderStage::GetTile;
             self.set_lcd_mode(LCDMode::HBlank);
@@ -359,7 +349,7 @@ impl PPU {
         self.lcd.ly += 1;
         // TODO: LCD interrupts
 
-        if self.lcd.ly >= RESOLUTION_Y {
+        if self.lcd.ly >= RESOLUTION_Y as u8 {
             self.set_lcd_mode(LCDMode::VBlank);
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
