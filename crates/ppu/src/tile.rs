@@ -4,7 +4,7 @@ use gb_shared::pick_bits;
 #[derive(Debug, Default)]
 pub(crate) struct TileData {
     pub(crate) colors: [u16; 8],
-    pub(crate) sprite_attrs: Option<SpriteAttrs>,
+    pub(crate) sprite: Option<Sprite>,
 }
 
 impl TileData {
@@ -107,7 +107,7 @@ impl TileDataBuilder for BackgroundTileDataBuilder {
         let Some(high) = self.high else { panic!("high data is not set") };
 
         let colors = mix_colors(low, high);
-        TileData { colors, sprite_attrs: None }
+        TileData { colors, sprite: None }
     }
 }
 
@@ -149,7 +149,7 @@ impl TileDataBuilder for SpriteTileDataBuilder {
 
         let mut colors = mix_colors(low, high);
         apply_attrs(&mut colors, &self.sprite.attrs);
-        TileData { colors, sprite_attrs: Some(self.sprite.attrs) }
+        TileData { colors, sprite: Some(self.sprite) }
     }
 }
 

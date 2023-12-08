@@ -139,8 +139,6 @@ impl PPU {
     }
 
     fn select_color(&self, bgw: &Option<TileData>, sprite: &Option<TileData>) -> u32 {
-        let x = self.work_state.map_x % 8;
-        let y = self.work_state.map_y % 8;
         // Priority definition
         // 1. If BGW' color ID is 0, then render the sprite.
         // 2. If LCDC.0 is 0, then render the sprite.
@@ -151,6 +149,9 @@ impl PPU {
         let mut color_id = 0;
         if let Some(tile) = bgw {
             if self.lcd.is_bgw_enabled() {
+                let x = self.work_state.map_x % 8;
+                let y = self.work_state.map_y % 8;
+
                 color_id = tile.get_color_id(x, y);
                 let offset = color_id * 2;
                 let palette = (pick_bits!(self.bgp, offset, offset + 1)) >> offset;
@@ -160,10 +161,13 @@ impl PPU {
 
         if color_id == 0 {
             if let Some(tile) = sprite {
-                let attrs = tile.sprite_attrs.as_ref().unwrap();
-                if !attrs.bgw_over_object() {
+                let sprite = tile.sprite.as_ref().unwrap();
+                if !sprite.attrs.bgw_over_object() {
+                    let x = (self.work_state.scanline_x + 8) - sprite.x;
+                    let y = (self.lcd.ly + 16) - sprite.y;
+
                     color_id = tile.get_color_id(x, y);
-                    let obp = if attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
+                    let obp = if sprite.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = color_id * 2;
                     let palette = pick_bits!(obp, offset, offset + 1) >> offset;
                     color = COLOR_PALETTES[palette as usize];
@@ -270,10 +274,9 @@ impl PPU {
                         .scanline_sprites
                         .iter()
                         .find(|sprite| {
-                            let x = sprite.x as i16 - 8 + self.lcd.scx as i16;
+                            let x = sprite.x as i16 - 8;
                             let scanline_x = self.work_state.scanline_x as i16;
 
-                            // Two rectangles intersect.
                             x + 8 >= scanline_x && x < scanline_x + 8
                         })
                         .map(|sprite| SpriteTileDataBuilder::new(*sprite, self.lcd.object_size()));
