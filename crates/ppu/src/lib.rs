@@ -109,7 +109,8 @@ impl PPU {
 
     fn set_lcd_mode(&mut self, mode: LCDMode) {
         // Unset bit 0 and bit 1
-        let mut lcdc = self.lcd.lcdc & (!0b11);
+        let mut lcdc = self.lcd.lcdc;
+        lcdc &= !0b11;
         // Set bit 0 and bit 1
         lcdc |= mode as u8 & 0b11;
         self.lcd.lcdc = lcdc;
@@ -200,7 +201,7 @@ impl PPU {
                 };
                 // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
                 // The sprite intersects with current line.
-                if (self.lcd.ly + 16 >= sprite.y) && (self.lcd.ly + 16 < sprite.y + obj_size) {
+                if (sprite.y..(sprite.y + obj_size)).contains(&(self.lcd.ly + 16)) {
                     self.work_state.scanline_sprites.push(sprite);
                 }
                 // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
@@ -246,24 +247,18 @@ impl PPU {
                         self.get_tile_index(self.work_state.map_x, self.work_state.map_y, false);
                     self.work_state.bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
 
-                    if self.lcd.is_window_enabled() {
-                        if self.work_state.map_x as i16 + 7 >= self.lcd.wx as i16
-                            && self.work_state.map_x as i16 + 7
-                                < self.lcd.wx as i16 + RESOLUTION_X as i16
-                            && self.work_state.map_y as i16 >= self.lcd.wy as i16
-                            && (self.work_state.map_y as i16)
-                                < self.lcd.wy as i16 + RESOLUTION_Y as i16
-                        {
-                            let index = self.get_tile_index(
-                                self.work_state.map_x,
-                                self.work_state.map_y,
-                                true,
-                            );
+                    if self.lcd.is_window_enabled()
+                        && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
+                            .contains(&(self.work_state.map_x as u16 + 7))
+                        && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
+                            .contains(&(self.work_state.map_y as u16))
+                    {
+                        let index =
+                            self.get_tile_index(self.work_state.map_x, self.work_state.map_y, true);
 
-                            self.work_state
-                                .bgw_tile_builder
-                                .replace(BackgroundTileDataBuilder::new(index));
-                        }
+                        self.work_state
+                            .bgw_tile_builder
+                            .replace(BackgroundTileDataBuilder::new(index));
                     }
                 }
 
@@ -375,14 +370,13 @@ impl PPU {
 impl PPU {
     /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
     fn block_vram(&self, addr: u16) -> bool {
-        addr >= 0x8000 && addr <= 0x9FFF && self.lcd_mode() == LCDMode::RenderPixel
+        (0x8000..=0x9FFF).contains(&addr) && self.lcd_mode() == LCDMode::RenderPixel
     }
 
     /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
     fn block_oam(&self, addr: u16) -> bool {
         let lcd_mode = self.lcd_mode();
-        addr >= 0xFE00
-            && addr <= 0xFE9F
+        (0xFE00..=0xFE9F).contains(&addr)
             && (lcd_mode == LCDMode::OamScan || lcd_mode == LCDMode::RenderPixel)
     }
 }

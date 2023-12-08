@@ -67,26 +67,23 @@ fn mix_colors(low: [u8; 8], high: [u8; 8]) -> [u16; 8] {
     colors
 }
 
-fn apply_attrs<'data, 'attrs>(data: &'data mut [u16; 8], attrs: &'attrs SpriteAttrs) {
+fn apply_attrs(data: &mut [u16; 8], attrs: &SpriteAttrs) {
     if attrs.y_flip() {
         for i in 0..4 {
-            let i_rev = 7 - i;
-            let tmp = data[i];
-            data[i] = data[i_rev];
-            data[i_rev] = tmp;
+            data.swap(i, 7 - i);
         }
     }
     if attrs.x_flip() {
-        for i in 0..8 {
+        for value in data.iter_mut() {
             let mut new_value = 0;
             for offset in (0..16).step_by(2) {
-                let mut val = pick_bits!(data[i], offset, offset + 1);
+                let mut val = pick_bits!(*value, offset, offset + 1);
                 val >>= offset;
                 val <<= 14 - offset;
 
                 new_value |= val;
             }
-            data[i] = new_value;
+            *value = new_value;
         }
     }
 }

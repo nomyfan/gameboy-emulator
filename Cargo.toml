@@ -6,6 +6,7 @@ members = [
   "crates/shared",
   "crates/ppu",
 ]
+resolver = "2"
 
 [workspace.dependencies]
 gb_cpu_sm83 = { path = "crates/cpu_sm83" }
