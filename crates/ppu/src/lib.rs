@@ -96,7 +96,6 @@ pub struct PPU {
     /// PPU work state.
     work_state: PPUWorkState,
     video_buffer: BoxedMatrix<u32, RESOLUTION_X, RESOLUTION_Y>,
-    dam_active: bool,
 }
 
 impl PPU {
@@ -382,10 +381,17 @@ impl PPU {
     /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
     fn block_oam(&self, addr: u16) -> bool {
         let lcd_mode = self.lcd_mode();
-        (addr >= 0xFE00
+        addr >= 0xFE00
             && addr <= 0xFE9F
-            && (lcd_mode == LCDMode::OamScan || lcd_mode == LCDMode::RenderPixel))
-            || self.dam_active
+            && (lcd_mode == LCDMode::OamScan || lcd_mode == LCDMode::RenderPixel)
+    }
+}
+
+impl PPU {
+    /// Write to DAM directly ignoring any rule.
+    /// Use it only for DMA
+    pub fn leak_oam_write(&mut self, addr: u16, value: u8) {
+        self.oam[addr as usize - 0xFE00] = value;
     }
 }
 
@@ -412,7 +418,6 @@ impl gb_shared::Memory for PPU {
                 // readonly
             }
             0xFF45 => self.lcd.lyc = value,
-            0xFF46 => todo!("DMA"),
             0xFF47 => self.bgp = value,
             0xFF48 => self.obp0 = value,
             0xFF49 => self.obp1 = value,
@@ -436,7 +441,6 @@ impl gb_shared::Memory for PPU {
             0xFF43 => self.lcd.scx,
             0xFF44 => self.lcd.ly,
             0xFF45 => self.lcd.lyc,
-            0xFF46 => todo!("DMA"),
             0xFF47 => self.bgp,
             0xFF48 => self.obp0,
             0xFF49 => self.obp1,

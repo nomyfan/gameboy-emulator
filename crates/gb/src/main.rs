@@ -1,3 +1,6 @@
+mod dma;
+
+use crate::dma::DMA;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_ppu::PPU;
@@ -85,6 +88,8 @@ struct Bus {
     cart: Cartridge,
     wram: WorkRam,
     hram: HighRam,
+    /// DMA state.
+    dma: DMA,
     ppu: PPU,
 }
 
@@ -111,15 +116,22 @@ impl Memory for Bus {
             }
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
-                // OAM
-                self.ppu.write(addr, value);
+                if !self.dma.active() {
+                    // OAM
+                    self.ppu.write(addr, value);
+                }
             }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
                 // IF
                 self.interrupt_flag = value
             }
-            0xFF41..=0xFF4B => {
+            0xFF46 => {
+                // DMA
+                self.dma.write(addr, value);
+            }
+            // Exclude 0xFF46(DMA)
+            0xFF40..=0xFF4B => {
                 self.ppu.write(addr, value);
             }
             0xFF80..=0xFFFE => {
@@ -155,6 +167,10 @@ impl Memory for Bus {
             }
             0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
+                if self.dma.active() {
+                    return 0xFF;
+                }
+
                 // OAM
                 self.ppu.read(addr)
             }
@@ -163,7 +179,9 @@ impl Memory for Bus {
                 // IF
                 self.interrupt_flag
             }
-            0xFF41..=0xFF4B => self.ppu.read(addr),
+            0xFF46 => self.dma.read(addr),
+            // Exclude 0xFF46(DMA)
+            0xFF40..=0xFF4B => self.ppu.read(addr),
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
@@ -182,11 +200,20 @@ impl Memory for Bus {
 }
 
 impl Bus {
+    fn step_dma(&mut self) {
+        if let Some((src, dst)) = self.dma.next_addr() {
+            let value = self.read(src);
+            self.ppu.leak_oam_write(dst, value);
+        }
+    }
+
     fn step(&mut self, cycles: u8) {
         for _ in 0..cycles {
             for _ in 0..4 {
                 self.ppu.step();
             }
+
+            self.step_dma();
         }
     }
 }
@@ -205,6 +232,7 @@ impl GameBoy {
             interrupt_enable: 0,
             interrupt_flag: 0,
             ppu: PPU::new(),
+            dma: DMA::new(),
         }));
 
         let cpu = Cpu::new(bus.clone());
