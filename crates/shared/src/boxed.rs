@@ -2,18 +2,16 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{boxed_array, boxed_array_fn};
 
-pub struct BoxedMatrix<T, const COLS: usize, const ROWS: usize>(Box<[[T; COLS]; ROWS]>);
+pub struct BoxedMatrix<T, const COLS: usize, const ROWS: usize>(Box<[Box<[T; COLS]>; ROWS]>);
 
-impl<T: Copy + Default, const COLS: usize, const ROWS: usize> Default
-    for BoxedMatrix<T, COLS, ROWS>
-{
+impl<T: Default, const COLS: usize, const ROWS: usize> Default for BoxedMatrix<T, COLS, ROWS> {
     fn default() -> Self {
-        Self(boxed_array_fn(|_| [T::default(); COLS]))
+        Self(boxed_array_fn(|_| boxed_array_fn(|_| T::default())))
     }
 }
 
 impl<T, const COLS: usize, const ROWS: usize> Deref for BoxedMatrix<T, COLS, ROWS> {
-    type Target = Box<[[T; COLS]; ROWS]>;
+    type Target = Box<[Box<[T; COLS]>; ROWS]>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
