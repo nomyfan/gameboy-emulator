@@ -7,7 +7,6 @@ use gb_ppu::PPU;
 use gb_shared::boxed_array;
 use gb_shared::Memory;
 use log::debug;
-use std::{cell::RefCell, rc::Rc};
 
 struct WorkRam {
     /// [C000, E000)
@@ -64,7 +63,7 @@ impl Memory for HighRam {
     }
 }
 
-struct Bus {
+struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
     /// interrupt is enabled. Lower bits have higher
     /// priorities.
@@ -90,10 +89,24 @@ struct Bus {
     hram: HighRam,
     /// DMA state.
     dma: DMA,
-    ppu: PPU,
+
+    ppu_ptr: *const PPU<Bus>,
+    ref_count: usize,
 }
 
-impl Memory for Bus {
+impl BusInner {
+    #[inline]
+    fn ppu_mut(&mut self) -> &mut PPU<Bus> {
+        unsafe { &mut *(self.ppu_ptr as *mut PPU<Bus>) }
+    }
+
+    #[inline]
+    fn ppu(&self) -> &PPU<Bus> {
+        unsafe { &*self.ppu_ptr }
+    }
+}
+
+impl Memory for BusInner {
     fn write(&mut self, addr: u16, value: u8) {
         debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
 
@@ -104,7 +117,7 @@ impl Memory for Bus {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu.write(addr, value);
+                self.ppu_mut().write(addr, value);
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -118,7 +131,7 @@ impl Memory for Bus {
             0xFE00..=0xFE9F => {
                 if !self.dma.active() {
                     // OAM
-                    self.ppu.write(addr, value);
+                    self.ppu_mut().write(addr, value);
                 }
             }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
@@ -132,7 +145,7 @@ impl Memory for Bus {
             }
             // Exclude 0xFF46(DMA)
             0xFF40..=0xFF4B => {
-                self.ppu.write(addr, value);
+                self.ppu_mut().write(addr, value);
             }
             0xFF80..=0xFFFE => {
                 // HRAM
@@ -155,7 +168,7 @@ impl Memory for Bus {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu.read(addr)
+                self.ppu().read(addr)
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -172,7 +185,7 @@ impl Memory for Bus {
                 }
 
                 // OAM
-                self.ppu.read(addr)
+                self.ppu().read(addr)
             }
             0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
@@ -181,7 +194,7 @@ impl Memory for Bus {
             }
             0xFF46 => self.dma.read(addr),
             // Exclude 0xFF46(DMA)
-            0xFF40..=0xFF4B => self.ppu.read(addr),
+            0xFF40..=0xFF4B => self.ppu().read(addr),
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
@@ -199,44 +212,97 @@ impl Memory for Bus {
     }
 }
 
+struct Bus {
+    ptr: *mut BusInner,
+}
+
 impl Bus {
+    #[inline]
+    fn inner_mut(&mut self) -> &mut BusInner {
+        unsafe { self.ptr.as_mut().expect("TODO:") }
+    }
+
     fn step_dma(&mut self) {
-        if let Some((src, dst)) = self.dma.next_addr() {
+        if let Some((src, dst)) = self.inner_mut().dma.next_addr() {
             let value = self.read(src);
-            self.ppu.leak_oam_write(dst, value);
+            self.inner_mut().ppu_mut().leak_oam_write(dst, value);
         }
     }
 
-    fn step(&mut self, cycles: u8) {
-        for _ in 0..cycles {
-            for _ in 0..4 {
-                self.ppu.step();
-            }
+    fn step(&mut self) {
+        self.step_dma();
+    }
+}
 
-            self.step_dma();
+// TODO: we should not expose this. Un-impl Default trait.
+impl Default for Bus {
+    fn default() -> Self {
+        Self { ptr: std::ptr::null_mut() }
+    }
+}
+
+impl Clone for Bus {
+    fn clone(&self) -> Self {
+        unsafe {
+            (*self.ptr).ref_count += 1;
         }
+        Self { ptr: self.ptr }
+    }
+}
+
+impl Drop for Bus {
+    fn drop(&mut self) {
+        if let Some(inner) = unsafe { self.ptr.as_mut() } {
+            inner.ref_count -= 1;
+            if inner.ref_count == 0 {
+                unsafe {
+                    // Deallocate the inner struct.
+                    let _ = Box::from_raw(self.ptr);
+                }
+            }
+        }
+    }
+}
+
+impl Memory for Bus {
+    fn write(&mut self, addr: u16, value: u8) {
+        unsafe { (*(self.ptr)).write(addr, value) }
+    }
+
+    fn read(&self, addr: u16) -> u8 {
+        unsafe { (*self.ptr).read(addr) }
     }
 }
 
 struct GameBoy {
-    bus: Rc<RefCell<Bus>>,
     cpu: Cpu<Bus>,
+    ppu: Box<PPU<Bus>>,
+    bus: Box<Bus>,
 }
 
 impl GameBoy {
     fn new(cart: Cartridge) -> Self {
-        let bus = Rc::new(RefCell::new(Bus {
-            cart,
-            wram: WorkRam::new(),
-            hram: HighRam::new(),
-            interrupt_enable: 0,
-            interrupt_flag: 0,
-            ppu: PPU::new(),
-            dma: DMA::new(),
-        }));
+        let bus = Bus {
+            ptr: Box::into_raw(Box::new(BusInner {
+                cart,
+                wram: WorkRam::new(),
+                hram: HighRam::new(),
+                interrupt_enable: 0,
+                interrupt_flag: 0,
+                ppu_ptr: std::ptr::null_mut(),
+                dma: DMA::new(),
+                ref_count: 1,
+            })),
+        };
 
         let cpu = Cpu::new(bus.clone());
-        GameBoy { bus, cpu }
+
+        let ppu = Box::new(PPU::new(bus.clone()));
+        unsafe {
+            bus.ptr.as_mut().unwrap().ppu_ptr = ppu.as_ref() as *const PPU<Bus>;
+        }
+
+        Self { cpu, ppu, bus: Box::new(bus) }
     }
 }
 
@@ -261,6 +327,13 @@ fn main() {
         }
 
         let cycles = gb.cpu.step();
-        gb.bus.borrow_mut().step(cycles);
+
+        for _ in 0..cycles {
+            for _ in 0..4 {
+                gb.ppu.step();
+            }
+
+            gb.bus.step();
+        }
     }
 }

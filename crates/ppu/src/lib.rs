@@ -10,7 +10,7 @@ use crate::lcd::{LCDMode, LCD};
 use crate::sprite::Sprite;
 use crate::tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileData, TileDataBuilder};
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::{is_bit_set, pick_bits};
+use gb_shared::{is_bit_set, pick_bits, set_bits, unset_bits, Memory};
 use log::debug;
 
 /// The first fourth steps takes 2 dots each.
@@ -57,7 +57,7 @@ pub(crate) struct PPUWorkState {
 }
 
 #[derive(Default)]
-pub struct PPU {
+pub struct PPU<BUS: Memory + Default> {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
     /// Thus, the size of this area is 6KB.
@@ -96,12 +96,14 @@ pub struct PPU {
     /// PPU work state.
     work_state: PPUWorkState,
     video_buffer: BoxedMatrix<u32, RESOLUTION_X, RESOLUTION_Y>,
+
+    bus: BUS,
 }
 
-impl PPU {
-    pub fn new() -> Self {
+impl<BUS: Memory + Default> PPU<BUS> {
+    pub fn new(bus: BUS) -> Self {
         // TODO: check init
-        Self::default()
+        Self { bus, ..Default::default() }
     }
     fn lcd_mode(&self) -> LCDMode {
         LCDMode::from(&self.lcd)
@@ -176,6 +178,23 @@ impl PPU {
         }
 
         color
+    }
+
+    fn move_to_next_scanline(&mut self) {
+        self.work_state.scanline_dots = 0;
+        self.work_state.scanline_x = 0;
+        self.work_state.scanline_sprites.clear();
+        self.lcd.ly += 1;
+
+        if self.lcd.ly == self.lcd.lyc {
+            self.lcd.stat = set_bits!(self.lcd.stat, 2);
+
+            if is_bit_set!(self.lcd.stat, 6) {
+                // TODO: request STAT interrupt
+            }
+        } else {
+            self.lcd.stat = unset_bits!(self.lcd.stat, 2);
+        }
     }
 
     pub fn step(&mut self) {
@@ -367,7 +386,7 @@ impl PPU {
     }
 }
 
-impl PPU {
+impl<BUS: Memory + Default> PPU<BUS> {
     /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
     fn block_vram(&self, addr: u16) -> bool {
         (0x8000..=0x9FFF).contains(&addr) && self.lcd_mode() == LCDMode::RenderPixel
@@ -381,7 +400,7 @@ impl PPU {
     }
 }
 
-impl PPU {
+impl<BUS: Memory + Default> PPU<BUS> {
     /// Write to DAM directly ignoring any rule.
     /// Use it only for DMA
     pub fn leak_oam_write(&mut self, addr: u16, value: u8) {
@@ -389,7 +408,7 @@ impl PPU {
     }
 }
 
-impl gb_shared::Memory for PPU {
+impl<BUS: Memory + Default> Memory for PPU<BUS> {
     fn write(&mut self, addr: u16, value: u8) {
         if self.block_vram(addr) || self.block_oam(addr) {
             return;
