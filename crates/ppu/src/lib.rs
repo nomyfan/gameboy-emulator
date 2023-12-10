@@ -432,14 +432,6 @@ impl<BUS: Memory> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory> PPU<BUS> {
-    /// Write to DAM directly ignoring any rule.
-    /// Use it only for DMA
-    pub fn leak_oam_write(&mut self, addr: u16, value: u8) {
-        self.oam[addr as usize - 0xFE00] = value;
-    }
-}
-
 impl<BUS: Memory> Memory for PPU<BUS> {
     fn write(&mut self, addr: u16, value: u8) {
         if self.block_vram(addr) || self.block_oam(addr) {
