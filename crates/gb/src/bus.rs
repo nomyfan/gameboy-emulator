@@ -69,14 +69,14 @@ impl Memory for BusInner {
                 // WRAM
                 self.wram.write(addr, value);
             }
-            0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
+            0xE000..=0xFDFF => debug!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
                 if !self.dma.active() {
                     // OAM
                     self.ppu_mut().write(addr, value);
                 }
             }
-            0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
+            0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF0F => {
                 // IF
                 self.interrupt_flag = value
@@ -120,7 +120,10 @@ impl Memory for BusInner {
                 // WRAM
                 self.wram.read(addr)
             }
-            0xE000..=0xFDFF => unreachable!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
+            0xE000..=0xFDFF => {
+                debug!("Unusable ECHO RAM [0xE000, 0xFDFF]");
+                0
+            }
             0xFE00..=0xFE9F => {
                 if self.dma.active() {
                     return 0xFF;
@@ -129,7 +132,10 @@ impl Memory for BusInner {
                 // OAM
                 self.ppu().read(addr)
             }
-            0xFEA0..=0xFEFF => unreachable!("Unusable memory [0xFEA0, 0xFEFF]"),
+            0xFEA0..=0xFEFF => {
+                debug!("Unusable memory [0xFEA0, 0xFEFF]");
+                0
+            }
             0xFF0F => {
                 // IF
                 self.interrupt_flag

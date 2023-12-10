@@ -8,5 +8,5 @@ fn main() -> anyhow::Result<()> {
         std::env::current_dir().unwrap().join("roms").join("cpu_instrs.gb"),
     )?;
 
-    gb.run()
+    gb.play()
 }

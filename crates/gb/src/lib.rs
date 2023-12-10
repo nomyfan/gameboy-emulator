@@ -40,10 +40,10 @@ impl GameBoy {
         Ok(Self::from_cartridge(cart))
     }
 
-    pub fn run(self) -> anyhow::Result<()> {
+    pub fn play(self) -> anyhow::Result<()> {
         let mut gb = self;
         // TODO: loop and accept signals to stop
-        for _ in 1..20 {
+        for _ in 1..200 {
             debug!("{:?}", &gb.cpu);
 
             if gb.cpu.stopped {
