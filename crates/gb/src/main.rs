@@ -234,13 +234,6 @@ impl Bus {
     }
 }
 
-// TODO: we should not expose this. Un-impl Default trait.
-impl Default for Bus {
-    fn default() -> Self {
-        Self { ptr: std::ptr::null_mut() }
-    }
-}
-
 impl Clone for Bus {
     fn clone(&self) -> Self {
         unsafe {

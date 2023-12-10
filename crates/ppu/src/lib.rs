@@ -56,8 +56,7 @@ pub(crate) struct PPUWorkState {
     sprite_tile_builder: Option<SpriteTileDataBuilder>,
 }
 
-#[derive(Default)]
-pub struct PPU<BUS: Memory + Default> {
+pub struct PPU<BUS: Memory> {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
     /// Thus, the size of this area is 6KB.
@@ -100,10 +99,19 @@ pub struct PPU<BUS: Memory + Default> {
     bus: BUS,
 }
 
-impl<BUS: Memory + Default> PPU<BUS> {
+impl<BUS: Memory> PPU<BUS> {
     pub fn new(bus: BUS) -> Self {
-        // TODO: check init
-        Self { bus, ..Default::default() }
+        Self {
+            vram: BoxedArray::default(),
+            oam: BoxedArray::default(),
+            lcd: LCD::default(),
+            bgp: 0,
+            obp0: 0,
+            obp1: 0,
+            work_state: PPUWorkState::default(),
+            video_buffer: BoxedMatrix::default(),
+            bus,
+        }
     }
     fn lcd_mode(&self) -> LCDMode {
         LCDMode::from(&self.lcd)
@@ -386,7 +394,7 @@ impl<BUS: Memory + Default> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory + Default> PPU<BUS> {
+impl<BUS: Memory> PPU<BUS> {
     /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
     fn block_vram(&self, addr: u16) -> bool {
         (0x8000..=0x9FFF).contains(&addr) && self.lcd_mode() == LCDMode::RenderPixel
@@ -400,7 +408,7 @@ impl<BUS: Memory + Default> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory + Default> PPU<BUS> {
+impl<BUS: Memory> PPU<BUS> {
     /// Write to DAM directly ignoring any rule.
     /// Use it only for DMA
     pub fn leak_oam_write(&mut self, addr: u16, value: u8) {
@@ -408,7 +416,7 @@ impl<BUS: Memory + Default> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory + Default> Memory for PPU<BUS> {
+impl<BUS: Memory> Memory for PPU<BUS> {
     fn write(&mut self, addr: u16, value: u8) {
         if self.block_vram(addr) || self.block_oam(addr) {
             return;
