@@ -1,4 +1,4 @@
-mod bitwise;
+pub mod bitwise;
 pub mod boxed;
 
 pub fn boxed_array<T: Copy, const SIZE: usize>(val: T) -> Box<[T; SIZE]> {
