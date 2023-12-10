@@ -188,6 +188,18 @@ impl<BUS: Memory> PPU<BUS> {
         color
     }
 
+    fn request_lcd_stat_interrupt(&mut self) {
+        let addr = 0xFF0F;
+        // TODO: replace 0b10 with enum value
+        self.bus.write(addr, self.read(addr) | 0b10);
+    }
+
+    fn request_vblank_interrupt(&mut self) {
+        let addr = 0xFF0F;
+        // TODO: replace 0b1 with enum value
+        self.bus.write(addr, self.read(addr) | 0b1);
+    }
+
     fn move_to_next_scanline(&mut self) {
         self.work_state.scanline_dots = 0;
         self.work_state.scanline_x = 0;
@@ -197,8 +209,9 @@ impl<BUS: Memory> PPU<BUS> {
         if self.lcd.ly == self.lcd.lyc {
             self.lcd.stat = set_bits!(self.lcd.stat, 2);
 
+            // LY == LYC stat interrupt
             if is_bit_set!(self.lcd.stat, 6) {
-                // TODO: request STAT interrupt
+                self.request_lcd_stat_interrupt();
             }
         } else {
             self.lcd.stat = unset_bits!(self.lcd.stat, 2);
@@ -218,6 +231,11 @@ impl<BUS: Memory> PPU<BUS> {
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
         if self.work_state.scanline_dots == 1 {
+            // Mode 2(OAM scan) stat interrupt
+            if is_bit_set!(self.lcd.stat, 5) {
+                self.request_lcd_stat_interrupt();
+            }
+
             let obj_size = self.lcd.object_size();
             for sprite_idx in 0..40usize {
                 let sprite = unsafe {
@@ -354,9 +372,13 @@ impl<BUS: Memory> PPU<BUS> {
 
         // Pixels in current scanline are all rendered.
         if self.work_state.scanline_x >= RESOLUTION_X as u8 {
-            // TODO: LCD interrupts
             self.work_state.render_stage = RenderStage::GetTile;
             self.set_lcd_mode(LCDMode::HBlank);
+
+            // Mode 0(HBlank) stat interrupt
+            if is_bit_set!(self.lcd.stat, 3) {
+                self.request_lcd_stat_interrupt();
+            }
         }
     }
 
@@ -366,15 +388,18 @@ impl<BUS: Memory> PPU<BUS> {
         if self.work_state.scanline_dots < DOTS_PER_SCANLINE {
             return;
         }
-        // Enter new line
-        self.work_state.scanline_dots = 0;
-        self.work_state.scanline_x = 0;
-        self.work_state.scanline_sprites.clear();
-        self.lcd.ly += 1;
-        // TODO: LCD interrupts
+
+        self.move_to_next_scanline();
 
         if self.lcd.ly >= RESOLUTION_Y as u8 {
             self.set_lcd_mode(LCDMode::VBlank);
+
+            // VBlank interrupt
+            self.request_vblank_interrupt();
+            // Mode 1(VBlank) stat interrupt
+            if is_bit_set!(self.lcd.stat, 4) {
+                self.request_lcd_stat_interrupt();
+            }
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
         }
@@ -383,8 +408,7 @@ impl<BUS: Memory> PPU<BUS> {
     /// 持续10scanlines，结束后进入OamScan状态。
     fn step_vblank(&mut self) {
         if self.work_state.scanline_dots >= DOTS_PER_SCANLINE {
-            self.work_state.scanline_dots = 0;
-            self.lcd.ly += 1;
+            self.move_to_next_scanline();
 
             if self.lcd.ly >= SCANLINES_PER_FRAME {
                 self.lcd.ly = 0;
