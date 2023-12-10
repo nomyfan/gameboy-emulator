@@ -3,6 +3,17 @@ members = [
   "crates/cpu_sm83",
   "crates/gb",
   "crates/cartridge",
-  "crates/io",
   "crates/shared",
+  "crates/ppu",
+  "bin/gb_app",
 ]
+resolver = "2"
+
+[workspace.dependencies]
+gb_cpu_sm83 = { path = "crates/cpu_sm83" }
+gb_cartridge = { path = "crates/cartridge" }
+gb_ppu = { path = "crates/ppu" }
+gb_shared = { path = "crates/shared" }
+gb = { path = "crates/gb" }
+log = "0.4.17"
+anyhow = "1.0.66"

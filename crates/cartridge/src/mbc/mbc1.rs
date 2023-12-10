@@ -1,5 +1,5 @@
 use super::{RamBank, RomBank};
-use shared::boxed_array_fn;
+use gb_shared::boxed_array_fn;
 
 pub(crate) struct Mbc1 {
     /// 00h = ROM Banking Mode (up to 8KiB RAM, 2MiB ROM) (default)
@@ -71,11 +71,11 @@ impl super::Mbc for Mbc1 {
         match addr {
             // Fixed ROM(ROM bank 0)
             0x0000..=0x3FFF => {
-                return rom[addr as usize];
+                rom[addr as usize]
             }
             // ROM bank
             0x4000..=0x7FFF => {
-                return self.rom_banks[self.rom_banking_num - 1][(addr - 0x4000) as usize];
+                self.rom_banks[self.rom_banking_num - 1][(addr - 0x4000) as usize]
             }
             // RAM bank
             0xA000..=0xBFFF => {
@@ -87,7 +87,7 @@ impl super::Mbc for Mbc1 {
                     return 0xFF;
                 }
 
-                return self.ram_banks[self.ram_banking_num][(addr - 0xA000) as usize];
+                self.ram_banks[self.ram_banking_num][(addr - 0xA000) as usize]
             }
             _ => unreachable!("Invalid addr {:#02X} for MBC1", addr),
         }

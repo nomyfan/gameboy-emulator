@@ -315,13 +315,10 @@ impl Display for CartridgeHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let title = std::str::from_utf8(&self.title).unwrap();
         let licensee_code = match self.licensee_code {
-            0x33 => OLD_LICENSEE_CODE
-                .iter()
-                .find(|c| c.0 as u16 == self.new_licensee_code)
-                .and_then(|c| Some(c.1)),
-            _ => {
-                NEW_LICENSEE_CODE.iter().find(|c| c.0 == self.licensee_code).and_then(|c| Some(c.1))
+            0x33 => {
+                OLD_LICENSEE_CODE.iter().find(|c| c.0 as u16 == self.new_licensee_code).map(|c| c.1)
             }
+            _ => NEW_LICENSEE_CODE.iter().find(|c| c.0 == self.licensee_code).map(|c| c.1),
         }
         .unwrap_or("Unkown");
 
@@ -330,11 +327,8 @@ impl Display for CartridgeHeader {
             _ => "Disabled",
         };
 
-        let cart_type = CARRIAGE_TYPE
-            .iter()
-            .find(|c| c.0 == self.cart_type)
-            .and_then(|c| Some(c.1))
-            .unwrap_or("Unknown");
+        let cart_type =
+            CARRIAGE_TYPE.iter().find(|c| c.0 == self.cart_type).map(|c| c.1).unwrap_or("Unknown");
 
         let rom_size = 32 * (1 << self.rom_size); // KiB
 
@@ -376,10 +370,10 @@ pub struct Cartridge {
     mbc: Box<dyn mbc::Mbc>,
 }
 
-impl Cartridge {
-    pub fn load(path: &Path) -> Result<Cartridge> {
-        let rom = std::fs::read(path)?;
+impl TryFrom<Vec<u8>> for Cartridge {
+    type Error = anyhow::Error;
 
+    fn try_from(rom: Vec<u8>) -> std::result::Result<Self, Self::Error> {
         let mut header = unsafe {
             std::mem::transmute_copy::<[u8; 0x50], CartridgeHeader>(
                 &rom[0x0100..0x0150].try_into().unwrap(),
@@ -392,7 +386,7 @@ impl Cartridge {
             .iter()
             .fold(0u8, |checksum, v| checksum.wrapping_sub(v.wrapping_add(1)));
 
-        debug_assert_eq!(checksum, header.checksum);
+        assert_eq!(checksum, header.checksum);
 
         debug!("{}", &header);
 
@@ -404,7 +398,7 @@ impl Cartridge {
                 CARRIAGE_TYPE
                     .iter()
                     .find(|c| c.0 == header.cart_type)
-                    .and_then(|c| Some(c.1))
+                    .map(|c| c.1)
                     .unwrap_or("Unknown")
             ),
         };
@@ -413,7 +407,14 @@ impl Cartridge {
     }
 }
 
-impl io::IO for Cartridge {
+impl Cartridge {
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let rom = std::fs::read(path.as_ref())?;
+        Self::try_from(rom)
+    }
+}
+
+impl gb_shared::Memory for Cartridge {
     fn write(&mut self, addr: u16, value: u8) {
         self.mbc.write(addr, value)
     }

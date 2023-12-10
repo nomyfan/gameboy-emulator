@@ -8,7 +8,7 @@ use log::debug;
 
 pub struct Cpu<BUS>
 where
-    BUS: io::IO,
+    BUS: gb_shared::Memory,
 {
     /// Accumulator register
     pub reg_a: u8,
@@ -54,7 +54,7 @@ where
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
 where
-    BUS: io::IO,
+    BUS: gb_shared::Memory,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Cpu")
@@ -84,13 +84,9 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
     ((hi as u16) << 8) | (lo as u16)
 }
 
-fn cycles(c: u8) {
-    todo!()
-}
-
 impl<BUS> Cpu<BUS>
 where
-    BUS: io::IO,
+    BUS: gb_shared::Memory,
 {
     pub fn new(bus: BUS) -> Self {
         // TODO init
@@ -226,7 +222,7 @@ where
     fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
         /// Turn on or off for specific bit.
         fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
-            debug_assert!(bit <= 8 && bit >= 1);
+            debug_assert!((1..=8).contains(&bit));
 
             match flag {
                 None => value,
@@ -337,7 +333,7 @@ where
         }
     }
 
-    pub fn execute(&mut self) {
+    pub fn step(&mut self) -> u8 {
         let opcode = self.read_pc();
         let inst = get_instruction(opcode);
         debug!("{:?}", inst);
@@ -446,5 +442,7 @@ where
                 proc::proc_cb(self, inst);
             }
         }
+
+        1 // TODO return real cycles
     }
 }
