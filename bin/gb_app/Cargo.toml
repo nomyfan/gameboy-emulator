@@ -1,14 +1,16 @@
 [package]
-name = "gb"
+name = "gb_app"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gb_ppu = { workspace = true }
-gb_cpu_sm83 = { workspace = true }
-gb_cartridge = { workspace = true }
-gb_shared = { workspace = true }
+gb = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
+env_logger = "0.9.1"
+
+[[bin]]
+name = "gb"
+path = "./src/main.rs"

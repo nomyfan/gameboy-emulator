@@ -1,67 +1,9 @@
-mod dma;
-
-use crate::dma::DMA;
 use gb_cartridge::Cartridge;
-use gb_cpu_sm83::Cpu;
 use gb_ppu::PPU;
-use gb_shared::boxed_array;
 use gb_shared::Memory;
 use log::debug;
 
-struct WorkRam {
-    /// [C000, E000)
-    /// (4 + 4)KiB
-    ram: Box<[u8; 0x2000]>,
-}
-
-impl WorkRam {
-    fn new() -> Self {
-        Self { ram: boxed_array(0) }
-    }
-}
-
-impl Memory for WorkRam {
-    fn write(&mut self, addr: u16, value: u8) {
-        debug_assert!((0xC000..=0xDFFF).contains(&addr));
-
-        let addr = (addr as usize) - 0xC000;
-        self.ram[addr] = value;
-    }
-
-    fn read(&self, addr: u16) -> u8 {
-        debug_assert!((0xC000..=0xDFFF).contains(&addr));
-
-        let addr = (addr as usize) - 0xC000;
-        self.ram[addr]
-    }
-}
-
-struct HighRam {
-    /// [FF80, FFFF)
-    ram: Box<[u8; 0x80]>,
-}
-
-impl HighRam {
-    fn new() -> Self {
-        Self { ram: boxed_array(0) }
-    }
-}
-
-impl Memory for HighRam {
-    fn write(&mut self, addr: u16, value: u8) {
-        debug_assert!((0xFF80..=0xFFFE).contains(&addr));
-
-        let addr = (addr as usize) - 0xFF80;
-        self.ram[addr] = value;
-    }
-
-    fn read(&self, addr: u16) -> u8 {
-        debug_assert!((0xFF80..=0xFFFE).contains(&addr));
-
-        let addr = (addr as usize) - 0xFF80;
-        self.ram[addr]
-    }
-}
+use crate::{dma::DMA, hram::HighRam, wram::WorkRam};
 
 struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -212,7 +154,7 @@ impl Memory for BusInner {
     }
 }
 
-struct Bus {
+pub(crate) struct Bus {
     ptr: *mut BusInner,
 }
 
@@ -222,6 +164,27 @@ impl Bus {
         unsafe { self.ptr.as_mut().expect("TODO:") }
     }
 
+    pub(crate) fn new(cart: Cartridge) -> Self {
+        Self {
+            ptr: Box::into_raw(Box::new(BusInner {
+                cart,
+                wram: WorkRam::new(),
+                hram: HighRam::new(),
+                interrupt_enable: 0,
+                interrupt_flag: 0,
+                ppu_ptr: std::ptr::null_mut(),
+                dma: DMA::new(),
+                ref_count: 1,
+            })),
+        }
+    }
+
+    pub(crate) fn set_ppu(&mut self, ppu: *const PPU<Bus>) {
+        unsafe {
+            (*self.ptr).ppu_ptr = ppu;
+        }
+    }
+
     fn step_dma(&mut self) {
         if let Some((src, dst)) = self.inner_mut().dma.next_addr() {
             let value = self.read(src);
@@ -229,7 +192,7 @@ impl Bus {
         }
     }
 
-    fn step(&mut self) {
+    pub(crate) fn step(&mut self) {
         self.step_dma();
     }
 }
@@ -264,69 +227,5 @@ impl Memory for Bus {
 
     fn read(&self, addr: u16) -> u8 {
         unsafe { (*self.ptr).read(addr) }
-    }
-}
-
-struct GameBoy {
-    cpu: Cpu<Bus>,
-    ppu: Box<PPU<Bus>>,
-    bus: Box<Bus>,
-}
-
-impl GameBoy {
-    fn new(cart: Cartridge) -> Self {
-        let bus = Bus {
-            ptr: Box::into_raw(Box::new(BusInner {
-                cart,
-                wram: WorkRam::new(),
-                hram: HighRam::new(),
-                interrupt_enable: 0,
-                interrupt_flag: 0,
-                ppu_ptr: std::ptr::null_mut(),
-                dma: DMA::new(),
-                ref_count: 1,
-            })),
-        };
-
-        let cpu = Cpu::new(bus.clone());
-
-        let ppu = Box::new(PPU::new(bus.clone()));
-        unsafe {
-            bus.ptr.as_mut().unwrap().ppu_ptr = ppu.as_ref() as *const PPU<Bus>;
-        }
-
-        Self { cpu, ppu, bus: Box::new(bus) }
-    }
-}
-
-fn main() {
-    env_logger::init();
-
-    let cart = Cartridge::load(std::env::current_dir().unwrap().join("roms").join("cpu_instrs.gb"))
-        .unwrap();
-
-    let mut gb = GameBoy::new(cart);
-    for _ in 1..20 {
-        debug!("{:?}", &gb.cpu);
-
-        if gb.cpu.stopped {
-            println!("Stopping...");
-            // TODO
-            std::process::exit(0);
-        }
-
-        if gb.cpu.interrupt_master_enable {
-            gb.cpu.handle_interrupts();
-        }
-
-        let cycles = gb.cpu.step();
-
-        for _ in 0..cycles {
-            for _ in 0..4 {
-                gb.ppu.step();
-            }
-
-            gb.bus.step();
-        }
     }
 }
