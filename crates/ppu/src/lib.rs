@@ -1,14 +1,14 @@
 mod config;
 mod lcd;
-mod sprite;
+mod object;
 mod tile;
 
 use crate::config::{
     COLOR_PALETTES, DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME,
 };
 use crate::lcd::{LCDMode, LCD};
-use crate::sprite::Sprite;
-use crate::tile::{BackgroundTileDataBuilder, SpriteTileDataBuilder, TileData, TileDataBuilder};
+use crate::object::Object;
+use crate::tile::{BackgroundTileDataBuilder, ObjectTileDataBuilder, TileData, TileDataBuilder};
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
 use gb_shared::{is_bit_set, pick_bits, set_bits, unset_bits, Memory};
 use log::debug;
@@ -38,10 +38,10 @@ pub(crate) struct PPUWorkState {
     /// dots per frame.
     /// Reset to 0 when enter to next scanline.
     scanline_dots: u16,
-    /// Up to 10 sprites per scanline.
+    /// Up to 10 objects per scanline.
     /// Appended in mode 2(OAM scan).
     /// Reset when moving to next scanline.
-    scanline_sprites: Vec<Sprite>,
+    scanline_objects: Vec<Object>,
     /// X coordination of current pixel.
     /// scx + scanline_x
     /// Updated in mode 3(render a pixel).
@@ -53,7 +53,7 @@ pub(crate) struct PPUWorkState {
     /// Reset in FIFO push stage(by taking out the value).
     bgw_tile_builder: Option<BackgroundTileDataBuilder>,
     /// Reset in FIFO push stage(by taking out the value).
-    sprite_tile_builder: Option<SpriteTileDataBuilder>,
+    object_tile_builder: Option<ObjectTileDataBuilder>,
 }
 
 pub struct PPU<BUS: Memory> {
@@ -71,15 +71,15 @@ pub struct PPU<BUS: Memory> {
     ///
     // For BG and Window, if LCDC.4 is 1, then mode
     /// A is used, and if LCDC.4 is 0 then mode B is used.
-    /// For sprites, the mode is always A.
+    /// For objects, the mode is always A.
     ///
     /// Tile map area(in size of 0x800).
     /// - Tile map 0: \[0x9800, 0x9BFF]
     /// - Tile map 1: \[0x9C00, 0x9FFF]
     vram: BoxedArray<u8, 0x2000>,
     /// \[0xFE00, 0xFE9F]
-    /// OAM(Object Attribute Memory) is used to store sprites(or objects).
-    /// There're up to 40 sprites. Each entry consists of 4 bytes.
+    /// OAM(Object Attribute Memory) is used to store objects.
+    /// There're up to 40 objects. Each entry consists of 4 bytes.
     /// - Byte 0: Y position.
     /// - Byte 1: X position.
     /// - Byte 2: tile index.
@@ -126,8 +126,8 @@ impl<BUS: Memory> PPU<BUS> {
         self.lcd.lcdc = lcdc;
     }
 
-    /// For BGW only. Tile index for sprite is stored
-    /// in the sprite object.
+    /// For BGW only. Tile index for object is stored
+    /// in the Object.
     fn get_tile_index(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
         let vram_addr: u16 =
             if is_bit_set!(self.lcd.lcdc, if is_window { 6 } else { 3 }) { 0x9C00 } else { 0x9800 };
@@ -137,8 +137,8 @@ impl<BUS: Memory> PPU<BUS> {
         self.vram[vram_offset as usize]
     }
 
-    fn read_tile_data(&self, index: u8, for_sprite: bool, is_high: bool) -> [u8; 8] {
-        let index = if for_sprite || is_bit_set!(self.lcd.lcdc, 4) {
+    fn read_tile_data(&self, index: u8, for_object: bool, is_high: bool) -> [u8; 8] {
+        let index = if for_object || is_bit_set!(self.lcd.lcdc, 4) {
             index as usize
         } else {
             let index = index as i8; // Make it able to be negative.
@@ -148,11 +148,11 @@ impl<BUS: Memory> PPU<BUS> {
         self.vram[addr..(addr + 8)].try_into().unwrap()
     }
 
-    fn select_color(&self, bgw: &Option<TileData>, sprite: &Option<TileData>) -> u32 {
+    fn select_color(&self, bgw: &Option<TileData>, object: &Option<TileData>) -> u32 {
         // Priority definition
-        // 1. If BGW' color ID is 0, then render the sprite.
-        // 2. If LCDC.0 is 0, then render the sprite.
-        // 3. If OAM attributes.7 is 0, then render the sprite.
+        // 1. If BGW' color ID is 0, then render the object.
+        // 2. If LCDC.0 is 0, then render the object.
+        // 3. If OAM attributes.7 is 0, then render the object.
         // 4. Otherwise, render the BGW.
 
         let mut color = 0;
@@ -170,14 +170,14 @@ impl<BUS: Memory> PPU<BUS> {
         }
 
         if color_id == 0 {
-            if let Some(tile) = sprite {
-                let sprite = tile.sprite.as_ref().unwrap();
-                if !sprite.attrs.bgw_over_object() {
-                    let x = (self.work_state.scanline_x + 8) - sprite.x;
-                    let y = (self.lcd.ly + 16) - sprite.y;
+            if let Some(tile) = object {
+                let object = tile.object.as_ref().unwrap();
+                if !object.attrs.bgw_over_object() {
+                    let x = (self.work_state.scanline_x + 8) - object.x;
+                    let y = (self.lcd.ly + 16) - object.y;
 
                     color_id = tile.get_color_id(x, y);
-                    let obp = if sprite.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
+                    let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = color_id * 2;
                     let palette = pick_bits!(obp, offset, offset + 1) >> offset;
                     color = COLOR_PALETTES[palette as usize];
@@ -203,7 +203,7 @@ impl<BUS: Memory> PPU<BUS> {
     fn move_to_next_scanline(&mut self) {
         self.work_state.scanline_dots = 0;
         self.work_state.scanline_x = 0;
-        self.work_state.scanline_sprites.clear();
+        self.work_state.scanline_objects.clear();
         self.lcd.ly += 1;
 
         if self.lcd.ly == self.lcd.lyc {
@@ -237,40 +237,40 @@ impl<BUS: Memory> PPU<BUS> {
             }
 
             let obj_size = self.lcd.object_size();
-            for sprite_idx in 0..40usize {
-                let sprite = unsafe {
-                    let base_addr = sprite_idx * 4;
-                    std::mem::transmute_copy::<[u8; 4], Sprite>(
+            for object_index in 0..40usize {
+                let object = unsafe {
+                    let base_addr = object_index * 4;
+                    std::mem::transmute_copy::<[u8; 4], Object>(
                         &self.oam[base_addr..(base_addr + 4)].try_into().unwrap(),
                     )
                 };
                 // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
-                // The sprite intersects with current line.
-                if (sprite.y..(sprite.y + obj_size)).contains(&(self.lcd.ly + 16)) {
-                    self.work_state.scanline_sprites.push(sprite);
+                // The object intersects with current line.
+                if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
+                    self.work_state.scanline_objects.push(object);
                 }
                 // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
-                if self.work_state.scanline_sprites.len() >= 10 {
+                if self.work_state.scanline_objects.len() >= 10 {
                     break;
                 }
             }
             // https://gbdev.io/pandocs/OAM.html#drawing-priority
             //
             // For Non-CGB, the smaller X, the higher priority.
-            // If the X is same, sprite located first has higher priority.
+            // If the X is same, object located first has higher priority.
             //
             // For CGB, the priority is determined by the location in OAM.
-            // The earlier the sprite, the higher its priority.
+            // The earlier the object, the higher its priority.
             //
-            // It's worth to mention that `sort_by` is stable.
-            self.work_state.scanline_sprites.sort_by(|a, b| a.x.cmp(&b.x));
-            debug!("{:?}", &self.work_state.scanline_sprites);
+            // It's worth mentioning that `sort_by` is stable.
+            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
+            debug!("{:?}", &self.work_state.scanline_objects);
         } else if self.work_state.scanline_dots == 80 {
             self.set_lcd_mode(LCDMode::RenderPixel);
         }
     }
 
-    /// 持续172-289dots，加载Win/BG的tile，和sprite做像素合成。
+    /// 持续172-289dots，加载Win/BG的tile，和object做像素合成。
     /// 结束后进入HBlank状态。
     fn step_render_pixel(&mut self) {
         // TODO: penalty for canceling
@@ -310,17 +310,17 @@ impl<BUS: Memory> PPU<BUS> {
                 if self.lcd.is_obj_enabled() {
                     let builder = self
                         .work_state
-                        .scanline_sprites
+                        .scanline_objects
                         .iter()
-                        .find(|sprite| {
-                            let x = sprite.x as i16 - 8;
+                        .find(|object| {
+                            let x = object.x as i16 - 8;
                             let scanline_x = self.work_state.scanline_x as i16;
 
                             x + 8 >= scanline_x && x < scanline_x + 8
                         })
-                        .map(|sprite| SpriteTileDataBuilder::new(*sprite, self.lcd.object_size()));
+                        .map(|object| ObjectTileDataBuilder::new(*object, self.lcd.object_size()));
 
-                    self.work_state.sprite_tile_builder = builder;
+                    self.work_state.object_tile_builder = builder;
                 }
 
                 self.work_state.render_stage = RenderStage::GetTileDataLow;
@@ -331,9 +331,9 @@ impl<BUS: Memory> PPU<BUS> {
                     self.work_state.bgw_tile_builder.replace(builder);
                 }
 
-                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
+                if let Some(mut builder) = self.work_state.object_tile_builder.take() {
                     builder.low(self.read_tile_data(builder.tile_index(), true, false));
-                    self.work_state.sprite_tile_builder.replace(builder);
+                    self.work_state.object_tile_builder.replace(builder);
                 }
 
                 self.work_state.render_stage = RenderStage::GetTileDataHigh;
@@ -344,9 +344,9 @@ impl<BUS: Memory> PPU<BUS> {
                     self.work_state.bgw_tile_builder.replace(builder);
                 }
 
-                if let Some(mut builder) = self.work_state.sprite_tile_builder.take() {
+                if let Some(mut builder) = self.work_state.object_tile_builder.take() {
                     builder.high(self.read_tile_data(builder.tile_index(), true, true));
-                    self.work_state.sprite_tile_builder = Some(builder);
+                    self.work_state.object_tile_builder = Some(builder);
                 }
 
                 self.work_state.render_stage = RenderStage::Sleep;
@@ -357,10 +357,10 @@ impl<BUS: Memory> PPU<BUS> {
             RenderStage::Push => {
                 let bgw_tile =
                     self.work_state.bgw_tile_builder.take().map(|builder| builder.build());
-                let sprite_tile =
-                    self.work_state.sprite_tile_builder.take().map(|builder| builder.build());
+                let object_tile =
+                    self.work_state.object_tile_builder.take().map(|builder| builder.build());
 
-                let color = self.select_color(&bgw_tile, &sprite_tile);
+                let color = self.select_color(&bgw_tile, &object_tile);
                 let viewport_x = self.work_state.scanline_x as usize;
                 let viewport_y = self.lcd.ly as usize;
                 self.video_buffer[viewport_y][viewport_x] = color;

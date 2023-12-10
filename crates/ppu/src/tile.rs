@@ -1,10 +1,10 @@
-use crate::sprite::{Sprite, SpriteAttrs};
+use crate::object::{Object, ObjectAttrs};
 use gb_shared::pick_bits;
 
 #[derive(Debug, Default)]
 pub(crate) struct TileData {
     pub(crate) colors: [u16; 8],
-    pub(crate) sprite: Option<Sprite>,
+    pub(crate) object: Option<Object>,
 }
 
 impl TileData {
@@ -67,7 +67,7 @@ fn mix_colors(low: [u8; 8], high: [u8; 8]) -> [u16; 8] {
     colors
 }
 
-fn apply_attrs(data: &mut [u16; 8], attrs: &SpriteAttrs) {
+fn apply_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
     if attrs.y_flip() {
         for i in 0..4 {
             data.swap(i, 7 - i);
@@ -104,24 +104,24 @@ impl TileDataBuilder for BackgroundTileDataBuilder {
         let Some(high) = self.high else { panic!("high data is not set") };
 
         let colors = mix_colors(low, high);
-        TileData { colors, sprite: None }
+        TileData { colors, object: None }
     }
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct SpriteTileDataBuilder {
-    sprite: Sprite,
+pub(crate) struct ObjectTileDataBuilder {
+    object: Object,
     tile_index: u8,
     low: Option<[u8; 8]>,
     high: Option<[u8; 8]>,
 }
 
-impl SpriteTileDataBuilder {
-    pub(crate) fn new(sprite: Sprite, object_size: u8) -> Self {
+impl ObjectTileDataBuilder {
+    pub(crate) fn new(object: Object, object_size: u8) -> Self {
         // Remove the last bit.
         let tile_index =
-            if object_size == 16 { sprite.tile_index & 0b1111_1110 } else { sprite.tile_index };
-        SpriteTileDataBuilder { sprite, low: None, high: None, tile_index }
+            if object_size == 16 { object.tile_index & 0b1111_1110 } else { object.tile_index };
+        ObjectTileDataBuilder { object, low: None, high: None, tile_index }
     }
 
     pub(crate) fn tile_index(&self) -> u8 {
@@ -129,7 +129,7 @@ impl SpriteTileDataBuilder {
     }
 }
 
-impl TileDataBuilder for SpriteTileDataBuilder {
+impl TileDataBuilder for ObjectTileDataBuilder {
     fn low(&mut self, data: [u8; 8]) -> &mut Self {
         self.low = Some(data);
         self
@@ -145,15 +145,15 @@ impl TileDataBuilder for SpriteTileDataBuilder {
         let Some(high) = self.high else { panic!("high data is not set") };
 
         let mut colors = mix_colors(low, high);
-        apply_attrs(&mut colors, &self.sprite.attrs);
-        TileData { colors, sprite: Some(self.sprite) }
+        apply_attrs(&mut colors, &self.object.attrs);
+        TileData { colors, object: Some(self.object) }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{apply_attrs, mix_colors, TileData};
-    use crate::sprite::SpriteAttrs;
+    use crate::object::ObjectAttrs;
 
     #[test]
     fn test_build_colors() {
@@ -226,7 +226,7 @@ mod tests {
             0b00_00_00_00_00_00_00_00,
             0b00_00_00_00_00_00_00_00,
         ];
-        apply_attrs(&mut data, &SpriteAttrs(0b0010_0000));
+        apply_attrs(&mut data, &ObjectAttrs(0b0010_0000));
 
         let expected = [
             0b11_01_10_00_11_01_10_00,
@@ -254,7 +254,7 @@ mod tests {
             0b00_00_00_00_00_00_00_00,
             0b00_00_00_00_00_00_00_00,
         ];
-        apply_attrs(&mut data, &SpriteAttrs(0b0100_0000));
+        apply_attrs(&mut data, &ObjectAttrs(0b0100_0000));
 
         let expected = [
             0b00_00_00_00_00_00_00_00,
