@@ -1,8 +1,8 @@
-mod instructions;
+mod instruction;
 mod interrupt;
 mod proc;
 
-use instructions::{get_instruction, AddressingMode, InstructionType, Register};
+use instruction::{get_instruction, AddressingMode, Instruction, Register};
 use interrupt::INTERRUPTS;
 use log::debug;
 
@@ -338,111 +338,44 @@ where
         let inst = get_instruction(opcode);
         debug!("{:?}", inst);
 
-        match inst.ty {
-            InstructionType::NOP => {
-                //
-            }
-            InstructionType::LD => {
-                proc::proc_ld(self, inst);
-            }
-            InstructionType::INC => {
-                proc::proc_inc(self, inst);
-            }
-            InstructionType::DEC => {
-                proc::proc_dec(self, inst);
-            }
-            InstructionType::JP => {
-                proc::proc_jp(self, inst);
-            }
-            InstructionType::JR => {
-                proc::proc_jr(self, inst);
-            }
-            InstructionType::ADD => {
-                proc::proc_add(self, inst);
-            }
-            InstructionType::CALL => {
-                proc::proc_call(self, inst);
-            }
-            InstructionType::PUSH => {
-                proc::proc_push(self, inst);
-            }
-            InstructionType::POP => {
-                proc::proc_pop(self, inst);
-            }
-            InstructionType::RET => {
-                proc::proc_ret(self, inst);
-            }
-            InstructionType::RETI => {
-                proc::proc_reti(self, inst);
-            }
-            InstructionType::RST => {
-                proc::proc_rst(self, inst);
-            }
-            InstructionType::SUB => {
-                proc::proc_sub(self, inst);
-            }
-            InstructionType::AND => {
-                proc::proc_and(self, inst);
-            }
-            InstructionType::OR => {
-                proc::proc_or(self, inst);
-            }
-            InstructionType::XOR => {
-                proc::proc_xor(self, inst);
-            }
-            InstructionType::STOP => {
-                proc::proc_stop(self);
-            }
-            InstructionType::DI => {
-                proc::proc_di(self);
-            }
-            InstructionType::EI => {
-                proc::proc_ei(self);
-            }
-            InstructionType::HALT => {
-                proc::proc_halt(self);
-            }
-            InstructionType::NONE => {
+        match inst {
+            Instruction::NONE => {
                 panic!("No such instruction");
             }
-            InstructionType::ADC => {
-                proc::proc_adc(self, inst);
-            }
-            InstructionType::SBC => {
-                proc::proc_sbc(self, inst);
-            }
-            InstructionType::RLA => {
-                proc::proc_rla(self);
-            }
-            InstructionType::RRA => {
-                proc::proc_rra(self);
-            }
-            InstructionType::RLCA => {
-                proc::proc_rlca(self);
-            }
-            InstructionType::RRCA => {
-                proc::proc_rrca(self);
-            }
-            InstructionType::DAA => {
-                proc::proc_daa(self);
-            }
-            InstructionType::CPL => {
-                proc::proc_cpl(self);
-            }
-            InstructionType::SCF => {
-                proc::proc_scf(self);
-            }
-            InstructionType::CCF => {
-                proc::proc_ccf(self);
-            }
-            InstructionType::CP => {
-                proc::proc_cp(self, inst);
-            }
-            InstructionType::CB => {
-                proc::proc_cb(self, inst);
-            }
+            Instruction::NOP => {}
+            Instruction::LD(addr1, addr2) => proc::proc_ld(self, opcode, addr1, addr2),
+            Instruction::INC(addr) => proc::proc_inc(self, opcode, addr),
+            Instruction::DEC(addr) => proc::proc_dec(self, opcode, addr),
+            Instruction::JR(cond) => proc::proc_jr(self, cond),
+            Instruction::JP(cond, addr) => proc::proc_jp(self, cond, addr),
+            Instruction::CALL(cond) => proc::proc_call(self, cond),
+            Instruction::ADD(addr1, addr2) => proc::proc_add(self, opcode, addr1, addr2),
+            Instruction::ADC(addr) => proc::proc_adc(self, addr),
+            Instruction::SUB(addr) => proc::proc_sub(self, addr),
+            Instruction::SBC(addr) => proc::proc_sbc(self, addr),
+            Instruction::PUSH(addr) => proc::proc_push(self, addr),
+            Instruction::POP(addr) => proc::proc_pop(self, addr),
+            Instruction::RET(cond) => proc::proc_ret(self, cond),
+            Instruction::RETI => proc::proc_reti(self),
+            Instruction::RST => proc::proc_rst(self, opcode),
+            Instruction::AND(addr) => proc::proc_and(self, addr),
+            Instruction::OR(addr) => proc::proc_or(self, addr),
+            Instruction::XOR(addr) => proc::proc_xor(self, addr),
+            Instruction::STOP => proc::proc_stop(self),
+            Instruction::DI => proc::proc_di(self),
+            Instruction::EI => proc::proc_ei(self),
+            Instruction::HALT => proc::proc_halt(self),
+            Instruction::RLA => proc::proc_rla(self),
+            Instruction::RRA => proc::proc_rra(self),
+            Instruction::RLCA => proc::proc_rlca(self),
+            Instruction::RRCA => proc::proc_rrca(self),
+            Instruction::DAA => proc::proc_daa(self),
+            Instruction::CPL => proc::proc_cpl(self),
+            Instruction::SCF => proc::proc_scf(self),
+            Instruction::CCF => proc::proc_ccf(self),
+            Instruction::CP(addr) => proc::proc_cp(self, addr),
+            Instruction::CB => proc::proc_cb(self),
         }
-
         1 // TODO return real cycles
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    instructions::{AddressingMode, CbInstructionType, Condition, Instruction, Register},
+    instruction::{AddressingMode, CbInstruction, Condition, Register},
     Cpu,
 };
 
@@ -17,66 +17,65 @@ where
     }
 }
 
-pub(crate) fn proc_inc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_inc<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    // Register only
-    let addr = inst.operand1.as_ref().unwrap();
     let value = cpu.fetch_data(addr);
     let value = value.wrapping_add(1);
 
-    if inst.opcode != 0x03 && inst.opcode != 0x13 && inst.opcode != 0x23 && inst.opcode != 0x33 {
+    if opcode != 0x03 && opcode != 0x13 && opcode != 0x23 && opcode != 0x33 {
         cpu.set_flags(Some(value == 0), Some(false), Some((value & 0xF) == 0), None);
     }
 
     cpu.write_data(addr, 0, value);
 }
 
-pub(crate) fn proc_dec<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_dec<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    // Register only
-    let addr = inst.operand1.as_ref().unwrap();
     let value = cpu.fetch_data(addr);
     let value = value.wrapping_sub(1);
 
-    if inst.opcode != 0x0B && inst.opcode != 0x1B && inst.opcode != 0x2B && inst.opcode != 0x3B {
+    if opcode != 0x0B && opcode != 0x1B && opcode != 0x2B && opcode != 0x3B {
         cpu.set_flags(Some(value == 0), Some(true), Some((value & 0xF) == 0), None);
     }
 
     cpu.write_data(addr, 0, value);
 }
 
-pub(crate) fn proc_jp<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_jp<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let addr = cpu.fetch_data(inst.operand1.as_ref().unwrap());
-    if check_condition(inst.cond.as_ref(), cpu) {
+    let addr = cpu.fetch_data(addr);
+    if check_condition(cond.as_ref(), cpu) {
         cpu.pc = addr;
     }
 }
 
-pub(crate) fn proc_jr<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_jr<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
 where
     BUS: gb_shared::Memory,
 {
-    let addr = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
-    if check_condition(inst.cond.as_ref(), cpu) {
+    let addr = cpu.fetch_data(&AddressingMode::PC1) as u8;
+    if check_condition(cond.as_ref(), cpu) {
         cpu.pc += addr as u16;
     }
 }
 
-pub(crate) fn proc_ld<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
-where
+pub(crate) fn proc_ld<BUS>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    addr1: &AddressingMode,
+    addr2: &AddressingMode,
+) where
     BUS: gb_shared::Memory,
 {
-    let mut operand2 = cpu.fetch_data(inst.operand2.as_ref().unwrap());
-    let mut operand1 = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    let mut operand2 = cpu.fetch_data(addr1);
+    let mut operand1 = cpu.fetch_data(addr2);
 
-    let opcode = inst.opcode;
     if opcode == 0xE0 || opcode == 0xE2 {
         // (a8), (C)
         operand1 |= 0xFF00;
@@ -91,7 +90,7 @@ where
         operand2 += r8 as u16;
     }
 
-    cpu.write_data(inst.operand1.as_ref().unwrap(), operand1, operand2);
+    cpu.write_data(addr1, operand1, operand2);
 
     if opcode == 0x22 || opcode == 0x2A {
         // HL+
@@ -103,13 +102,16 @@ where
     }
 }
 
-pub(crate) fn proc_add<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
-where
+pub(crate) fn proc_add<BUS>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    addr1: &AddressingMode,
+    addr2: &AddressingMode,
+) where
     BUS: gb_shared::Memory,
 {
-    let opcode = inst.opcode;
-    let operand2 = cpu.fetch_data(inst.operand2.as_ref().unwrap());
-    let operand1 = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    let operand2 = cpu.fetch_data(addr2);
+    let operand1 = cpu.fetch_data(addr1);
     let sum = operand1.wrapping_add(operand2);
 
     let z = if opcode == 0x09 || opcode == 0x19 || opcode == 0x29 || opcode == 0x39 {
@@ -132,15 +134,15 @@ where
             (Some(h), Some(c))
         };
 
-    cpu.write_data(inst.operand1.as_ref().unwrap(), 0, sum);
+    cpu.write_data(addr1, 0, sum);
     cpu.set_flags(z, Some(false), h, c);
 }
 
-pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let data = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let data = cpu.fetch_data(addr) as u8;
     let a = cpu.reg_a;
     let c = if cpu.flag_c() { 1u8 } else { 0u8 };
 
@@ -152,11 +154,11 @@ where
     cpu.set_flags(Some(value == 0), Some(false), Some(h), Some(c));
 }
 
-pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let data = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    let data = cpu.fetch_data(addr);
     let a = cpu.reg_a;
     let value = a.wrapping_sub(data as u8);
 
@@ -168,11 +170,11 @@ where
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
 }
 
-pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let data = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let data = cpu.fetch_data(addr) as u8;
     let a = cpu.reg_a;
     let c = if cpu.flag_c() { 1u8 } else { 0u8 };
 
@@ -186,55 +188,55 @@ where
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
 }
 
-pub(crate) fn proc_call<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_call<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
-    if check_condition(inst.cond.as_ref(), cpu) {
+    let value = cpu.fetch_data(&AddressingMode::PC2);
+    if check_condition(cond.as_ref(), cpu) {
         cpu.stack_push2(value);
         cpu.pc = value;
     }
 }
 
-pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap());
+    let value = cpu.fetch_data(addr);
     cpu.stack_push2(value);
 }
 
-pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
     let value = cpu.stack_pop2();
-    cpu.write_data(inst.operand1.as_ref().unwrap(), 0, value);
+    cpu.write_data(addr, 0, value);
 }
 
-pub(crate) fn proc_ret<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_ret<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
 where
     BUS: gb_shared::Memory,
 {
-    if check_condition(inst.cond.as_ref(), cpu) {
+    if check_condition(cond.as_ref(), cpu) {
         cpu.pc = cpu.stack_pop2();
     }
 }
 
-pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>)
 where
     BUS: gb_shared::Memory,
 {
     cpu.interrupt_master_enable = true;
-    proc_ret(cpu, inst);
+    proc_ret(cpu, &None);
 }
 
-pub(crate) fn proc_rst<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_rst<BUS>(cpu: &mut Cpu<BUS>, opcode: u8)
 where
     BUS: gb_shared::Memory,
 {
-    let value: u16 = match inst.opcode {
+    let value: u16 = match opcode {
         0xC7 => 0x00,
         0xCF => 0x08,
         0xD7 => 0x10,
@@ -249,33 +251,33 @@ where
     cpu.pc = value;
 }
 
-pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let operand = cpu.fetch_data(addr) as u8;
     let value = cpu.reg_a & operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(true), Some(false));
 }
 
-pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let operand = cpu.fetch_data(addr) as u8;
     let value = cpu.reg_a | operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
 }
 
-pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let operand = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let operand = cpu.fetch_data(addr) as u8;
     let value = cpu.reg_a ^ operand;
 
     cpu.reg_a = value;
@@ -405,17 +407,17 @@ where
     cpu.set_flags(None, Some(false), Some(false), Some(!cpu.flag_c()));
 }
 
-pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let value = cpu.fetch_data(addr) as u8;
     let a = cpu.reg_a;
 
     cpu.set_flags(Some(value == a), Some(true), Some((a & 0x0F) < (value & 0x0F)), Some(a < value));
 }
 
-pub(crate) fn proc_cb<BUS>(cpu: &mut Cpu<BUS>, inst: &Instruction)
+pub(crate) fn proc_cb<BUS>(cpu: &mut Cpu<BUS>)
 where
     BUS: gb_shared::Memory,
 {
@@ -433,27 +435,27 @@ where
         }
     }
 
-    fn decode_inst(value: u8) -> CbInstructionType {
+    fn decode_inst(value: u8) -> CbInstruction {
         match value {
-            0x00..=0x07 => CbInstructionType::RLC,
-            0x08..=0x0F => CbInstructionType::RRC,
-            0x10..=0x17 => CbInstructionType::RL,
-            0x18..=0x1F => CbInstructionType::RR,
-            0x20..=0x27 => CbInstructionType::SLA,
-            0x28..=0x2F => CbInstructionType::SRA,
-            0x30..=0x37 => CbInstructionType::SWAP,
-            0x38..=0x3F => CbInstructionType::SRL,
-            0x40..=0x7F => CbInstructionType::BIT,
-            0x80..=0xBF => CbInstructionType::RES,
-            0xC0..=0xFF => CbInstructionType::SET,
+            0x00..=0x07 => CbInstruction::RLC,
+            0x08..=0x0F => CbInstruction::RRC,
+            0x10..=0x17 => CbInstruction::RL,
+            0x18..=0x1F => CbInstruction::RR,
+            0x20..=0x27 => CbInstruction::SLA,
+            0x28..=0x2F => CbInstruction::SRA,
+            0x30..=0x37 => CbInstruction::SWAP,
+            0x38..=0x3F => CbInstruction::SRL,
+            0x40..=0x7F => CbInstruction::BIT,
+            0x80..=0xBF => CbInstruction::RES,
+            0xC0..=0xFF => CbInstruction::SET,
         }
     }
 
-    let value = cpu.fetch_data(inst.operand1.as_ref().unwrap()) as u8;
+    let value = cpu.fetch_data(&AddressingMode::PC1) as u8;
     let am = decode_addressing_mode(value & 0b111);
 
     match decode_inst(value) {
-        CbInstructionType::RLC => {
+        CbInstruction::RLC => {
             // 左移1位，MSB换到MLB。
             let msb = (value >> 7) & 1;
             let new_value = (value << 1) | msb;
@@ -461,7 +463,7 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
         }
-        CbInstructionType::RRC => {
+        CbInstruction::RRC => {
             // 右移1位，MLB换到MSB。
             let mlb = value & 1;
             let new_value = (value >> 1) | (mlb << 7);
@@ -469,7 +471,7 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
-        CbInstructionType::RL => {
+        CbInstruction::RL => {
             // 左移1位，Flag C作为MLB。
             let msb = (value >> 7) & 1;
             let mlb = if cpu.flag_c() { 1 } else { 0 };
@@ -478,7 +480,7 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
         }
-        CbInstructionType::RR => {
+        CbInstruction::RR => {
             // 右移1位，Flag C作为MSB。
             let mlb = value & 1;
             let msb = if cpu.flag_c() { 1 } else { 0 };
@@ -487,7 +489,7 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
-        CbInstructionType::SLA => {
+        CbInstruction::SLA => {
             // 左移1位。
             let msb = (value >> 7) & 1;
             let new_value = value << 1;
@@ -495,7 +497,7 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
         }
-        CbInstructionType::SRA => {
+        CbInstruction::SRA => {
             // 右移1位。Arithmetic shift.
             let mlb = value & 1;
             let new_value = (value as i8) >> 1;
@@ -503,14 +505,14 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
-        CbInstructionType::SWAP => {
+        CbInstruction::SWAP => {
             // 高低4位交换。
             let new_value = ((value & 0xF0) >> 4) | ((value & 0x0F) << 4);
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(false));
         }
-        CbInstructionType::SRL => {
+        CbInstruction::SRL => {
             // 右移1位。Logical shift.
             let mlb = value & 1;
             let new_value = value >> 1;
@@ -518,19 +520,19 @@ where
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
-        CbInstructionType::BIT => {
+        CbInstruction::BIT => {
             // BIT tests.
             let bit = (value - 0x40) / 8;
             cpu.set_flags(Some((value & (1 << bit)) == 0), Some(false), Some(true), None);
         }
-        CbInstructionType::RES => {
+        CbInstruction::RES => {
             // Set specific bit to be zero.
             let bit = (value - 0x80) / 8;
             let new_value = value & (!(1 << bit));
 
             cpu.write_data(&am, 0, new_value as u16);
         }
-        CbInstructionType::SET => {
+        CbInstruction::SET => {
             // Set specific bit to be one.
             let bit = (value - 0xC0) / 8;
             let new_value = value | (1 << bit);
