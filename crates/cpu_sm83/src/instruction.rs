@@ -349,7 +349,7 @@ const INSTRUCTIONS: [Instruction; 256] = [
     // 0xFx
     Inst::LD(Am::Direct(Register::A), Am::PC2),
     Inst::POP(Am::Direct(Register::AF)),
-    Inst::LD(Am::Direct(Register::A), Am::Indirect(Register::C)),
+    Inst::LD(Am::Direct(Register::A), Am::Direct(Register::C)),
     Inst::DI,
     Inst::NONE,
     Inst::PUSH(Am::Direct(Register::AF)),
