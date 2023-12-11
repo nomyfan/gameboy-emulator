@@ -2,7 +2,7 @@ mod instruction;
 mod interrupt;
 mod proc;
 
-use instruction::{get_instruction, AddressingMode, Instruction, Register};
+use instruction::{get_instruction, AddressingMode, Instruction};
 use interrupt::INTERRUPTS;
 use log::debug;
 
@@ -119,27 +119,21 @@ where
 
     pub(crate) fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
         match am {
-            AddressingMode::Direct(register) => match register {
-                Register::A => self.reg_a as u16,
-                Register::F => self.reg_f as u16,
-                Register::B => self.reg_b as u16,
-                Register::C => self.reg_c as u16,
-                Register::D => self.reg_d as u16,
-                Register::E => self.reg_e as u16,
-                Register::H => self.reg_h as u16,
-                Register::L => self.reg_l as u16,
-                Register::AF => self.af(),
-                Register::BC => self.bc(),
-                Register::DE => self.de(),
-                Register::HL => self.hl(),
-                Register::SP => self.sp,
-            },
-            AddressingMode::Indirect(register) => match register {
-                Register::BC => self.bus_read(self.bc()) as u16,
-                Register::DE => self.bus_read(self.de()) as u16,
-                Register::HL => self.bus_read(self.hl()) as u16,
-                _ => unreachable!("Only BC, DE, HL is valid for RegisterIndirect"),
-            },
+            AddressingMode::Direct_A => self.reg_a as u16,
+            AddressingMode::Direct_B => self.reg_b as u16,
+            AddressingMode::Direct_C => self.reg_c as u16,
+            AddressingMode::Direct_D => self.reg_d as u16,
+            AddressingMode::Direct_E => self.reg_e as u16,
+            AddressingMode::Direct_H => self.reg_h as u16,
+            AddressingMode::Direct_L => self.reg_l as u16,
+            AddressingMode::Direct_AF => self.af(),
+            AddressingMode::Direct_BC => self.bc(),
+            AddressingMode::Direct_DE => self.de(),
+            AddressingMode::Direct_HL => self.hl(),
+            AddressingMode::Direct_SP => self.sp,
+            AddressingMode::Indirect_BC => self.bus_read(self.bc()) as u16,
+            AddressingMode::Indirect_DE => self.bus_read(self.de()) as u16,
+            AddressingMode::Indirect_HL => self.bus_read(self.hl()) as u16,
             AddressingMode::PC1 => self.read_pc() as u16,
             AddressingMode::PC2 => self.read_pc2(),
         }
@@ -147,27 +141,21 @@ where
 
     pub(crate) fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16) {
         match am {
-            AddressingMode::Direct(register) => match register {
-                Register::A => self.reg_a = value as u8,
-                Register::F => self.reg_f = value as u8,
-                Register::B => self.reg_b = value as u8,
-                Register::C => self.reg_c = value as u8,
-                Register::D => self.reg_d = value as u8,
-                Register::E => self.reg_e = value as u8,
-                Register::H => self.reg_h = value as u8,
-                Register::L => self.reg_l = value as u8,
-                Register::BC => self.set_bc(value),
-                Register::DE => self.set_de(value),
-                Register::HL => self.set_hl(value),
-                Register::SP => self.sp = value,
-                _ => unreachable!(),
-            },
-            AddressingMode::Indirect(register) => match register {
-                Register::BC => self.bus_write(self.bc(), value as u8),
-                Register::DE => self.bus_write(self.de(), value as u8),
-                Register::HL => self.bus_write(self.hl(), value as u8),
-                _ => unreachable!("Only BC, DE, HL is valid for RegisterIndirect"),
-            },
+            AddressingMode::Direct_A => self.reg_a = value as u8,
+            AddressingMode::Direct_B => self.reg_b = value as u8,
+            AddressingMode::Direct_C => self.reg_c = value as u8,
+            AddressingMode::Direct_D => self.reg_d = value as u8,
+            AddressingMode::Direct_E => self.reg_e = value as u8,
+            AddressingMode::Direct_H => self.reg_h = value as u8,
+            AddressingMode::Direct_L => self.reg_l = value as u8,
+            AddressingMode::Direct_AF => self.set_af(value),
+            AddressingMode::Direct_BC => self.set_bc(value),
+            AddressingMode::Direct_DE => self.set_de(value),
+            AddressingMode::Direct_HL => self.set_hl(value),
+            AddressingMode::Direct_SP => self.sp = value,
+            AddressingMode::Indirect_BC => self.bus_write(self.bc(), value as u8),
+            AddressingMode::Indirect_DE => self.bus_write(self.de(), value as u8),
+            AddressingMode::Indirect_HL => self.bus_write(self.hl(), value as u8),
             AddressingMode::PC1 => {
                 self.bus_write(address, value as u8);
             }
@@ -181,6 +169,14 @@ where
     #[inline]
     pub fn af(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_a, self.reg_f)
+    }
+
+    #[inline]
+    fn set_af(&mut self, value: u16) {
+        let (hi, lo) = convert_u16_to_u8_tuple(value);
+
+        self.reg_a = hi;
+        self.reg_f = lo;
     }
 
     #[inline]

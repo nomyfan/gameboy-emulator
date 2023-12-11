@@ -1,5 +1,5 @@
 use crate::{
-    instruction::{AddressingMode, CbInstruction, Condition, Register},
+    instruction::{AddressingMode, CbInstruction, Condition},
     Cpu,
 };
 
@@ -423,14 +423,14 @@ where
 {
     fn decode_addressing_mode(value: u8) -> AddressingMode {
         match value {
-            0 => AddressingMode::Direct(Register::B),
-            1 => AddressingMode::Direct(Register::C),
-            2 => AddressingMode::Direct(Register::D),
-            3 => AddressingMode::Direct(Register::E),
-            4 => AddressingMode::Direct(Register::H),
-            5 => AddressingMode::Direct(Register::L),
-            6 => AddressingMode::Indirect(Register::HL),
-            7 => AddressingMode::Direct(Register::A),
+            0 => AddressingMode::Direct_B,
+            1 => AddressingMode::Direct_C,
+            2 => AddressingMode::Direct_D,
+            3 => AddressingMode::Direct_E,
+            4 => AddressingMode::Direct_H,
+            5 => AddressingMode::Direct_L,
+            6 => AddressingMode::Indirect_HL,
+            7 => AddressingMode::Direct_A,
             _ => unreachable!("Only B,C,D,E,H,L,HL,A are valid for CB instruction."),
         }
     }
