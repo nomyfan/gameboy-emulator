@@ -439,7 +439,7 @@ impl<BUS: Memory> Memory for PPU<BUS> {
         }
 
         match addr {
-            0x8000..=0x9FFF => self.vram[addr as usize - 8000] = value,
+            0x8000..=0x9FFF => self.vram[addr as usize - 0x8000] = value,
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => self.lcd.lcdc = value,
             0xFF41 => {
@@ -470,7 +470,7 @@ impl<BUS: Memory> Memory for PPU<BUS> {
         }
 
         match addr {
-            0x8000..=0x9FFF => self.vram[addr as usize - 8000],
+            0x8000..=0x9FFF => self.vram[addr as usize - 0x8000],
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00],
             0xFF40 => self.lcd.lcdc,
             0xFF41 => self.lcd.stat,
