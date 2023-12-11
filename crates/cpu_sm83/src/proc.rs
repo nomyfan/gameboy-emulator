@@ -73,8 +73,8 @@ pub(crate) fn proc_ld<BUS>(
 ) where
     BUS: gb_shared::Memory,
 {
-    let mut operand2 = cpu.fetch_data(addr1);
-    let mut operand1 = cpu.fetch_data(addr2);
+    let mut operand2 = cpu.fetch_data(addr2);
+    let mut operand1 = cpu.fetch_data(addr1);
 
     if opcode == 0xE0 || opcode == 0xE2 {
         // (a8), (C)
