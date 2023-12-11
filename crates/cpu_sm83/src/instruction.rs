@@ -347,7 +347,7 @@ const INSTRUCTIONS: [Instruction; 256] = [
     Inst::XOR(Am::PC1),
     Inst::RST,
     // 0xFx
-    Inst::LD(Am::Direct(Register::A), Am::PC2),
+    Inst::LD(Am::Direct(Register::A), Am::PC1),
     Inst::POP(Am::Direct(Register::AF)),
     Inst::LD(Am::Direct(Register::A), Am::Direct(Register::C)),
     Inst::DI,
