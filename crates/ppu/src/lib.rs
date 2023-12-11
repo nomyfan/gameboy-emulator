@@ -114,16 +114,16 @@ impl<BUS: Memory> PPU<BUS> {
         }
     }
     fn lcd_mode(&self) -> LCDMode {
-        LCDMode::from(&self.lcd)
+        LCDMode::from(self.lcd.stat)
     }
 
     fn set_lcd_mode(&mut self, mode: LCDMode) {
         // Unset bit 0 and bit 1
-        let mut lcdc = self.lcd.lcdc;
-        lcdc &= !0b11;
+        let mut stat = self.lcd.stat;
+        stat &= !0b11;
         // Set bit 0 and bit 1
-        lcdc |= mode as u8 & 0b11;
-        self.lcd.lcdc = lcdc;
+        stat |= mode as u8 & 0b11;
+        self.lcd.stat = stat;
     }
 
     /// For BGW only. Tile index for object is stored
@@ -191,13 +191,13 @@ impl<BUS: Memory> PPU<BUS> {
     fn request_lcd_stat_interrupt(&mut self) {
         let addr = 0xFF0F;
         // TODO: replace 0b10 with enum value
-        self.bus.write(addr, self.read(addr) | 0b10);
+        self.bus.write(addr, self.bus.read(addr) | 0b10);
     }
 
     fn request_vblank_interrupt(&mut self) {
         let addr = 0xFF0F;
         // TODO: replace 0b1 with enum value
-        self.bus.write(addr, self.read(addr) | 0b1);
+        self.bus.write(addr, self.bus.read(addr) | 0b1);
     }
 
     fn move_to_next_scanline(&mut self) {

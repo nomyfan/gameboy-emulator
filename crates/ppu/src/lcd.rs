@@ -12,9 +12,9 @@ pub(crate) enum LCDMode {
     VBlank = 1,
 }
 
-impl From<&LCD> for LCDMode {
-    fn from(lcd: &LCD) -> Self {
-        let value = lcd.stat & 0b11;
+impl From<u8> for LCDMode {
+    fn from(value: u8) -> Self {
+        let value = value & 0b11;
         unsafe { std::mem::transmute::<[u8; 1], Self>([value]) }
     }
 }

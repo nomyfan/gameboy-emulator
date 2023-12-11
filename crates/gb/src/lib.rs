@@ -43,7 +43,7 @@ impl GameBoy {
     pub fn play(self) -> anyhow::Result<()> {
         let mut gb = self;
         // TODO: loop and accept signals to stop
-        for _ in 1..200 {
+        loop {
             debug!("{:?}", &gb.cpu);
 
             if gb.cpu.stopped {
@@ -71,7 +71,5 @@ impl GameBoy {
                 gb.cpu.handle_interrupts();
             }
         }
-
-        Ok(())
     }
 }
