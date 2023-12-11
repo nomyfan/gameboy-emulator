@@ -59,9 +59,9 @@ pub(crate) fn proc_jr<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
 where
     BUS: gb_shared::Memory,
 {
-    let addr = cpu.fetch_data(&AddressingMode::PC1) as u8;
+    let r8 = cpu.fetch_data(&AddressingMode::PC1) as u8;
     if check_condition(cond.as_ref(), cpu) {
-        cpu.pc += addr as u16;
+        cpu.pc = cpu.pc.wrapping_add(r8 as u16);
     }
 }
 
@@ -194,7 +194,7 @@ where
 {
     let value = cpu.fetch_data(&AddressingMode::PC2);
     if check_condition(cond.as_ref(), cpu) {
-        cpu.stack_push2(value);
+        cpu.stack_push2(cpu.pc);
         cpu.pc = value;
     }
 }
@@ -247,7 +247,7 @@ where
         0xFF => 0x38,
         _ => unreachable!(),
     };
-    cpu.stack_push2(value);
+    cpu.stack_push2(cpu.pc);
     cpu.pc = value;
 }
 
