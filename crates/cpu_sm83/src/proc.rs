@@ -17,39 +17,39 @@ where
     }
 }
 
-pub(crate) fn proc_inc<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, addr: &AddressingMode)
+pub(crate) fn proc_inc<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(addr);
+    let value = cpu.fetch_data(am);
     let value = value.wrapping_add(1);
 
     if opcode != 0x03 && opcode != 0x13 && opcode != 0x23 && opcode != 0x33 {
         cpu.set_flags(Some(value == 0), Some(false), Some((value & 0xF) == 0), None);
     }
 
-    cpu.write_data(addr, 0, value);
+    cpu.write_data(am, 0, value);
 }
 
-pub(crate) fn proc_dec<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, addr: &AddressingMode)
+pub(crate) fn proc_dec<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(addr);
+    let value = cpu.fetch_data(am);
     let value = value.wrapping_sub(1);
 
     if opcode != 0x0B && opcode != 0x1B && opcode != 0x2B && opcode != 0x3B {
         cpu.set_flags(Some(value == 0), Some(true), Some((value & 0xF) == 0), None);
     }
 
-    cpu.write_data(addr, 0, value);
+    cpu.write_data(am, 0, value);
 }
 
-pub(crate) fn proc_jp<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>, addr: &AddressingMode)
+pub(crate) fn proc_jp<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let addr = cpu.fetch_data(addr);
+    let addr = cpu.fetch_data(am);
     if check_condition(cond.as_ref(), cpu) {
         cpu.pc = addr;
     }
@@ -68,29 +68,34 @@ where
 pub(crate) fn proc_ld<BUS>(
     cpu: &mut Cpu<BUS>,
     opcode: u8,
-    addr1: &AddressingMode,
-    addr2: &AddressingMode,
+    am1: &AddressingMode,
+    am2: &AddressingMode,
 ) where
     BUS: gb_shared::Memory,
 {
-    let mut operand2 = cpu.fetch_data(addr2);
-    let mut operand1 = cpu.fetch_data(addr1);
+    let mut operand2 = cpu.fetch_data(am2);
+    let mut operand1 = cpu.fetch_data(am1);
 
     if opcode == 0xE0 || opcode == 0xE2 {
-        // (a8), (C)
+        // (a8) / (C)
         operand1 |= 0xFF00;
     }
     if opcode == 0xF0 || opcode == 0xF2 {
-        // (a8), (C)
+        // (a8) / (C)
         operand2 |= 0xFF00;
     }
     if opcode == 0xF8 {
         // SP+r8
         let r8 = cpu.read_pc();
-        operand2 += r8 as u16;
+        operand2 = operand2.wrapping_add(r8 as u16);
     }
 
-    cpu.write_data(addr1, operand1, operand2);
+    if opcode == 0xFA {
+        // LD A,(a16)
+        operand2 = cpu.bus_read(operand2) as u16;
+    }
+
+    cpu.write_data(am1, operand1, operand2);
 
     if opcode == 0x22 || opcode == 0x2A {
         // HL+
@@ -105,13 +110,13 @@ pub(crate) fn proc_ld<BUS>(
 pub(crate) fn proc_add<BUS>(
     cpu: &mut Cpu<BUS>,
     opcode: u8,
-    addr1: &AddressingMode,
-    addr2: &AddressingMode,
+    am1: &AddressingMode,
+    am2: &AddressingMode,
 ) where
     BUS: gb_shared::Memory,
 {
-    let operand2 = cpu.fetch_data(addr2);
-    let operand1 = cpu.fetch_data(addr1);
+    let operand2 = cpu.fetch_data(am2);
+    let operand1 = cpu.fetch_data(am1);
     let sum = operand1.wrapping_add(operand2);
 
     let z = if opcode == 0x09 || opcode == 0x19 || opcode == 0x29 || opcode == 0x39 {
@@ -134,15 +139,15 @@ pub(crate) fn proc_add<BUS>(
             (Some(h), Some(c))
         };
 
-    cpu.write_data(addr1, 0, sum);
+    cpu.write_data(am1, 0, sum);
     cpu.set_flags(z, Some(false), h, c);
 }
 
-pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let data = cpu.fetch_data(addr) as u8;
+    let data = cpu.fetch_data(am) as u8;
     let a = cpu.reg_a;
     let c = if cpu.flag_c() { 1u8 } else { 0u8 };
 
@@ -154,11 +159,11 @@ where
     cpu.set_flags(Some(value == 0), Some(false), Some(h), Some(c));
 }
 
-pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let data = cpu.fetch_data(addr);
+    let data = cpu.fetch_data(am);
     let a = cpu.reg_a;
     let value = a.wrapping_sub(data as u8);
 
@@ -170,11 +175,11 @@ where
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
 }
 
-pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let data = cpu.fetch_data(addr) as u8;
+    let data = cpu.fetch_data(am) as u8;
     let a = cpu.reg_a;
     let c = if cpu.flag_c() { 1u8 } else { 0u8 };
 
@@ -199,20 +204,20 @@ where
     }
 }
 
-pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(addr);
+    let value = cpu.fetch_data(am);
     cpu.stack_push2(value);
 }
 
-pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
     let value = cpu.stack_pop2();
-    cpu.write_data(addr, 0, value);
+    cpu.write_data(am, 0, value);
 }
 
 pub(crate) fn proc_ret<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
@@ -228,7 +233,7 @@ pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>)
 where
     BUS: gb_shared::Memory,
 {
-    cpu.interrupt_master_enable = true;
+    cpu.ime = true;
     proc_ret(cpu, &None);
 }
 
@@ -251,33 +256,33 @@ where
     cpu.pc = value;
 }
 
-pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let operand = cpu.fetch_data(addr) as u8;
+    let operand = cpu.fetch_data(am) as u8;
     let value = cpu.reg_a & operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(true), Some(false));
 }
 
-pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let operand = cpu.fetch_data(addr) as u8;
+    let operand = cpu.fetch_data(am) as u8;
     let value = cpu.reg_a | operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
 }
 
-pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let operand = cpu.fetch_data(addr) as u8;
+    let operand = cpu.fetch_data(am) as u8;
     let value = cpu.reg_a ^ operand;
 
     cpu.reg_a = value;
@@ -288,14 +293,15 @@ pub(crate) fn proc_di<BUS>(cpu: &mut Cpu<BUS>)
 where
     BUS: gb_shared::Memory,
 {
-    cpu.interrupt_master_enable = false;
+    cpu.ime = false;
 }
 
 pub(crate) fn proc_ei<BUS>(cpu: &mut Cpu<BUS>)
 where
     BUS: gb_shared::Memory,
 {
-    cpu.interrupt_master_enable = true;
+    // TODO: We need another cycle to effect.
+    cpu.ime = true;
 }
 
 pub(crate) fn proc_halt<BUS>(cpu: &mut Cpu<BUS>)
@@ -372,11 +378,11 @@ where
     let flag_c = cpu.flag_c();
     let flag_n = cpu.flag_n();
 
-    if flag_h || (!flag_n && (a & 0xF) > 9) {
+    if flag_h || (!flag_n && (a & 0xF) > 0x09) {
         acc |= 0x06;
     }
 
-    if flag_c || (!flag_n && a > 99) {
+    if flag_c || (!flag_n && a > 0x99) {
         acc |= 0x60;
         c = true;
     }
@@ -407,11 +413,11 @@ where
     cpu.set_flags(None, Some(false), Some(false), Some(!cpu.flag_c()));
 }
 
-pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, addr: &AddressingMode)
+pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
 where
     BUS: gb_shared::Memory,
 {
-    let value = cpu.fetch_data(addr) as u8;
+    let value = cpu.fetch_data(am) as u8;
     let a = cpu.reg_a;
 
     cpu.set_flags(Some(value == a), Some(true), Some((a & 0x0F) < (value & 0x0F)), Some(a < value));

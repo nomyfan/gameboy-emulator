@@ -52,11 +52,12 @@ impl GameBoy {
                 std::process::exit(0);
             }
 
-            if gb.cpu.interrupt_master_enable {
-                gb.cpu.handle_interrupts();
-            }
-
-            let cycles = gb.cpu.step();
+            let cycles = if gb.cpu.halted {
+                // TODO
+                1
+            } else {
+                gb.cpu.step()
+            };
 
             for _ in 0..cycles {
                 for _ in 0..4 {
@@ -64,6 +65,10 @@ impl GameBoy {
                 }
 
                 gb.bus.step();
+            }
+
+            if gb.cpu.ime {
+                gb.cpu.handle_interrupts();
             }
         }
 

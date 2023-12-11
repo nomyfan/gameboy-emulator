@@ -33,8 +33,9 @@ where
     /// Program counter
     pub pc: u16,
 
+    /// Interrupt master enable.
     /// Set by instructions(EI, RETI, DI).
-    pub interrupt_master_enable: bool,
+    pub ime: bool,
     /// Set by instruction HALT
     ///
     /// HALT mode is exited when a flag in register IF is set and
@@ -64,7 +65,7 @@ where
             .field("BC", &format_args!("{:#04X}", &self.bc()))
             .field("DE", &format_args!("{:#04X}", &self.de()))
             .field("HL", &format_args!("{:#04X}", &self.hl()))
-            .field("IME", &self.interrupt_master_enable)
+            .field("IME", &self.ime)
             .field("HALTED", &self.halted)
             .field("STOPPED", &self.stopped)
             .finish()
@@ -102,7 +103,7 @@ where
             sp: 0xFFFE,
             pc: 0x100,
 
-            interrupt_master_enable: false,
+            ime: false,
             halted: false,
             stopped: false,
             bus,
@@ -161,7 +162,7 @@ where
             }
             AddressingMode::PC2 => {
                 self.bus_write(address, value as u8);
-                self.bus_write(address + 1, (value >> 8) as u8);
+                self.bus_write(address.wrapping_add(1), (value >> 8) as u8);
             }
         }
     }
@@ -218,19 +219,17 @@ where
     fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
         /// Turn on or off for specific bit.
         fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
-            debug_assert!((1..=8).contains(&bit));
-
             match flag {
                 None => value,
-                Some(true) => value | (1u8 << (bit - 1)),
-                Some(false) => value & (!(1u8 << (bit - 1))),
+                Some(true) => value | (1u8 << bit),
+                Some(false) => value & (!(1u8 << bit)),
             }
         }
 
-        let v = set_flag(self.reg_f, c, 4);
-        let v = set_flag(v, h, 5);
-        let v = set_flag(v, n, 6);
-        self.reg_f = set_flag(v, z, 7);
+        let v = set_flag(self.reg_f, c, 3);
+        let v = set_flag(v, h, 4);
+        let v = set_flag(v, n, 5);
+        self.reg_f = set_flag(v, z, 6);
     }
 
     #[inline]
@@ -255,7 +254,7 @@ where
 
     fn inc_pc(&mut self) -> u16 {
         let pc = self.pc;
-        self.pc += 1;
+        self.pc = self.pc.wrapping_add(1);
 
         pc
     }
@@ -285,7 +284,7 @@ where
     }
 
     fn stack_push(&mut self, value: u8) {
-        self.sp -= 1;
+        self.sp = self.sp.wrapping_sub(1);
         self.bus_write(self.sp, value);
     }
 
@@ -296,7 +295,7 @@ where
 
     fn stack_pop(&mut self) -> u8 {
         let value = self.bus_read(self.sp);
-        self.sp += 1;
+        self.sp = self.sp.wrapping_add(1);
 
         value
     }
@@ -325,7 +324,7 @@ where
             self.halted = false;
             // Interrupt handler can let CPU continue to handle
             // interrupts via RETI instruction.
-            self.interrupt_master_enable = false;
+            self.ime = false;
         }
     }
 
