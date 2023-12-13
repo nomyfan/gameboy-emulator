@@ -353,7 +353,7 @@ const INSTRUCTIONS: [Instruction; 256] = [
     Inst::PUSH(Am::Direct_AF),
     Inst::OR(Am::PC1),
     Inst::RST,
-    Inst::LD(Am::Direct_HL, Am::Direct_SP),
+    Inst::LD(Am::Direct_HL, Am::Direct_SP), /* SP + r8 */
     Inst::LD(Am::Direct_SP, Am::Direct_HL),
     Inst::LD(Am::Direct_A, Am::PC2),
     Inst::EI,

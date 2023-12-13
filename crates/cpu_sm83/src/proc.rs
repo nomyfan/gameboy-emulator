@@ -69,9 +69,9 @@ pub(crate) fn proc_jr<BUS: gb_shared::Memory>(
     opcode: u8,
     cond: &Option<Condition>,
 ) -> u8 {
-    let r8 = cpu.fetch_data(&AddressingMode::PC1) as u8;
+    let unsigned_r8 = cpu.fetch_data(&AddressingMode::PC1) as u8;
     if check_condition(cond.as_ref(), cpu) {
-        cpu.pc = cpu.pc.wrapping_add(r8 as u16);
+        cpu.pc = cpu.pc.wrapping_add_signed(unsigned_r8 as i8 as i16);
 
         return get_cycles(opcode).0;
     }
@@ -92,18 +92,26 @@ pub(crate) fn proc_ld<BUS: gb_shared::Memory>(
         // (a8) / (C)
         operand1 |= 0xFF00;
     }
+
     if opcode == 0xF0 || opcode == 0xF2 {
         // (a8) / (C)
         operand2 |= 0xFF00;
     }
+
     if opcode == 0xF8 {
         // SP+r8
-        let r8 = cpu.read_pc();
-        operand2 = operand2.wrapping_add(r8 as u16);
+        let unsigned_r8 = cpu.read_pc();
+
+        let h = (operand2 & 0xF) + (unsigned_r8 as u16 & 0xF) > 0xF;
+        let c = (operand2 & 0xFF) + (unsigned_r8 as u16 & 0xFF) > 0xFF;
+
+        operand2 = operand2.wrapping_add_signed(unsigned_r8 as i8 as i16);
+
+        cpu.set_flags(None, None, Some(h), Some(c));
     }
 
-    if opcode == 0xFA {
-        // LD A,(a16)
+    if opcode == 0xF0 || opcode == 0xF2 || opcode == 0xFA {
+        // (a8) / (C) / (a16)
         operand2 = cpu.bus_read(operand2) as u16;
     }
 
@@ -129,7 +137,11 @@ pub(crate) fn proc_add<BUS: gb_shared::Memory>(
 ) -> u8 {
     let operand2 = cpu.fetch_data(am2);
     let operand1 = cpu.fetch_data(am1);
-    let sum = operand1.wrapping_add(operand2);
+    let sum = if opcode == 0xE8 {
+        operand1.wrapping_add_signed(operand2 as u8 as i8 as i16)
+    } else {
+        operand1.wrapping_add(operand2)
+    };
 
     let z = if opcode == 0x09 || opcode == 0x19 || opcode == 0x29 || opcode == 0x39 {
         None
