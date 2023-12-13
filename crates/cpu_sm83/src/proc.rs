@@ -1,12 +1,9 @@
 use crate::{
-    instruction::{AddressingMode, CbInstruction, Condition},
+    instruction::{get_cycles, AddressingMode, CbInstruction, Condition},
     Cpu,
 };
 
-fn check_condition<BUS>(cond: Option<&Condition>, cpu: &Cpu<BUS>) -> bool
-where
-    BUS: gb_shared::Memory,
-{
+fn check_condition<BUS: gb_shared::Memory>(cond: Option<&Condition>, cpu: &Cpu<BUS>) -> bool {
     match cond {
         None => true,
         Some(Condition::C) if cpu.flag_c() => true,
@@ -17,10 +14,11 @@ where
     }
 }
 
-pub(crate) fn proc_inc<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_inc<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let value = cpu.fetch_data(am);
     let value = value.wrapping_add(1);
 
@@ -29,12 +27,15 @@ where
     }
 
     cpu.write_data(am, 0, value);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_dec<BUS>(cpu: &mut Cpu<BUS>, opcode: u8, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_dec<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let value = cpu.fetch_data(am);
     let value = value.wrapping_sub(1);
 
@@ -43,36 +44,47 @@ where
     }
 
     cpu.write_data(am, 0, value);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_jp<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_jp<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    cond: &Option<Condition>,
+    am: &AddressingMode,
+) -> u8 {
     let addr = cpu.fetch_data(am);
     if check_condition(cond.as_ref(), cpu) {
         cpu.pc = addr;
+
+        return get_cycles(opcode).0;
     }
+
+    get_cycles(opcode).1
 }
 
-pub(crate) fn proc_jr<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_jr<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    cond: &Option<Condition>,
+) -> u8 {
     let r8 = cpu.fetch_data(&AddressingMode::PC1) as u8;
     if check_condition(cond.as_ref(), cpu) {
         cpu.pc = cpu.pc.wrapping_add(r8 as u16);
+
+        return get_cycles(opcode).0;
     }
+
+    get_cycles(opcode).1
 }
 
-pub(crate) fn proc_ld<BUS>(
+pub(crate) fn proc_ld<BUS: gb_shared::Memory>(
     cpu: &mut Cpu<BUS>,
     opcode: u8,
     am1: &AddressingMode,
     am2: &AddressingMode,
-) where
-    BUS: gb_shared::Memory,
-{
+) -> u8 {
     let mut operand2 = cpu.fetch_data(am2);
     let mut operand1 = cpu.fetch_data(am1);
 
@@ -105,16 +117,16 @@ pub(crate) fn proc_ld<BUS>(
         // HL-
         cpu.dec_hl();
     }
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_add<BUS>(
+pub(crate) fn proc_add<BUS: gb_shared::Memory>(
     cpu: &mut Cpu<BUS>,
     opcode: u8,
     am1: &AddressingMode,
     am2: &AddressingMode,
-) where
-    BUS: gb_shared::Memory,
-{
+) -> u8 {
     let operand2 = cpu.fetch_data(am2);
     let operand1 = cpu.fetch_data(am1);
     let sum = operand1.wrapping_add(operand2);
@@ -141,12 +153,15 @@ pub(crate) fn proc_add<BUS>(
 
     cpu.write_data(am1, 0, sum);
     cpu.set_flags(z, Some(false), h, c);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_adc<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_adc<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let data = cpu.fetch_data(am) as u8;
     let a = cpu.reg_a;
     let c = if cpu.flag_c() { 1u8 } else { 0u8 };
@@ -157,12 +172,15 @@ where
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(h), Some(c));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_sub<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_sub<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let data = cpu.fetch_data(am);
     let a = cpu.reg_a;
     let value = a.wrapping_sub(data as u8);
@@ -173,12 +191,15 @@ where
 
     cpu.reg_a = value;
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_sbc<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_sbc<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let data = cpu.fetch_data(am) as u8;
     let a = cpu.reg_a;
     let c = if cpu.flag_c() { 1u8 } else { 0u8 };
@@ -191,56 +212,69 @@ where
 
     cpu.reg_a = value;
     cpu.set_flags(Some(z), Some(true), Some(h), Some(c));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_call<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_call<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    cond: &Option<Condition>,
+) -> u8 {
     let value = cpu.fetch_data(&AddressingMode::PC2);
     if check_condition(cond.as_ref(), cpu) {
         cpu.stack_push2(cpu.pc);
         cpu.pc = value;
+
+        return get_cycles(opcode).0;
     }
+
+    get_cycles(opcode).1
 }
 
-pub(crate) fn proc_push<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_push<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let value = cpu.fetch_data(am);
     cpu.stack_push2(value);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_pop<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_pop<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let value = cpu.stack_pop2();
     cpu.write_data(am, 0, value);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_ret<BUS>(cpu: &mut Cpu<BUS>, cond: &Option<Condition>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_ret<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    cond: &Option<Condition>,
+) -> u8 {
     if check_condition(cond.as_ref(), cpu) {
         cpu.pc = cpu.stack_pop2();
+        return get_cycles(opcode).0;
     }
+
+    get_cycles(opcode).1
 }
 
-pub(crate) fn proc_reti<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_reti<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.ime = true;
-    proc_ret(cpu, &None);
+    proc_ret(cpu, opcode, &None);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_rst<BUS>(cpu: &mut Cpu<BUS>, opcode: u8)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_rst<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     let value: u16 = match opcode {
         0xC7 => 0x00,
         0xCF => 0x08,
@@ -254,122 +288,122 @@ where
     };
     cpu.stack_push2(cpu.pc);
     cpu.pc = value;
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_and<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_and<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let operand = cpu.fetch_data(am) as u8;
     let value = cpu.reg_a & operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(true), Some(false));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_or<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_or<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let operand = cpu.fetch_data(am) as u8;
     let value = cpu.reg_a | operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_xor<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_xor<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let operand = cpu.fetch_data(am) as u8;
     let value = cpu.reg_a ^ operand;
 
     cpu.reg_a = value;
     cpu.set_flags(Some(value == 0), Some(false), Some(false), Some(false));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_di<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_di<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.ime = false;
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_ei<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_ei<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     // TODO: We need another cycle to effect.
     cpu.ime = true;
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_halt<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_halt<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.halted = true;
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_stop<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_stop<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.stopped = true;
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_rlca<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_rlca<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     let value = cpu.reg_a;
     let c = (value >> 7) & 1;
 
     // Move the MSB(it) to the LSB(it)
     cpu.reg_a = (value << 1) | c;
     cpu.set_flags(Some(false), Some(false), Some(false), Some(c == 1));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_rla<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_rla<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     let value = cpu.reg_a;
     let c = (value >> 7) & 1 == 1;
     let carry = if cpu.flag_c() { 1u8 } else { 0u8 };
 
     cpu.reg_a = (value << 1) | carry;
     cpu.set_flags(Some(false), Some(false), Some(false), Some(c));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_rrca<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_rrca<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     let value = cpu.reg_a;
     let c = value & 1;
 
     // Move the LSB(it) to the MSB(it)
     cpu.reg_a = (value >> 1) | (c << 7);
     cpu.set_flags(Some(false), Some(false), Some(false), Some(c == 1));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_rra<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_rra<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     let value = cpu.reg_a;
     let c = value & 1 == 1;
     let carry = if cpu.flag_c() { 1u8 } else { 0u8 };
 
     cpu.reg_a = (value >> 1) | (carry << 7);
     cpu.set_flags(Some(false), Some(false), Some(false), Some(c));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_daa<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_daa<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     let mut acc = 0;
     let mut c = false;
     let a = cpu.reg_a;
@@ -389,44 +423,43 @@ where
 
     cpu.reg_a = if flag_n { a.wrapping_sub(acc) } else { a.wrapping_add(acc) };
     cpu.set_flags(Some(cpu.reg_a == 0), None, Some(false), Some(c));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_cpl<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_cpl<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.reg_a = !cpu.reg_a;
     cpu.set_flags(None, Some(true), Some(true), None);
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_scf<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_scf<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.set_flags(None, Some(false), Some(false), Some(true));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_ccf<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_ccf<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     cpu.set_flags(None, Some(false), Some(false), Some(!cpu.flag_c()));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_cp<BUS>(cpu: &mut Cpu<BUS>, am: &AddressingMode)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_cp<BUS: gb_shared::Memory>(
+    cpu: &mut Cpu<BUS>,
+    opcode: u8,
+    am: &AddressingMode,
+) -> u8 {
     let value = cpu.fetch_data(am) as u8;
     let a = cpu.reg_a;
 
     cpu.set_flags(Some(value == a), Some(true), Some((a & 0x0F) < (value & 0x0F)), Some(a < value));
+
+    get_cycles(opcode).0
 }
 
-pub(crate) fn proc_cb<BUS>(cpu: &mut Cpu<BUS>)
-where
-    BUS: gb_shared::Memory,
-{
+pub(crate) fn proc_cb<BUS: gb_shared::Memory>(cpu: &mut Cpu<BUS>, opcode: u8) -> u8 {
     fn decode_addressing_mode(value: u8) -> AddressingMode {
         match value {
             0 => AddressingMode::Direct_B,
@@ -546,4 +579,6 @@ where
             cpu.write_data(&am, 0, new_value as u16);
         }
     }
+
+    get_cycles(opcode).0 + if let AddressingMode::Indirect_HL = am { 16 } else { 8 }
 }
