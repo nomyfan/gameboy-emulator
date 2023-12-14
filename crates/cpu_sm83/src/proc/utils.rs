@@ -13,18 +13,6 @@ pub(crate) fn check_condition(cond: Option<&Condition>, cpu: &mut impl Cpu16) ->
     }
 }
 
-pub(crate) fn cpu_stack_push2(cpu: &mut impl Cpu16, value: u16) {
-    cpu.stack_push((value >> 8) as u8);
-    cpu.stack_push(value as u8);
-}
-
-pub(crate) fn cpu_stack_pop2(cpu: &mut impl Cpu16) -> u16 {
-    let lo = cpu.stack_pop();
-    let hi = cpu.stack_pop();
-
-    ((hi as u16) << 8) | (lo as u16)
-}
-
 #[inline]
 pub(crate) fn cpu_fetch_a(cpu: &mut impl Cpu16) -> u8 {
     cpu.fetch_data(&AddressingMode::Direct_A) as u8

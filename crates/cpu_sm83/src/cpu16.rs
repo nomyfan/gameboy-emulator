@@ -13,7 +13,17 @@ pub(crate) trait Cpu16 {
     /// Z,N,H,C in order.
     fn flags(&self) -> (bool, bool, bool, bool);
     fn stack_push(&mut self, value: u8);
+    fn stack_push2(&mut self, value: u16) {
+        self.stack_push((value >> 8) as u8);
+        self.stack_push(value as u8);
+    }
     fn stack_pop(&mut self) -> u8;
+    fn stack_pop2(&mut self) -> u16 {
+        let lo = self.stack_pop();
+        let hi = self.stack_pop();
+
+        ((hi as u16) << 8) | (lo as u16)
+    }
     fn stack_push_pc(&mut self);
     /// Jump to a  specific address.
     fn jp(&mut self, addr: u16);
