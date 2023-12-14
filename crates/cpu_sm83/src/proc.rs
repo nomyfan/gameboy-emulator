@@ -5,12 +5,13 @@ use crate::{
 
 fn check_condition(cond: Option<&Condition>, cpu: &mut impl Cpu16) -> bool {
     match cond {
+        Some(cond) => match cond {
+            Condition::Z => cpu.flags().0,
+            Condition::NZ => !cpu.flags().0,
+            Condition::C => cpu.flags().3,
+            Condition::NC => !cpu.flags().0,
+        },
         None => true,
-        Some(Condition::C) if cpu.flags().3 => true,
-        Some(Condition::NC) if !cpu.flags().3 => true,
-        Some(Condition::Z) if cpu.flags().0 => true,
-        Some(Condition::NZ) if !cpu.flags().0 => true,
-        _ => false,
     }
 }
 
@@ -563,4 +564,23 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
     }
 
     get_cycles(opcode).0 + if let AddressingMode::Indirect_HL = am { 16 } else { 8 }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cpu16::MockCpu16;
+
+    use super::*;
+
+    #[test]
+    fn condition_checking() {
+        let mut mock = MockCpu16::new();
+        mock.expect_flags().returning(|| (false, false, false, false));
+
+        assert_eq!(check_condition(None.as_ref(), &mut mock), true);
+        assert_eq!(check_condition(Some(Condition::C).as_ref(), &mut mock), false);
+        assert_eq!(check_condition(Some(Condition::NC).as_ref(), &mut mock), true);
+        assert_eq!(check_condition(Some(Condition::Z).as_ref(), &mut mock), false);
+        assert_eq!(check_condition(Some(Condition::NZ).as_ref(), &mut mock), true);
+    }
 }

@@ -1,6 +1,9 @@
 use crate::instruction::AddressingMode;
+#[cfg(test)]
+use mockall::{automock, predicate::*};
 
 /// 16 bits CPU
+#[cfg_attr(test, automock)]
 pub(crate) trait Cpu16 {
     fn fetch_data(&mut self, am: &AddressingMode) -> u16;
     fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16);
