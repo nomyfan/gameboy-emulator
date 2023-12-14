@@ -118,7 +118,7 @@ pub(crate) fn proc_ld(
 
         operand2 = operand2.wrapping_add_signed(unsigned_r8 as i8 as i16);
 
-        cpu.set_flags(None, None, Some(h), Some(c));
+        cpu.set_flags(Some(false), Some(false), Some(h), Some(c));
     }
 
     if opcode == 0xF0 || opcode == 0xF2 || opcode == 0xFA {
@@ -569,6 +569,8 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
 #[cfg(test)]
 mod tests {
     use crate::cpu16::MockCpu16;
+    use crate::instruction::AddressingMode as AM;
+    use mockall::predicate::*;
 
     use super::*;
 
@@ -582,5 +584,117 @@ mod tests {
         assert_eq!(check_condition(Some(Condition::NC).as_ref(), &mut mock), true);
         assert_eq!(check_condition(Some(Condition::Z).as_ref(), &mut mock), false);
         assert_eq!(check_condition(Some(Condition::NZ).as_ref(), &mut mock), true);
+    }
+
+    mod proc_ld {
+        use super::*;
+
+        #[test]
+        fn ld() {
+            let mut mock = MockCpu16::new();
+            mock.expect_fetch_data().with(eq(AddressingMode::Direct_A)).returning(|_| 0x12);
+            mock.expect_fetch_data()
+                .with(eq(AddressingMode::Direct_B))
+                .once()
+                .returning(|_| 0x1234);
+            mock.expect_write_data()
+                .with(
+                    eq(AddressingMode::Direct_A),
+                    always(),
+                    function(|value| (value & 0xFF) == 0x34),
+                )
+                .once()
+                .returning(|_, _, _| {});
+
+            let am1 = AM::Direct_A;
+            let am2 = AM::Direct_B;
+            let opcode = 0x78;
+
+            assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+        }
+
+        #[test]
+        fn ld_hl_plus_minus() {
+            let cases = [
+                (0x22, (AM::Indirect_HL, 0x12u16), (AM::Direct_A, 0x34), true),
+                (0x2A, (AM::Direct_A, 0x12), (AM::Indirect_HL, 0x34), true),
+                (0x32, (AM::Indirect_HL, 0x12u16), (AM::Direct_A, 0x34), false),
+                (0x3A, (AM::Direct_A, 0x12), (AM::Indirect_HL, 0x34), false),
+            ];
+
+            for (opcode, (am1, ret1), (am2, ret2), inc) in cases.into_iter() {
+                let mut mock = MockCpu16::new();
+
+                mock.expect_fetch_data().with(eq(am1)).returning(move |_| ret1);
+                mock.expect_fetch_data().with(eq(am2)).once().returning(move |_| ret2);
+                mock.expect_write_data()
+                    .with(eq(am1), always(), function(move |value| (value & 0xFF) == ret2))
+                    .once()
+                    .returning(|_, _, _| {});
+                mock.expect_inc_dec_hl().with(eq(inc)).once().returning(|_| {});
+                assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+            }
+        }
+
+        #[test]
+        fn ld_sp_r8() {
+            let am1 = AM::Direct_HL;
+            let am2 = AM::Direct_SP;
+            let opcode = 0xF8;
+
+            let mut mock = MockCpu16::new();
+            mock.expect_fetch_data().with(eq(am2)).once().returning(|_| 2);
+            mock.expect_fetch_data().with(eq(AM::PC1)).once().returning(|_| (-1i8) as u16);
+            mock.expect_fetch_data().with(eq(am1)).returning(|_| 0x34);
+            mock.expect_write_data().with(eq(am1), always(), eq(2 - 1)).returning(|_, _, _| {});
+
+            mock.expect_set_flags()
+                .with(eq(Some(false)), eq(Some(false)), eq(Some(true)), eq(Some(true)))
+                .once()
+                .returning(|_, _, _, _| {});
+
+            assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+        }
+
+        #[test]
+        fn ld_add_0xff00() {
+            // (a8) / (C)
+            let cases = [
+                (0xE0, (AM::PC1, 0x12u8), (AM::Direct_A, 0x34u8), 0xFF12u16, 0x34u8),
+                (0xE2, (AM::Direct_C, 0x12), (AM::Direct_A, 0x34), 0xFF12, 0x34),
+            ];
+
+            for (opcode, (am1, val1), (am2, val2), addr, value) in cases.into_iter() {
+                let mut mock = MockCpu16::new();
+                mock.expect_fetch_data().with(eq(am2)).once().returning(move |_| val2 as u16);
+                mock.expect_fetch_data().with(eq(am1)).once().returning(move |_| val1 as u16);
+                mock.expect_write_data()
+                    .with(eq(am1), eq(addr), eq(value as u16))
+                    .returning(|_, _, _| {});
+
+                assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+            }
+        }
+
+        #[test]
+        fn ld_add_0xff00_2() {
+            // (a8) / (C)
+            let cases = [
+                (0xF0, (AM::Direct_A, 0x12u8), (AM::PC1, 0x34u8), 0xFF34, 0x34u8),
+                (0xF2, (AM::Direct_A, 0x12), (AM::Direct_C, 0x34), 0xFF34, 0x34),
+            ];
+
+            for (opcode, (am1, val1), (am2, val2), addr, value) in cases.into_iter() {
+                let mut mock = MockCpu16::new();
+                mock.expect_fetch_data().with(eq(am2)).once().returning(move |_| val2 as u16);
+                mock.expect_fetch_data().with(eq(am1)).once().returning(move |_| val1 as u16);
+                mock.expect_write_data()
+                    .with(eq(am1), always(), eq(value as u16))
+                    .returning(|_, _, _| {});
+                mock.expect_bus_read().with(eq(addr)).once().returning(move |_| value);
+
+                assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+            }
+        }
     }
 }

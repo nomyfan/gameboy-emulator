@@ -1,5 +1,5 @@
 #[allow(non_camel_case_types)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum AddressingMode {
     Direct_A,
     Direct_B,
