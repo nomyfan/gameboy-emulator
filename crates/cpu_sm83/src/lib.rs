@@ -1,10 +1,137 @@
+mod cpu16;
 mod instruction;
 mod interrupt;
 mod proc;
 
+use cpu16::Cpu16;
 use instruction::{get_instruction, AddressingMode, Instruction};
 use interrupt::INTERRUPTS;
 use log::debug;
+
+impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
+    fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
+        match am {
+            AddressingMode::Direct_A => self.reg_a as u16,
+            AddressingMode::Direct_B => self.reg_b as u16,
+            AddressingMode::Direct_C => self.reg_c as u16,
+            AddressingMode::Direct_D => self.reg_d as u16,
+            AddressingMode::Direct_E => self.reg_e as u16,
+            AddressingMode::Direct_H => self.reg_h as u16,
+            AddressingMode::Direct_L => self.reg_l as u16,
+            AddressingMode::Direct_AF => self.af(),
+            AddressingMode::Direct_BC => self.bc(),
+            AddressingMode::Direct_DE => self.de(),
+            AddressingMode::Direct_HL => self.hl(),
+            AddressingMode::Direct_SP => self.sp,
+            AddressingMode::Indirect_BC => self.bus_read(self.bc()) as u16,
+            AddressingMode::Indirect_DE => self.bus_read(self.de()) as u16,
+            AddressingMode::Indirect_HL => self.bus_read(self.hl()) as u16,
+            AddressingMode::PC1 => self.read_pc() as u16,
+            AddressingMode::PC2 => self.read_pc2(),
+        }
+    }
+
+    fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16) {
+        match am {
+            AddressingMode::Direct_A => self.reg_a = value as u8,
+            AddressingMode::Direct_B => self.reg_b = value as u8,
+            AddressingMode::Direct_C => self.reg_c = value as u8,
+            AddressingMode::Direct_D => self.reg_d = value as u8,
+            AddressingMode::Direct_E => self.reg_e = value as u8,
+            AddressingMode::Direct_H => self.reg_h = value as u8,
+            AddressingMode::Direct_L => self.reg_l = value as u8,
+            AddressingMode::Direct_AF => self.set_af(value),
+            AddressingMode::Direct_BC => self.set_bc(value),
+            AddressingMode::Direct_DE => self.set_de(value),
+            AddressingMode::Direct_HL => self.set_hl(value),
+            AddressingMode::Direct_SP => self.sp = value,
+            AddressingMode::Indirect_BC => self.bus_write(self.bc(), value as u8),
+            AddressingMode::Indirect_DE => self.bus_write(self.de(), value as u8),
+            AddressingMode::Indirect_HL => self.bus_write(self.hl(), value as u8),
+            AddressingMode::PC1 => {
+                self.bus_write(address, value as u8);
+            }
+            AddressingMode::PC2 => {
+                self.bus_write(address, value as u8);
+                self.bus_write(address.wrapping_add(1), (value >> 8) as u8);
+            }
+        }
+    }
+
+    fn bus_read(&self, addr: u16) -> u8 {
+        self.bus.read(addr)
+    }
+
+    fn bus_write(&mut self, addr: u16, value: u8) {
+        self.bus.write(addr, value);
+    }
+
+    fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
+        /// Turn on or off for specific bit.
+        fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
+            match flag {
+                None => value,
+                Some(true) => value | (1u8 << bit),
+                Some(false) => value & (!(1u8 << bit)),
+            }
+        }
+
+        let v = set_flag(self.reg_f, c, 3);
+        let v = set_flag(v, h, 4);
+        let v = set_flag(v, n, 5);
+        self.reg_f = set_flag(v, z, 6);
+    }
+
+    fn flags(&self) -> (bool, bool, bool, bool) {
+        (self.flag_z(), self.flag_n(), self.flag_h(), self.flag_c())
+    }
+
+    fn stack_push(&mut self, value: u8) {
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus_write(self.sp, value);
+    }
+
+    fn stack_pop(&mut self) -> u8 {
+        let value = self.bus_read(self.sp);
+        self.sp = self.sp.wrapping_add(1);
+
+        value
+    }
+
+    fn stack_push_pc(&mut self) {
+        let pc = self.pc;
+        self.stack_push((pc >> 8) as u8);
+        self.stack_push(pc as u8);
+    }
+
+    fn jp(&mut self, addr: u16) {
+        self.pc = addr;
+    }
+
+    fn jr(&mut self, r8: i8) {
+        self.pc = self.pc.wrapping_add_signed(r8 as i16);
+    }
+
+    fn inc_dec_hl(&mut self, inc: bool) {
+        if inc {
+            self.set_hl(self.hl().wrapping_add(1));
+        } else {
+            self.set_hl(self.hl().wrapping_sub(1));
+        }
+    }
+
+    fn set_ime(&mut self, enabled: bool) {
+        self.ime = enabled;
+    }
+
+    fn set_halt(&mut self, halted: bool) {
+        self.halted = halted;
+    }
+
+    fn stop(&mut self) {
+        self.stopped = true;
+    }
+}
 
 pub struct Cpu<BUS>
 where
@@ -110,63 +237,6 @@ where
         }
     }
 
-    fn bus_read(&self, addr: u16) -> u8 {
-        self.bus.read(addr)
-    }
-
-    fn bus_write(&mut self, addr: u16, value: u8) {
-        self.bus.write(addr, value);
-    }
-
-    pub(crate) fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
-        match am {
-            AddressingMode::Direct_A => self.reg_a as u16,
-            AddressingMode::Direct_B => self.reg_b as u16,
-            AddressingMode::Direct_C => self.reg_c as u16,
-            AddressingMode::Direct_D => self.reg_d as u16,
-            AddressingMode::Direct_E => self.reg_e as u16,
-            AddressingMode::Direct_H => self.reg_h as u16,
-            AddressingMode::Direct_L => self.reg_l as u16,
-            AddressingMode::Direct_AF => self.af(),
-            AddressingMode::Direct_BC => self.bc(),
-            AddressingMode::Direct_DE => self.de(),
-            AddressingMode::Direct_HL => self.hl(),
-            AddressingMode::Direct_SP => self.sp,
-            AddressingMode::Indirect_BC => self.bus_read(self.bc()) as u16,
-            AddressingMode::Indirect_DE => self.bus_read(self.de()) as u16,
-            AddressingMode::Indirect_HL => self.bus_read(self.hl()) as u16,
-            AddressingMode::PC1 => self.read_pc() as u16,
-            AddressingMode::PC2 => self.read_pc2(),
-        }
-    }
-
-    pub(crate) fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16) {
-        match am {
-            AddressingMode::Direct_A => self.reg_a = value as u8,
-            AddressingMode::Direct_B => self.reg_b = value as u8,
-            AddressingMode::Direct_C => self.reg_c = value as u8,
-            AddressingMode::Direct_D => self.reg_d = value as u8,
-            AddressingMode::Direct_E => self.reg_e = value as u8,
-            AddressingMode::Direct_H => self.reg_h = value as u8,
-            AddressingMode::Direct_L => self.reg_l = value as u8,
-            AddressingMode::Direct_AF => self.set_af(value),
-            AddressingMode::Direct_BC => self.set_bc(value),
-            AddressingMode::Direct_DE => self.set_de(value),
-            AddressingMode::Direct_HL => self.set_hl(value),
-            AddressingMode::Direct_SP => self.sp = value,
-            AddressingMode::Indirect_BC => self.bus_write(self.bc(), value as u8),
-            AddressingMode::Indirect_DE => self.bus_write(self.de(), value as u8),
-            AddressingMode::Indirect_HL => self.bus_write(self.hl(), value as u8),
-            AddressingMode::PC1 => {
-                self.bus_write(address, value as u8);
-            }
-            AddressingMode::PC2 => {
-                self.bus_write(address, value as u8);
-                self.bus_write(address.wrapping_add(1), (value >> 8) as u8);
-            }
-        }
-    }
-
     #[inline]
     pub fn af(&self) -> u16 {
         convert_u8_tuple_to_u16(self.reg_a, self.reg_f)
@@ -216,22 +286,6 @@ where
         self.reg_l = lo;
     }
 
-    fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
-        /// Turn on or off for specific bit.
-        fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
-            match flag {
-                None => value,
-                Some(true) => value | (1u8 << bit),
-                Some(false) => value & (!(1u8 << bit)),
-            }
-        }
-
-        let v = set_flag(self.reg_f, c, 3);
-        let v = set_flag(v, h, 4);
-        let v = set_flag(v, n, 5);
-        self.reg_f = set_flag(v, z, 6);
-    }
-
     #[inline]
     fn flag_z(&self) -> bool {
         (self.reg_f & (1 << 6)) != 0
@@ -260,16 +314,6 @@ where
     }
 
     #[inline]
-    fn inc_hl(&mut self) {
-        self.set_hl(self.hl().wrapping_add(1));
-    }
-
-    #[inline]
-    fn dec_hl(&mut self) {
-        self.set_hl(self.hl().wrapping_sub(1));
-    }
-
-    #[inline]
     fn read_pc(&mut self) -> u8 {
         let addr = self.inc_pc();
         self.bus_read(addr)
@@ -279,30 +323,6 @@ where
     fn read_pc2(&mut self) -> u16 {
         let lo = self.read_pc();
         let hi = self.read_pc();
-
-        convert_u8_tuple_to_u16(hi, lo)
-    }
-
-    fn stack_push(&mut self, value: u8) {
-        self.sp = self.sp.wrapping_sub(1);
-        self.bus_write(self.sp, value);
-    }
-
-    fn stack_push2(&mut self, value: u16) {
-        self.stack_push((value >> 8) as u8);
-        self.stack_push(value as u8);
-    }
-
-    fn stack_pop(&mut self) -> u8 {
-        let value = self.bus_read(self.sp);
-        self.sp = self.sp.wrapping_add(1);
-
-        value
-    }
-
-    fn stack_pop2(&mut self) -> u16 {
-        let lo = self.stack_pop();
-        let hi = self.stack_pop();
 
         convert_u8_tuple_to_u16(hi, lo)
     }
@@ -318,13 +338,13 @@ where
             .iter()
             .find(|it| (interrupt_flag & it.flag) != 0 && (interrupt_enable & it.flag) != 0)
         {
-            self.stack_push2(self.pc);
-            self.pc = interrupt_source.handler_address;
+            self.stack_push_pc();
+            self.jp(interrupt_source.handler_address);
             self.bus_write(0xFF0F, interrupt_flag & (!interrupt_source.flag));
-            self.halted = false;
+            self.set_halt(false);
             // Interrupt handler can let CPU continue to handle
             // interrupts via RETI instruction.
-            self.ime = false;
+            self.set_ime(false);
         }
     }
 
