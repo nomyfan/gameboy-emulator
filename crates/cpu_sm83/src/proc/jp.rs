@@ -34,11 +34,11 @@ mod tests {
 
         for (opcode, am, cond, (z, n, h, c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am)).once().returning(|_| 1);
+            mock.expect_fetch_data().with(eq(am)).once().return_const(1u16);
             mock.expect_flags()
                 .times(if cond.is_none() { 0 } else { 1 })
                 .returning(move || (z, n, h, c));
-            mock.expect_jp().with(eq(1)).once().returning(|_| {});
+            mock.expect_jp().with(eq(1)).once().return_const(());
 
             assert_eq!(proc_jp(&mut mock, opcode, &cond, &am), get_cycles(opcode).0)
         }
@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn jp_condition_fail() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM::PC2)).once().returning(|_| 1);
+        mock.expect_fetch_data().with(eq(AM::PC2)).once().return_const(1u16);
         mock.expect_flags().once().returning(move || (false, true, true, true));
 
         assert_eq!(proc_jp(&mut mock, 0xCA, &Some(Condition::Z), &AM::PC2), get_cycles(0xCA).1)

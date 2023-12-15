@@ -42,7 +42,7 @@ mod tests {
         let opcode = 0xC8u8;
 
         let mut mock = MockCpu16::new();
-        mock.expect_flags().once().returning(|| (false, false, false, false));
+        mock.expect_flags().once().return_const((false, false, false, false));
 
         assert_eq!(proc_ret(&mut mock, opcode, &Some(Condition::Z)), get_cycles(opcode).1);
     }

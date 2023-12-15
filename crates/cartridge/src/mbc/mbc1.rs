@@ -70,13 +70,9 @@ impl super::Mbc for Mbc1 {
     fn read(&self, addr: u16, rom: &[u8]) -> u8 {
         match addr {
             // Fixed ROM(ROM bank 0)
-            0x0000..=0x3FFF => {
-                rom[addr as usize]
-            }
+            0x0000..=0x3FFF => rom[addr as usize],
             // ROM bank
-            0x4000..=0x7FFF => {
-                self.rom_banks[self.rom_banking_num - 1][(addr - 0x4000) as usize]
-            }
+            0x4000..=0x7FFF => self.rom_banks[self.rom_banking_num - 1][(addr - 0x4000) as usize],
             // RAM bank
             0xA000..=0xBFFF => {
                 if !self.ram_enabled {

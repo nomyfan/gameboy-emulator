@@ -35,8 +35,8 @@ mod tests {
 
         for (opcode, am, val, ret) in cases {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am)).once().returning(move |_| val);
-            mock.expect_write_data().with(eq(am), always(), eq(ret)).once().returning(|_, _, _| {});
+            mock.expect_fetch_data().with(eq(am)).once().return_const(val);
+            mock.expect_write_data().with(eq(am), always(), eq(ret)).once().return_const(());
 
             assert_eq!(proc_inc(&mut mock, opcode, &am), get_cycles(opcode).0);
         }
@@ -51,12 +51,12 @@ mod tests {
 
         for (opcode, am, val, ret, (z, h)) in cases {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am)).once().returning(move |_| val as u16);
-            mock.expect_write_data().with(eq(am), always(), eq(ret)).once().returning(|_, _, _| {});
+            mock.expect_fetch_data().with(eq(am)).once().return_const(val as u16);
+            mock.expect_write_data().with(eq(am), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .with(eq(Some(z)), eq(Some(false)), eq(Some(h)), eq(None))
                 .once()
-                .returning(|_, _, _, _| {});
+                .return_const(());
 
             assert_eq!(proc_inc(&mut mock, opcode, &am), get_cycles(opcode).0);
         }

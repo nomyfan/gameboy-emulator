@@ -31,7 +31,7 @@ mod tests {
     #[test]
     fn condition_checking() {
         let mut mock = MockCpu16::new();
-        mock.expect_flags().returning(|| (false, false, false, false));
+        mock.expect_flags().return_const((false, false, false, false));
 
         assert_eq!(check_condition(None.as_ref(), &mut mock), true);
         assert_eq!(check_condition(Some(Condition::C).as_ref(), &mut mock), false);
