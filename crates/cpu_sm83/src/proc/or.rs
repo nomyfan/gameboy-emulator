@@ -12,3 +12,34 @@ pub(crate) fn proc_or(cpu: &mut impl Cpu16, opcode: u8, am: &AddressingMode) -> 
 
     get_cycles(opcode).0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cpu16::MockCpu16;
+    use mockall::predicate::*;
+
+    type AM = AddressingMode;
+
+    #[test]
+    fn or() {
+        let opcode = 0xF6u8;
+        let am1 = AM::Direct_A;
+        let am2 = AM::PC1;
+
+        let cases =
+            [(1u16, 0u16, 1u16, false), (0, 1, 1, false), (1, 1, 1, false), (0, 0, 0, true)];
+
+        for (a, v, ret, z) in cases.into_iter() {
+            let mut mock = MockCpu16::new();
+            mock.expect_fetch_data().with(eq(am1)).once().return_const(a);
+            mock.expect_fetch_data().with(eq(am2)).once().return_const(v);
+            mock.expect_write_data().with(eq(am1), always(), eq(ret)).once().return_const(());
+            mock.expect_set_flags()
+                .once()
+                .with(eq(Some(z)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
+                .return_const(());
+            proc_or(&mut mock, opcode, &am2);
+        }
+    }
+}
