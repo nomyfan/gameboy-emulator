@@ -20,7 +20,7 @@ mod tests {
     fn pop() {
         let addr = 0x1212u16;
         let mut mock = MockCpu16::new();
-        mock.expect_stack_pop2().once().return_const(addr);
+        mock.expect_stack_pop().times(2).return_const(0x12);
         mock.expect_write_data()
             .once()
             .with(eq(AM::Direct_BC), always(), eq(addr))

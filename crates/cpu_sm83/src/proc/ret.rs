@@ -28,8 +28,8 @@ mod tests {
 
         for (opcode, cond, flags) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            let addr = 0x1234u16;
-            mock.expect_stack_pop2().once().return_const(addr);
+            let addr = 0x1212u16;
+            mock.expect_stack_pop().times(2).return_const(0x12);
             mock.expect_flags().times(if cond.is_none() { 0 } else { 1 }).return_const(flags);
             mock.expect_jp().once().with(eq(addr)).return_const(());
 

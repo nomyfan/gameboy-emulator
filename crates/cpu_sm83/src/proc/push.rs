@@ -21,7 +21,7 @@ mod tests {
         let addr = 0x1212u16;
         let mut mock = MockCpu16::new();
         mock.expect_fetch_data().with(eq(AM::Direct_AF)).once().return_const(addr);
-        mock.expect_stack_push2().once().return_const(());
+        mock.expect_stack_push().with(eq(0x12)).times(2).return_const(());
 
         assert_eq!(proc_push(&mut mock, 0xF5, &AM::Direct_AF), 16);
     }
