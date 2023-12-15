@@ -40,3 +40,66 @@ pub(crate) fn proc_add(
 
     get_cycles(opcode).0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cpu16::MockCpu16;
+    use mockall::predicate::*;
+
+    type AM = AddressingMode;
+
+    #[test]
+    fn add_sp_r8() {
+        let opcode = 0xE8u8;
+        let am1 = AM::Direct_SP;
+        let am2 = AM::PC1;
+
+        let mut mock = MockCpu16::new();
+        mock.expect_fetch_data().with(eq(am1)).return_const(1u16);
+        mock.expect_fetch_data().with(eq(am2)).return_const((-1i8) as u16);
+        mock.expect_write_data().with(eq(am1), always(), eq(0)).return_const(());
+        mock.expect_set_flags()
+            .with(eq(Some(false)), eq(Some(false)), eq(Some(true)), eq(Some(true)))
+            .return_const(());
+
+        assert_eq!(proc_add(&mut mock, opcode, &am1, &am2), 16);
+    }
+
+    #[test]
+    fn add_r() {
+        let cases = [
+            (0x85u8, AM::Direct_A, AM::Direct_L),
+            (0x86u8, AM::Direct_A, AM::Indirect_HL),
+            (0xC5u8, AM::Direct_A, AM::PC1),
+        ];
+
+        for (opcode, am1, am2) in cases.into_iter() {
+            let mut mock = MockCpu16::new();
+            mock.expect_fetch_data().with(eq(am1)).return_const(1u16);
+            mock.expect_fetch_data().with(eq(am2)).return_const(2u16);
+            mock.expect_set_flags()
+                .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
+                .return_const(());
+            mock.expect_write_data().with(eq(am1), always(), eq(3)).return_const(());
+
+            proc_add(&mut mock, opcode, &am1, &am2);
+        }
+    }
+
+    #[test]
+    fn add_rr() {
+        let am1 = AM::Direct_HL;
+        let am2 = AM::Direct_BC;
+
+        let mut mock = MockCpu16::new();
+        mock.expect_fetch_data().with(eq(am1)).return_const(1u16);
+        mock.expect_fetch_data().with(eq(am2)).return_const(2u16);
+        mock.expect_set_flags()
+            .with(eq(None), eq(Some(false)), eq(Some(false)), eq(Some(false)))
+            .return_const(());
+        mock.expect_write_data().with(eq(am1), always(), eq(3u16)).return_const(());
+
+        proc_add(&mut mock, 0x09, &am1, &am2);
+    }
+}
