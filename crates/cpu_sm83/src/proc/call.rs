@@ -32,7 +32,7 @@ mod tests {
             let mut mock = MockCpu16::new();
             let addr = 0x1234u16;
             mock.expect_fetch_data().once().with(eq(AddressingMode::PC2)).return_const(addr);
-            mock.expect_flags().times(if cond.is_none() { 0 } else { 1 }).returning(move || flags);
+            mock.expect_flags().times(if cond.is_none() { 0 } else { 1 }).return_const(flags);
             mock.expect_stack_push_pc().once().return_const(());
             mock.expect_jp().once().with(eq(addr)).return_const(());
 
@@ -47,7 +47,7 @@ mod tests {
 
         let mut mock = MockCpu16::new();
         mock.expect_fetch_data().once().with(eq(AddressingMode::PC2)).return_const(addr);
-        mock.expect_flags().once().returning(|| (false, false, false, false));
+        mock.expect_flags().once().return_const((false, false, false, false));
         mock.expect_stack_push_pc().never();
 
         assert_eq!(proc_call(&mut mock, opcode, &Some(Condition::C)), get_cycles(opcode).1);
