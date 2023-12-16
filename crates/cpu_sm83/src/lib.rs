@@ -4,6 +4,7 @@ mod interrupt;
 mod proc;
 
 use cpu16::Cpu16;
+use gb_shared::{is_bit_set, set_bits, unset_bits};
 use instruction::{get_instruction, AddressingMode, Instruction};
 use interrupt::INTERRUPTS;
 use log::debug;
@@ -71,15 +72,15 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
         fn set_flag(value: u8, flag: Option<bool>, bit: u8) -> u8 {
             match flag {
                 None => value,
-                Some(true) => value | (1u8 << bit),
-                Some(false) => value & (!(1u8 << bit)),
+                Some(true) => set_bits!(value, bit),
+                Some(false) => unset_bits!(value, bit),
             }
         }
 
-        let v = set_flag(self.reg_f, c, 3);
-        let v = set_flag(v, h, 4);
-        let v = set_flag(v, n, 5);
-        self.reg_f = set_flag(v, z, 6);
+        let v = set_flag(self.reg_f, c, 4);
+        let v = set_flag(v, h, 5);
+        let v = set_flag(v, n, 6);
+        self.reg_f = set_flag(v, z, 7);
     }
 
     fn flags(&self) -> (bool, bool, bool, bool) {
@@ -288,22 +289,22 @@ where
 
     #[inline]
     fn flag_z(&self) -> bool {
-        (self.reg_f & (1 << 6)) != 0
+        is_bit_set!(self.reg_f, 7)
     }
 
     #[inline]
     fn flag_n(&self) -> bool {
-        (self.reg_f & (1 << 5)) != 0
+        is_bit_set!(self.reg_f, 6)
     }
 
     #[inline]
     fn flag_h(&self) -> bool {
-        (self.reg_f & (1 << 4)) != 0
+        is_bit_set!(self.reg_f, 5)
     }
 
     #[inline]
     fn flag_c(&self) -> bool {
-        (self.reg_f & (1 << 3)) != 0
+        is_bit_set!(self.reg_f, 4)
     }
 
     fn inc_pc(&mut self) -> u16 {
@@ -390,6 +391,52 @@ where
             Instruction::CCF => proc::proc_ccf(self, opcode),
             Instruction::CP(addr) => proc::proc_cp(self, opcode, addr),
             Instruction::CB => proc::proc_cb(self, opcode),
+        }
+    }
+}
+
+#[cfg(test)]
+use gb_shared::Memory;
+#[cfg(test)]
+use mockall::mock;
+
+#[cfg(test)]
+mock! {
+    pub Memory {}
+
+    impl Memory for Memory {
+        fn write(&mut self, addr: u16, value: u8) {
+            // Noop
+        }
+        fn read(&self, addr: u16) -> u8 {
+            0
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod flags {
+        use super::*;
+
+        #[test]
+        fn read_flags() {
+            let mut cpu = Cpu::new(MockMemory::new());
+            cpu.reg_f = 0b1010_0000;
+
+            assert_eq!(cpu.flags(), (true, false, true, false));
+        }
+
+        #[test]
+        fn set_flags() {
+            let mut cpu = Cpu::new(MockMemory::new());
+            cpu.reg_f = 0b1010_0000;
+
+            cpu.set_flags(Some(false), Some(true), Some(false), Some(true));
+
+            assert_eq!(cpu.flags(), (false, true, false, true));
         }
     }
 }
