@@ -101,8 +101,7 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
 
     fn stack_push_pc(&mut self) {
         let pc = self.pc;
-        self.stack_push((pc >> 8) as u8);
-        self.stack_push(pc as u8);
+        self.stack_push2(pc);
     }
 
     fn jp(&mut self, addr: u16) {
@@ -514,6 +513,22 @@ mod tests {
 
             assert_eq!(data, cpu.stack_pop2());
             assert_eq!(cpu.sp, sp);
+        }
+
+        #[test]
+        fn stack_push_pc() {
+            let pc = 0x1234;
+            let sp = 0xFFF2;
+
+            let (mock, stack) = setup_stack_bus();
+
+            let mut cpu = Cpu::new(mock);
+            cpu.pc = pc;
+            cpu.sp = sp;
+
+            cpu.stack_push_pc();
+            assert_eq!(stack.borrow().deref(), &vec![(0xFFF1, 0x12), (0xFFF0, 0x34)]);
+            assert_eq!(cpu.sp, 0xFFF0);
         }
     }
 
