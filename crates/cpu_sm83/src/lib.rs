@@ -516,4 +516,45 @@ mod tests {
             assert_eq!(cpu.sp, sp);
         }
     }
+
+    mod rr {
+        use super::*;
+
+        #[test]
+        fn read() {
+            let mut cpu = Cpu::new(MockBus::new());
+            cpu.reg_a = 0x12;
+            cpu.reg_f = 0x34;
+            cpu.reg_b = 0x56;
+            cpu.reg_c = 0x78;
+            cpu.reg_d = 0x9A;
+            cpu.reg_e = 0xBC;
+            cpu.reg_h = 0xDE;
+            cpu.reg_l = 0xF0;
+
+            assert_eq!(cpu.af(), 0x1234);
+            assert_eq!(cpu.bc(), 0x5678);
+            assert_eq!(cpu.de(), 0x9ABC);
+            assert_eq!(cpu.hl(), 0xDEF0);
+        }
+
+        #[test]
+        fn write() {
+            let mut cpu = Cpu::new(MockBus::new());
+
+            cpu.set_af(0x1234);
+            cpu.set_bc(0x5678);
+            cpu.set_de(0x9ABC);
+            cpu.set_hl(0xDEF0);
+
+            assert_eq!(cpu.reg_a, 0x12);
+            assert_eq!(cpu.reg_f, 0x34);
+            assert_eq!(cpu.reg_b, 0x56);
+            assert_eq!(cpu.reg_c, 0x78);
+            assert_eq!(cpu.reg_d, 0x9A);
+            assert_eq!(cpu.reg_e, 0xBC);
+            assert_eq!(cpu.reg_h, 0xDE);
+            assert_eq!(cpu.reg_l, 0xF0);
+        }
+    }
 }
