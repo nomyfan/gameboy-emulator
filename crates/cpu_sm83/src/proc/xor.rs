@@ -19,26 +19,26 @@ mod tests {
     use crate::cpu16::MockCpu16;
     use mockall::predicate::*;
 
-    type AM = AddressingMode;
+    type Am = AddressingMode;
 
     #[test]
     fn xor() {
         let opcode = 0xF6u8;
-        let am1 = AM::Direct_A;
-        let am2 = AM::PC1;
+        let am_a = Am::Direct_A;
+        let am_pc1 = Am::PC1;
 
         let cases = [(1u16, 0u16, 1u16, false), (0, 1, 1, false), (1, 1, 0, true), (0, 0, 0, true)];
 
         for (a, v, ret, z) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am1)).once().return_const(a);
-            mock.expect_fetch_data().with(eq(am2)).once().return_const(v);
-            mock.expect_write_data().with(eq(am1), always(), eq(ret)).once().return_const(());
+            mock.expect_fetch_data().with(eq(am_a)).once().return_const(a);
+            mock.expect_fetch_data().with(eq(am_pc1)).once().return_const(v);
+            mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .once()
                 .with(eq(Some(z)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
                 .return_const(());
-            proc_xor(&mut mock, opcode, &am2);
+            proc_xor(&mut mock, opcode, &am_pc1);
         }
     }
 }

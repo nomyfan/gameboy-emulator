@@ -21,15 +21,15 @@ mod tests {
     use super::*;
     use crate::cpu16::MockCpu16;
     use mockall::predicate::*;
-    type AM = AddressingMode;
+    type Am = AddressingMode;
 
     #[test]
     fn dec_rr() {
         let cases = [
-            (0x0Bu16, AM::Direct_BC, 0u16, 0xFFFFu16),
-            (0x1Bu16, AM::Direct_DE, 0, 0xFFFFu16),
-            (0x2Bu16, AM::Direct_HL, 0, 0xFFFFu16),
-            (0x3Bu16, AM::Direct_SP, 0, 0xFFFFu16),
+            (0x0Bu16, Am::Direct_BC, 0u16, 0xFFFFu16),
+            (0x1Bu16, Am::Direct_DE, 0, 0xFFFFu16),
+            (0x2Bu16, Am::Direct_HL, 0, 0xFFFFu16),
+            (0x3Bu16, Am::Direct_SP, 0, 0xFFFFu16),
         ];
 
         for (opcode, am, val, ret) in cases.into_iter() {
@@ -44,8 +44,8 @@ mod tests {
     #[test]
     fn dec_set_flags() {
         let cases = [
-            (0x05u8, AM::Direct_B, 0u8, 0xFFu16, (false, false)),
-            (0x35, AM::Indirect_HL, 0x1, 0x0, (true, true)),
+            (0x05u8, Am::Direct_B, 0u8, 0xFFu16, (false, false)),
+            (0x35, Am::Indirect_HL, 0x1, 0x0, (true, true)),
         ];
 
         for (opcode, am, val, ret, (z, h)) in cases {

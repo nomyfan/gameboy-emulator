@@ -58,7 +58,7 @@ mod tests {
 
     use super::*;
 
-    type AM = AddressingMode;
+    type Am = AddressingMode;
 
     #[test]
     fn ld() {
@@ -70,20 +70,20 @@ mod tests {
             .once()
             .return_const(());
 
-        let am1 = AM::Direct_A;
-        let am2 = AM::Direct_B;
+        let am_a = Am::Direct_A;
+        let am_b = Am::Direct_B;
         let opcode = 0x78;
 
-        assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+        assert_eq!(proc_ld(&mut mock, opcode, &am_a, &am_b), get_cycles(opcode).0);
     }
 
     #[test]
     fn ld_hl_plus_minus() {
         let cases = [
-            (0x22, (AM::Indirect_HL, 0x12u16), (AM::Direct_A, 0x34), true),
-            (0x2A, (AM::Direct_A, 0x12), (AM::Indirect_HL, 0x34), true),
-            (0x32, (AM::Indirect_HL, 0x12u16), (AM::Direct_A, 0x34), false),
-            (0x3A, (AM::Direct_A, 0x12), (AM::Indirect_HL, 0x34), false),
+            (0x22, (Am::Indirect_HL, 0x12u16), (Am::Direct_A, 0x34), true),
+            (0x2A, (Am::Direct_A, 0x12), (Am::Indirect_HL, 0x34), true),
+            (0x32, (Am::Indirect_HL, 0x12u16), (Am::Direct_A, 0x34), false),
+            (0x3A, (Am::Direct_A, 0x12), (Am::Indirect_HL, 0x34), false),
         ];
 
         for (opcode, (am1, ret1), (am2, ret2), inc) in cases.into_iter() {
@@ -102,29 +102,29 @@ mod tests {
 
     #[test]
     fn ld_sp_r8() {
-        let am1 = AM::Direct_HL;
-        let am2 = AM::Direct_SP;
+        let am_hl = Am::Direct_HL;
+        let am_sp = Am::Direct_SP;
         let opcode = 0xF8;
 
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(am2)).once().return_const(2u16);
-        mock.expect_fetch_data().with(eq(AM::PC1)).once().return_const((-1i8) as u16);
-        mock.expect_fetch_data().with(eq(am1)).return_const(0x34u16);
-        mock.expect_write_data().with(eq(am1), always(), eq(2 - 1)).return_const(());
+        mock.expect_fetch_data().with(eq(am_sp)).once().return_const(2u16);
+        mock.expect_fetch_data().with(eq(Am::PC1)).once().return_const((-1i8) as u16);
+        mock.expect_fetch_data().with(eq(am_hl)).return_const(0x34u16);
+        mock.expect_write_data().with(eq(am_hl), always(), eq(2 - 1)).return_const(());
         mock.expect_set_flags()
             .with(eq(Some(false)), eq(Some(false)), eq(Some(true)), eq(Some(true)))
             .once()
             .return_const(());
 
-        assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
+        assert_eq!(proc_ld(&mut mock, opcode, &am_hl, &am_sp), get_cycles(opcode).0);
     }
 
     #[test]
     fn ld_add_0xff00() {
         // (a8) / (C)
         let cases = [
-            (0xE0, (AM::PC1, 0x12u8), (AM::Direct_A, 0x34u8), 0xFF12u16, 0x34u8),
-            (0xE2, (AM::Direct_C, 0x12), (AM::Direct_A, 0x34), 0xFF12, 0x34),
+            (0xE0, (Am::PC1, 0x12u8), (Am::Direct_A, 0x34u8), 0xFF12u16, 0x34u8),
+            (0xE2, (Am::Direct_C, 0x12), (Am::Direct_A, 0x34), 0xFF12, 0x34),
         ];
 
         for (opcode, (am1, val1), (am2, val2), addr, value) in cases.into_iter() {
@@ -141,8 +141,8 @@ mod tests {
     fn ld_add_0xff00_2() {
         // (a8) / (C)
         let cases = [
-            (0xF0, (AM::Direct_A, 0x12u8), (AM::PC1, 0x34u8), 0xFF34, 0x34u8),
-            (0xF2, (AM::Direct_A, 0x12), (AM::Direct_C, 0x34), 0xFF34, 0x34),
+            (0xF0, (Am::Direct_A, 0x12u8), (Am::PC1, 0x34u8), 0xFF34, 0x34u8),
+            (0xF2, (Am::Direct_A, 0x12), (Am::Direct_C, 0x34), 0xFF34, 0x34),
         ];
 
         for (opcode, (am1, val1), (am2, val2), addr, value) in cases.into_iter() {

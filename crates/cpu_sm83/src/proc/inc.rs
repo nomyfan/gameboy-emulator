@@ -22,15 +22,15 @@ mod tests {
     use crate::cpu16::MockCpu16;
     use mockall::predicate::*;
 
-    type AM = AddressingMode;
+    type Am = AddressingMode;
 
     #[test]
     fn inc_rr() {
         let cases = [
-            (0x03u8, AM::Direct_BC, 0xFFFFu16, 0u16),
-            (0x13, AM::Direct_DE, 0xFFFF, 0),
-            (0x23, AM::Direct_HL, 0xFFFF, 0),
-            (0x33, AM::Direct_SP, 0xFFFF, 0),
+            (0x03u8, Am::Direct_BC, 0xFFFFu16, 0u16),
+            (0x13, Am::Direct_DE, 0xFFFF, 0),
+            (0x23, Am::Direct_HL, 0xFFFF, 0),
+            (0x33, Am::Direct_SP, 0xFFFF, 0),
         ];
 
         for (opcode, am, val, ret) in cases {
@@ -45,8 +45,8 @@ mod tests {
     #[test]
     fn inc_set_flags() {
         let cases = [
-            (0x04u8, AM::Direct_B, 0xFFu8, 0u16, (true, true)),
-            (0x34, AM::Indirect_HL, 0xF, 0x10, (false, true)),
+            (0x04u8, Am::Direct_B, 0xFFu8, 0u16, (true, true)),
+            (0x34, Am::Indirect_HL, 0xF, 0x10, (false, true)),
         ];
 
         for (opcode, am, val, ret, (z, h)) in cases {

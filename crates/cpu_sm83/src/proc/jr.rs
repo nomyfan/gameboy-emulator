@@ -17,7 +17,7 @@ pub(crate) fn proc_jr(cpu: &mut impl Cpu16, opcode: u8, cond: &Option<Condition>
 mod tests {
     use super::proc_jr;
     use crate::cpu16::MockCpu16;
-    use crate::instruction::{get_cycles, AddressingMode as AM, Condition};
+    use crate::instruction::{get_cycles, AddressingMode as Am, Condition};
     use mockall::predicate::*;
 
     #[test]
@@ -29,7 +29,7 @@ mod tests {
 
         for (opcode, cond, (z, n, h, c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM::PC1)).once().return_const((-1i8) as u16);
+            mock.expect_fetch_data().with(eq(Am::PC1)).once().return_const((-1i8) as u16);
             mock.expect_flags()
                 .times(if cond.is_none() { 0 } else { 1 })
                 .returning(move || (z, n, h, c));
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn jr_condition_fail() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM::PC1)).once().return_const(1u16);
+        mock.expect_fetch_data().with(eq(Am::PC1)).once().return_const(1u16);
         mock.expect_flags().once().returning(move || (false, true, true, true));
 
         assert_eq!(proc_jr(&mut mock, 0x28, &Some(Condition::Z)), get_cycles(0x28).1)

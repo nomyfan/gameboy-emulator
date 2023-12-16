@@ -54,32 +54,32 @@ mod tests {
     use crate::cpu16::MockCpu16;
     use mockall::predicate::*;
 
-    type AM = AddressingMode;
+    type Am = AddressingMode;
 
     #[test]
     fn add_sp_r8() {
         let opcode = 0xE8u8;
-        let am1 = AM::Direct_SP;
-        let am2 = AM::PC1;
+        let am_sp = Am::Direct_SP;
+        let am_pc1 = Am::PC1;
 
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(am1)).once().return_const(1u16);
-        mock.expect_fetch_data().with(eq(am2)).once().return_const((-1i8) as u16);
-        mock.expect_write_data().with(eq(am1), always(), eq(0)).once().return_const(());
+        mock.expect_fetch_data().with(eq(am_sp)).once().return_const(1u16);
+        mock.expect_fetch_data().with(eq(am_pc1)).once().return_const((-1i8) as u16);
+        mock.expect_write_data().with(eq(am_sp), always(), eq(0)).once().return_const(());
         mock.expect_set_flags()
             .with(eq(Some(false)), eq(Some(false)), eq(Some(true)), eq(Some(true)))
             .once()
             .return_const(());
 
-        assert_eq!(proc_add(&mut mock, opcode, &am1, &am2), 16);
+        assert_eq!(proc_add(&mut mock, opcode, &am_sp, &am_pc1), 16);
     }
 
     #[test]
     fn add_r() {
         let cases = [
-            (0x85u8, AM::Direct_A, AM::Direct_L),
-            (0x86u8, AM::Direct_A, AM::Indirect_HL),
-            (0xC5u8, AM::Direct_A, AM::PC1),
+            (0x85u8, Am::Direct_A, Am::Direct_L),
+            (0x86u8, Am::Direct_A, Am::Indirect_HL),
+            (0xC5u8, Am::Direct_A, Am::PC1),
         ];
 
         for (opcode, am1, am2) in cases.into_iter() {
@@ -98,26 +98,26 @@ mod tests {
 
     #[test]
     fn add_rr() {
-        let am1 = AM::Direct_HL;
-        let am2 = AM::Direct_BC;
+        let am_hl = Am::Direct_HL;
+        let am_bc = Am::Direct_BC;
 
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(am1)).once().return_const(1u16);
-        mock.expect_fetch_data().with(eq(am2)).once().return_const(2u16);
+        mock.expect_fetch_data().with(eq(am_hl)).once().return_const(1u16);
+        mock.expect_fetch_data().with(eq(am_bc)).once().return_const(2u16);
         mock.expect_set_flags()
             .with(eq(None), eq(Some(false)), eq(Some(false)), eq(Some(false)))
             .once()
             .return_const(());
-        mock.expect_write_data().with(eq(am1), always(), eq(3u16)).once().return_const(());
+        mock.expect_write_data().with(eq(am_hl), always(), eq(3u16)).once().return_const(());
 
-        proc_add(&mut mock, 0x09, &am1, &am2);
+        proc_add(&mut mock, 0x09, &am_hl, &am_bc);
     }
 
     #[test]
     fn add_rr_set_flags() {
         let opcode = 0x29u8;
-        let am1 = AM::Direct_HL;
-        let am2 = AM::Direct_DE;
+        let am_hl = Am::Direct_HL;
+        let am_de = Am::Direct_DE;
 
         let cases = [
             // c
@@ -130,23 +130,23 @@ mod tests {
 
         for (r1, r2, ret, h, c) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am1)).once().return_const(r1);
-            mock.expect_fetch_data().with(eq(am2)).once().return_const(r2);
-            mock.expect_write_data().with(eq(am1), always(), eq(ret)).once().return_const(());
+            mock.expect_fetch_data().with(eq(am_hl)).once().return_const(r1);
+            mock.expect_fetch_data().with(eq(am_de)).once().return_const(r2);
+            mock.expect_write_data().with(eq(am_hl), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .with(eq(None), eq(Some(false)), eq(Some(h)), eq(Some(c)))
                 .once()
                 .return_const(());
 
-            proc_add(&mut mock, opcode, &am1, &am2);
+            proc_add(&mut mock, opcode, &am_hl, &am_de);
         }
     }
 
     #[test]
     fn add_r_set_flags() {
         let opcode = 0x86u8;
-        let am1 = AM::Direct_A;
-        let am2 = AM::Indirect_HL;
+        let am_a = Am::Direct_A;
+        let am_ind_hl = Am::Indirect_HL;
 
         let cases = [
             // c
@@ -159,15 +159,15 @@ mod tests {
 
         for (r1, r2, ret, z, h, c) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am1)).once().return_const(r1);
-            mock.expect_fetch_data().with(eq(am2)).once().return_const(r2);
-            mock.expect_write_data().with(eq(am1), always(), eq(ret)).once().return_const(());
+            mock.expect_fetch_data().with(eq(am_a)).once().return_const(r1);
+            mock.expect_fetch_data().with(eq(am_ind_hl)).once().return_const(r2);
+            mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .with(eq(Some(z)), eq(Some(false)), eq(Some(h)), eq(Some(c)))
                 .once()
                 .return_const(());
 
-            proc_add(&mut mock, opcode, &am1, &am2);
+            proc_add(&mut mock, opcode, &am_a, &am_ind_hl);
         }
     }
 }

@@ -16,13 +16,13 @@ pub(crate) fn proc_rra(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cpu16::MockCpu16, instruction::AddressingMode as AM};
+    use crate::{cpu16::MockCpu16, instruction::AddressingMode as Am};
     use mockall::predicate::*;
 
     #[test]
     fn rra() {
         let opcode = 0x1F;
-        let am = AM::Direct_A;
+        let am_a = Am::Direct_A;
 
         let cases = [
             ((0b001_0001u16, true), (0b1000_1000, true)),
@@ -33,9 +33,9 @@ mod tests {
 
         for ((in_a, in_flag_c), (out_a, out_flag_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am)).once().return_const(in_a);
+            mock.expect_fetch_data().with(eq(am_a)).once().return_const(in_a);
             mock.expect_flags().once().return_const([false, false, false, in_flag_c]);
-            mock.expect_write_data().with(eq(am), always(), eq(out_a)).once().return_const(());
+            mock.expect_write_data().with(eq(am_a), always(), eq(out_a)).once().return_const(());
             mock.expect_set_flags()
                 .once()
                 .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(out_flag_c)))

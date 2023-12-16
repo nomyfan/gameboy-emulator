@@ -14,7 +14,7 @@ mod tests {
     use mockall::predicate::{always, eq};
 
     use crate::cpu16::MockCpu16;
-    use crate::instruction::AddressingMode as AM;
+    type Am = AddressingMode;
 
     #[test]
     fn pop() {
@@ -23,9 +23,9 @@ mod tests {
         mock.expect_stack_pop().times(2).return_const(0x12);
         mock.expect_write_data()
             .once()
-            .with(eq(AM::Direct_BC), always(), eq(addr))
+            .with(eq(Am::Direct_BC), always(), eq(addr))
             .return_const(());
 
-        assert_eq!(proc_pop(&mut mock, 0xC1, &AM::Direct_BC), 12);
+        assert_eq!(proc_pop(&mut mock, 0xC1, &Am::Direct_BC), 12);
     }
 }

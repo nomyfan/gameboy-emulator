@@ -24,13 +24,13 @@ mod tests {
     use super::*;
     use crate::cpu16::MockCpu16;
     use mockall::predicate::*;
-    type AM = AddressingMode;
+    type Am = AddressingMode;
 
     #[test]
     fn sbc_carry() {
         let opcode = 0xDE;
-        let am1 = AM::Direct_A;
-        let am2 = AM::PC1;
+        let am_a = Am::Direct_A;
+        let am_pc1 = Am::PC1;
 
         let cases = [
             ((2u16, 1u16, true), (0u16, (true, false, false))),
@@ -39,25 +39,25 @@ mod tests {
 
         for ((a, v, cv), (ret, (z, h, c))) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am1)).once().return_const(a);
-            mock.expect_fetch_data().with(eq(am2)).once().return_const(v);
+            mock.expect_fetch_data().with(eq(am_a)).once().return_const(a);
+            mock.expect_fetch_data().with(eq(am_pc1)).once().return_const(v);
             mock.expect_flags().with().once().return_const((false, false, false, cv));
 
-            mock.expect_write_data().with(eq(am1), always(), eq(ret)).once().return_const(());
+            mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .once()
                 .with(eq(Some(z)), eq(Some(true)), eq(Some(h)), eq(Some(c)))
                 .return_const(());
 
-            proc_sbc(&mut mock, opcode, &am2);
+            proc_sbc(&mut mock, opcode, &am_pc1);
         }
     }
 
     #[test]
     fn sbc_set_flags() {
         let opcode = 0xDE;
-        let am1 = AM::Direct_A;
-        let am2 = AM::PC1;
+        let am_a = Am::Direct_A;
+        let am_pc1 = Am::PC1;
 
         let cases = [
             // z
@@ -70,17 +70,17 @@ mod tests {
 
         for ((a, v, cv), (ret, (z, h, c))) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(am1)).once().return_const(a);
-            mock.expect_fetch_data().with(eq(am2)).once().return_const(v);
+            mock.expect_fetch_data().with(eq(am_a)).once().return_const(a);
+            mock.expect_fetch_data().with(eq(am_pc1)).once().return_const(v);
             mock.expect_flags().with().once().return_const((false, false, false, cv));
 
-            mock.expect_write_data().with(eq(am1), always(), eq(ret)).once().return_const(());
+            mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .once()
                 .with(eq(Some(z)), eq(Some(true)), eq(Some(h)), eq(Some(c)))
                 .return_const(());
 
-            proc_sbc(&mut mock, opcode, &am2);
+            proc_sbc(&mut mock, opcode, &am_pc1);
         }
     }
 }
