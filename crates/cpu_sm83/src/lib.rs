@@ -402,9 +402,9 @@ use mockall::mock;
 
 #[cfg(test)]
 mock! {
-    pub Memory {}
+    pub Bus {}
 
-    impl Memory for Memory {
+    impl Memory for Bus {
         fn write(&mut self, addr: u16, value: u8) {
             // Noop
         }
@@ -417,13 +417,16 @@ mock! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockall::predicate::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     mod flags {
         use super::*;
 
         #[test]
         fn read_flags() {
-            let mut cpu = Cpu::new(MockMemory::new());
+            let mut cpu = Cpu::new(MockBus::new());
             cpu.reg_f = 0b1010_0000;
 
             assert_eq!(cpu.flags(), (true, false, true, false));
@@ -431,12 +434,86 @@ mod tests {
 
         #[test]
         fn set_flags() {
-            let mut cpu = Cpu::new(MockMemory::new());
+            let mut cpu = Cpu::new(MockBus::new());
             cpu.reg_f = 0b1010_0000;
 
             cpu.set_flags(Some(false), Some(true), Some(false), Some(true));
 
             assert_eq!(cpu.flags(), (false, true, false, true));
+        }
+    }
+
+    mod stack {
+
+        use std::ops::Deref;
+
+        use super::*;
+
+        fn setup_stack_bus() -> (MockBus, Rc<RefCell<Vec<(u16, u8)>>>) {
+            let mut mock = MockBus::new();
+            let stack = Rc::new(RefCell::new(Vec::new()));
+
+            let stack_writer = stack.clone();
+            let stack_reader = stack.clone();
+            mock.expect_write().returning_st(move |addr, value| {
+                stack_writer.borrow_mut().push((addr, value));
+            });
+            mock.expect_read().returning_st(move |addr| {
+                let (addr_, data) = stack_reader.borrow_mut().pop().unwrap();
+                assert_eq!(addr_, addr);
+
+                data
+            });
+
+            (mock, stack)
+        }
+
+        #[test]
+        fn stack_push() {
+            let sp = 0xFFFE;
+            let data = 0x12;
+
+            let mut mock = MockBus::new();
+            mock.expect_write().with(eq(sp - 1), eq(data)).once().return_const(());
+
+            let mut cpu = Cpu::new(mock);
+            cpu.sp = sp;
+
+            cpu.stack_push(data);
+            assert_eq!(cpu.sp, 0xFFFD);
+        }
+
+        #[test]
+        fn stack_pop() {
+            let sp = 0xFFFE;
+            let data = 0x12;
+
+            let mut mock = MockBus::new();
+            mock.expect_read().with(eq(sp)).once().return_const(data);
+
+            let mut cpu = Cpu::new(mock);
+            cpu.sp = sp;
+
+            assert_eq!(cpu.stack_pop(), data);
+            assert_eq!(cpu.sp, 0xFFFF);
+        }
+
+        #[test]
+        fn stack_push2_pop2() {
+            let sp = 0xFFF2;
+            let data = 0x1234u16;
+
+            let (mock, stack) = setup_stack_bus();
+
+            let mut cpu = Cpu::new(mock);
+            cpu.sp = sp;
+
+            cpu.stack_push2(data);
+            assert_eq!(stack.borrow().deref(), &vec![(sp - 1, 0x12), (sp - 2, 0x34)]);
+            assert_eq!(cpu.sp, 0xFFF0);
+
+            assert_eq!(data, cpu.stack_pop2());
+            assert_eq!(cpu.sp, sp);
         }
     }
 }
