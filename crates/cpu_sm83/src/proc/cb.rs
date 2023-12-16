@@ -1,9 +1,9 @@
 use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode, CbInstruction};
 
-pub(crate) fn proc_cb(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
-    fn decode_addressing_mode(value: u8) -> AddressingMode {
-        match value {
+pub(crate) fn proc_cb(cpu: &mut impl Cpu16, _opcode: u8) -> u8 {
+    fn decode_addressing_mode(opcode: u8) -> AddressingMode {
+        match opcode {
             0 => AddressingMode::Direct_B,
             1 => AddressingMode::Direct_C,
             2 => AddressingMode::Direct_D,
@@ -16,8 +16,8 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
         }
     }
 
-    fn decode_inst(value: u8) -> CbInstruction {
-        match value {
+    fn decode_inst(opcode: u8) -> CbInstruction {
+        match opcode {
             0x00..=0x07 => CbInstruction::RLC,
             0x08..=0x0F => CbInstruction::RRC,
             0x10..=0x17 => CbInstruction::RL,
@@ -32,95 +32,95 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
         }
     }
 
-    let value = cpu.fetch_data(&AddressingMode::PC1) as u8;
-    let am = decode_addressing_mode(value & 0b111);
+    let cb_opcode = cpu.fetch_data(&AddressingMode::PC1) as u8;
+    let am = decode_addressing_mode(cb_opcode & 0b111);
 
-    match decode_inst(value) {
+    match decode_inst(cb_opcode) {
         CbInstruction::RLC => {
             // 左移1位，MSB换到MLB。
-            let msb = (value >> 7) & 1;
-            let new_value = (value << 1) | msb;
+            let msb = (cb_opcode >> 7) & 1;
+            let new_value = (cb_opcode << 1) | msb;
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
         }
         CbInstruction::RRC => {
             // 右移1位，MLB换到MSB。
-            let mlb = value & 1;
-            let new_value = (value >> 1) | (mlb << 7);
+            let mlb = cb_opcode & 1;
+            let new_value = (cb_opcode >> 1) | (mlb << 7);
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
         CbInstruction::RL => {
             // 左移1位，Flag C作为MLB。
-            let msb = (value >> 7) & 1;
+            let msb = (cb_opcode >> 7) & 1;
             let mlb = if cpu.flags().3 { 1 } else { 0 };
-            let new_value = (value << 1) | mlb;
+            let new_value = (cb_opcode << 1) | mlb;
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
         }
         CbInstruction::RR => {
             // 右移1位，Flag C作为MSB。
-            let mlb = value & 1;
+            let mlb = cb_opcode & 1;
             let msb = if cpu.flags().3 { 1 } else { 0 };
-            let new_value = (value >> 1) | (msb << 7);
+            let new_value = (cb_opcode >> 1) | (msb << 7);
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
         CbInstruction::SLA => {
             // 左移1位。
-            let msb = (value >> 7) & 1;
-            let new_value = value << 1;
+            let msb = (cb_opcode >> 7) & 1;
+            let new_value = cb_opcode << 1;
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
         }
         CbInstruction::SRA => {
             // 右移1位。Arithmetic shift.
-            let mlb = value & 1;
-            let new_value = (value as i8) >> 1;
+            let mlb = cb_opcode & 1;
+            let new_value = (cb_opcode as i8) >> 1;
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
         CbInstruction::SWAP => {
             // 高低4位交换。
-            let new_value = ((value & 0xF0) >> 4) | ((value & 0x0F) << 4);
+            let new_value = ((cb_opcode & 0xF0) >> 4) | ((cb_opcode & 0x0F) << 4);
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(false));
         }
         CbInstruction::SRL => {
             // 右移1位。Logical shift.
-            let mlb = value & 1;
-            let new_value = value >> 1;
+            let mlb = cb_opcode & 1;
+            let new_value = cb_opcode >> 1;
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
         }
         CbInstruction::BIT => {
             // BIT tests.
-            let bit = (value - 0x40) / 8;
-            cpu.set_flags(Some((value & (1 << bit)) == 0), Some(false), Some(true), None);
+            let bit = (cb_opcode - 0x40) / 8;
+            cpu.set_flags(Some((cb_opcode & (1 << bit)) == 0), Some(false), Some(true), None);
         }
         CbInstruction::RES => {
             // Set specific bit to be zero.
-            let bit = (value - 0x80) / 8;
-            let new_value = value & (!(1 << bit));
+            let bit = (cb_opcode - 0x80) / 8;
+            let new_value = cb_opcode & (!(1 << bit));
 
             cpu.write_data(&am, 0, new_value as u16);
         }
         CbInstruction::SET => {
             // Set specific bit to be one.
-            let bit = (value - 0xC0) / 8;
-            let new_value = value | (1 << bit);
+            let bit = (cb_opcode - 0xC0) / 8;
+            let new_value = cb_opcode | (1 << bit);
 
             cpu.write_data(&am, 0, new_value as u16);
         }
     }
 
-    get_cycles(opcode).0 + if let AddressingMode::Indirect_HL = am { 16 } else { 8 }
+    get_cycles(0xCB).0 + if let AddressingMode::Indirect_HL = am { 16 } else { 8 }
 }
