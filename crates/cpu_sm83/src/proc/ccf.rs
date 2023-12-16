@@ -17,20 +17,16 @@ mod tests {
     #[test]
     fn ccf() {
         let mut mock = MockCpu16::new();
-        mock.expect_flags().with().once().return_const((false, false, false, false));
-        mock.expect_set_flags()
-            .with(eq(None), eq(Some(false)), eq(Some(false)), eq(Some(true)))
-            .once()
-            .return_const(());
 
-        assert_eq!(proc_ccf(&mut mock, 0x3F), get_cycles(0x3F).0);
+        let cases = [true, false];
+        for c in cases.into_iter() {
+            mock.expect_flags().with().once().return_const((false, false, false, c));
+            mock.expect_set_flags()
+                .with(eq(None), eq(Some(false)), eq(Some(false)), eq(Some(!c)))
+                .once()
+                .return_const(());
 
-        mock.expect_flags().with().once().return_const((false, false, false, true));
-        mock.expect_set_flags()
-            .with(eq(None), eq(Some(false)), eq(Some(false)), eq(Some(false)))
-            .once()
-            .return_const(());
-
-        assert_eq!(proc_ccf(&mut mock, 0x3F), get_cycles(0x3F).0)
+            assert_eq!(proc_ccf(&mut mock, 0x3F), get_cycles(0x3F).0);
+        }
     }
 }
