@@ -73,16 +73,26 @@ pub(crate) enum Instruction {
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 pub(crate) enum CbInstruction {
+    /// Rotate Left Circular
     RLC,
+    /// Rotate Right Circular
     RRC,
+    /// Rotate Left
     RL,
+    /// Rotate Right
     RR,
+    /// Shift Left Arithmetic
     SLA,
+    /// Shift Right Arithmetic
     SRA,
     SWAP,
+    /// Shift Right Logical
     SRL,
+    /// Test whether nth is 0.
     BIT,
+    /// Reset nth bit to 0
     RES,
+    /// Set nth bit to 1
     SET,
 }
 
