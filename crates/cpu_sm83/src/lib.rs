@@ -223,7 +223,7 @@ where
             reg_f: 0x01,
             reg_b: 0x13,
             reg_c: 0,
-            reg_d: 0xB8,
+            reg_d: 0xD8,
             reg_e: 0,
             reg_h: 0x4D,
             reg_l: 0x01,
