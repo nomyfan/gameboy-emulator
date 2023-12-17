@@ -1,6 +1,7 @@
 mod bus;
 mod dma;
 mod hram;
+mod serial;
 mod wram;
 
 use std::path::Path;

@@ -3,7 +3,7 @@ use gb_ppu::PPU;
 use gb_shared::Memory;
 use log::debug;
 
-use crate::{dma::DMA, hram::HighRam, wram::WorkRam};
+use crate::{dma::DMA, hram::HighRam, serial::Serial, wram::WorkRam};
 
 struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -31,6 +31,8 @@ struct BusInner {
     hram: HighRam,
     /// DMA state.
     dma: DMA,
+    /// Serial transfer
+    serial: Serial,
 
     ppu_ptr: *const PPU<Bus>,
     ref_count: usize,
@@ -82,9 +84,7 @@ impl Memory for BusInner {
                     0xFF00 => {
                         todo!("Joypad");
                     }
-                    0xFF01..=0xFF02 => {
-                        todo!("Serial transfer");
-                    }
+                    0xFF01..=0xFF02 => self.serial.write(addr, value),
                     0xFF04..=0xFF07 => {
                         todo!("Timer");
                     }
@@ -158,9 +158,7 @@ impl Memory for BusInner {
                     0xFF00 => {
                         todo!("Joypad");
                     }
-                    0xFF01..=0xFF02 => {
-                        todo!("Serial transfer");
-                    }
+                    0xFF01..=0xFF02 => self.serial.read(addr),
                     0xFF04..=0xFF07 => {
                         todo!("Timer");
                     }
@@ -216,6 +214,7 @@ impl Bus {
                 interrupt_flag: 0,
                 ppu_ptr: std::ptr::null_mut(),
                 dma: DMA::new(),
+                serial: Serial::new(),
                 ref_count: 1,
             })),
         }
