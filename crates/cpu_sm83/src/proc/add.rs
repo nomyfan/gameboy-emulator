@@ -37,7 +37,7 @@ pub(crate) fn proc_add(
             (Some(h), Some(c))
         } else { // 8 bits
             let h = (operand1 & 0xF) + (operand2 & 0xF) > 0xF;
-            let c = (operand1 & 0xFF) + (operand2 & 0xFF) > 0xFF;
+            let c = (operand1 & 0xFF) as i16 + (operand2 & 0xFF) as i16 > 0xFF;
             (Some(h), Some(c))
         };
 
