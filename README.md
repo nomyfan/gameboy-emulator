@@ -13,3 +13,5 @@ Game Boy emulator written in Rust.
 - [MagenTests](https://github.com/alloncm/MagenTests): used to test color
 
 - [Game Boy: Complete Technical Reference](https://gekkio.fi/files/gb-docs/gbctr.pdf)
+
+- [eZ80 Heaven](https://ez80.readthedocs.io/en/latest/index.html)
