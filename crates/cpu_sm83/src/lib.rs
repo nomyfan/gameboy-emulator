@@ -650,4 +650,150 @@ mod tests {
             assert_eq!(cpu.pc, 0x1235);
         }
     }
+
+    mod memory {
+        use super::*;
+        use crate::instruction::AddressingMode;
+        type Am = AddressingMode;
+
+        #[test]
+        fn fetch_data() {
+            let mut mock_bus = MockBus::new();
+            mock_bus.expect_read().returning(|addr| {
+                if addr == 0x5678 {
+                    // BC
+                    0x87
+                } else if addr == 0x9ABC {
+                    // DE
+                    0xCB
+                } else if addr == 0xDEF0 {
+                    // HL
+                    0x0F
+                } else if addr == 0x4321 {
+                    0x55
+                } else if addr == 0x4322 {
+                    0x66
+                } else if addr == 0x4323 {
+                    0x77
+                } else {
+                    unreachable!()
+                }
+            });
+            let mut cpu = Cpu::new(mock_bus);
+            cpu.reg_a = 0x12;
+            cpu.reg_f = 0x34;
+            cpu.reg_b = 0x56;
+            cpu.reg_c = 0x78;
+            cpu.reg_d = 0x9A;
+            cpu.reg_e = 0xBC;
+            cpu.reg_h = 0xDE;
+            cpu.reg_l = 0xF0;
+            cpu.sp = 0x1122;
+            cpu.pc = 0x4321;
+
+            assert_eq!(cpu.fetch_data(&Am::Direct_A), 0x12);
+            assert_eq!(cpu.fetch_data(&Am::Direct_B), 0x56);
+            assert_eq!(cpu.fetch_data(&Am::Direct_C), 0x78);
+            assert_eq!(cpu.fetch_data(&Am::Direct_D), 0x9A);
+            assert_eq!(cpu.fetch_data(&Am::Direct_E), 0xBC);
+            assert_eq!(cpu.fetch_data(&Am::Direct_H), 0xDE);
+            assert_eq!(cpu.fetch_data(&Am::Direct_L), 0xF0);
+            assert_eq!(cpu.fetch_data(&Am::Direct_AF), 0x1234);
+            assert_eq!(cpu.fetch_data(&Am::Direct_BC), 0x5678);
+            assert_eq!(cpu.fetch_data(&Am::Direct_DE), 0x9ABC);
+            assert_eq!(cpu.fetch_data(&Am::Direct_HL), 0xDEF0);
+            assert_eq!(cpu.fetch_data(&Am::Direct_SP), 0x1122);
+            assert_eq!(cpu.fetch_data(&Am::Indirect_BC), 0x87);
+            assert_eq!(cpu.fetch_data(&Am::Indirect_DE), 0xCB);
+            assert_eq!(cpu.fetch_data(&Am::Indirect_HL), 0x0F);
+            assert_eq!(cpu.fetch_data(&Am::PC1), 0x55);
+            assert_eq!(cpu.pc, 0x4322);
+            assert_eq!(cpu.fetch_data(&Am::PC2), 0x7766);
+            assert_eq!(cpu.pc, 0x4324);
+        }
+
+        #[test]
+        fn write_data() {
+            let mut mock_bus = MockBus::new();
+            mock_bus.expect_write().returning(|addr, value| {
+                match addr {
+                    0x5678 => {
+                        // BC
+                        assert_eq!(value, 0x87);
+                    }
+                    0x9ABC => {
+                        // DE
+                        assert_eq!(value, 0xCB);
+                    }
+                    0xDEF0 => {
+                        // HL
+                        assert_eq!(value, 0x0F);
+                    }
+                    0x1111 => {
+                        assert_eq!(value, 0x55);
+                    }
+                    0x1112 => {
+                        assert_eq!(value, 0x66);
+                    }
+                    0x1113 => {
+                        assert_eq!(value, 0x77);
+                    }
+                    _ => unreachable!(),
+                }
+            });
+            let mut cpu = Cpu::new(mock_bus);
+            cpu.reg_a = 0x12;
+            cpu.reg_f = 0x34;
+            cpu.reg_b = 0x56;
+            cpu.reg_c = 0x78;
+            cpu.reg_d = 0x9A;
+            cpu.reg_e = 0xBC;
+            cpu.reg_h = 0xDE;
+            cpu.reg_l = 0xF0;
+            cpu.sp = 0x1122;
+            cpu.pc = 0x4321;
+
+            cpu.write_data(&Am::Direct_A, 0, 0x21);
+            assert_eq!(cpu.reg_a, 0x21);
+            cpu.write_data(&Am::Direct_B, 0, 0x65);
+            assert_eq!(cpu.reg_b, 0x65);
+            cpu.write_data(&Am::Direct_C, 0, 0x87);
+            assert_eq!(cpu.reg_c, 0x87);
+            cpu.write_data(&Am::Direct_D, 0, 0xA9);
+            assert_eq!(cpu.reg_d, 0xA9);
+            cpu.write_data(&Am::Direct_E, 0, 0xCB);
+            assert_eq!(cpu.reg_e, 0xCB);
+            cpu.write_data(&Am::Direct_H, 0, 0xED);
+            assert_eq!(cpu.reg_h, 0xED);
+            cpu.write_data(&Am::Direct_L, 0, 0x0F);
+            assert_eq!(cpu.reg_l, 0x0F);
+
+            cpu.write_data(&Am::Direct_AF, 0, 0x4321);
+            assert_eq!(cpu.af(), 0x4321);
+            cpu.write_data(&Am::Direct_BC, 0, 0x8765);
+            assert_eq!(cpu.bc(), 0x8765);
+            cpu.write_data(&Am::Direct_DE, 0, 0xCBA9);
+            assert_eq!(cpu.de(), 0xCBA9);
+            cpu.write_data(&Am::Direct_HL, 0, 0x0FED);
+            assert_eq!(cpu.hl(), 0x0FED);
+            cpu.write_data(&Am::Direct_SP, 0, 0x1122);
+            assert_eq!(cpu.sp, 0x1122);
+
+            // Reset rr
+            cpu.reg_a = 0x12;
+            cpu.reg_f = 0x34;
+            cpu.reg_b = 0x56;
+            cpu.reg_c = 0x78;
+            cpu.reg_d = 0x9A;
+            cpu.reg_e = 0xBC;
+            cpu.reg_h = 0xDE;
+            cpu.reg_l = 0xF0;
+            cpu.write_data(&Am::Indirect_BC, 0, 0x87);
+            cpu.write_data(&Am::Indirect_DE, 0, 0xCB);
+            cpu.write_data(&Am::Indirect_HL, 0, 0x0F);
+
+            cpu.write_data(&Am::PC1, 0x1111, 0x55);
+            cpu.write_data(&Am::PC2, 0x1112, 0x7766);
+        }
+    }
 }
