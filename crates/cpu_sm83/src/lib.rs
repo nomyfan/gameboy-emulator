@@ -571,6 +571,18 @@ mod tests {
             assert_eq!(cpu.reg_h, 0xDE);
             assert_eq!(cpu.reg_l, 0xF0);
         }
+
+        #[test]
+        fn inc_dec_hl() {
+            let mut cpu = Cpu::new(MockBus::new());
+            cpu.set_hl(0x1234);
+
+            cpu.inc_dec_hl(true);
+            assert_eq!(cpu.hl(), 0x1235);
+
+            cpu.inc_dec_hl(false);
+            assert_eq!(cpu.hl(), 0x1234);
+        }
     }
 
     mod pc {
@@ -611,6 +623,31 @@ mod tests {
             let data = cpu.read_pc2();
             assert_eq!(cpu.pc, 0x1236);
             assert_eq!(data, 0x7856);
+        }
+    }
+
+    mod address {
+        use super::*;
+
+        #[test]
+        fn jp() {
+            let mut cpu = Cpu::new(MockBus::new());
+            cpu.pc = 0x1234;
+
+            cpu.jp(0x5678);
+            assert_eq!(cpu.pc, 0x5678);
+        }
+
+        #[test]
+        fn jr() {
+            let mut cpu = Cpu::new(MockBus::new());
+            cpu.pc = 0x1234;
+
+            cpu.jr(-1);
+            assert_eq!(cpu.pc, 0x1233);
+
+            cpu.jr(2);
+            assert_eq!(cpu.pc, 0x1235);
         }
     }
 }
