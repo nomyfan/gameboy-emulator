@@ -12,11 +12,10 @@ pub(crate) fn proc_add(
 
     let is_rr = (opcode & 0x09) == 0x09;
     let is_sp_r8 = opcode == 0xE8;
-    let is_16bits = is_rr || is_sp_r8;
 
     let sum = if is_sp_r8 {
         operand1.wrapping_add_signed(operand2 as u8 as i8 as i16)
-    } else if is_16bits {
+    } else if is_rr {
         operand1.wrapping_add(operand2)
     } else {
         (operand1 as u8).wrapping_add(operand2 as u8) as u16
@@ -32,7 +31,7 @@ pub(crate) fn proc_add(
 
     let (h, c) =
         // 16 bits
-        if is_16bits {
+        if is_rr {
             let h = (operand1 & 0xFFF) + (operand2 & 0xFFF) > 0xFFF;
             let c = (operand1 as u32) + (operand2 as u32) > 0xFFFF;
             (Some(h), Some(c))

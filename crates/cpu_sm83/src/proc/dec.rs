@@ -2,14 +2,16 @@ use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode};
 
 pub(crate) fn proc_dec(cpu: &mut impl Cpu16, opcode: u8, am: &AddressingMode) -> u8 {
-    let mut value = cpu.fetch_data(am);
+    let value = cpu.fetch_data(am);
 
-    if (opcode & 0xB) != 0xB {
-        value = (value as u8).wrapping_sub(1) as u16;
-        cpu.set_flags(Some(value == 0), Some(true), Some((value & 0xF) == 0), None);
+    let value = if (opcode & 0xB) != 0xB {
+        let value = (value as u8).wrapping_sub(1) as u16;
+        cpu.set_flags(Some(value == 0), Some(true), Some((value & 0xF) == 0xF), None);
+
+        value
     } else {
-        value = value.wrapping_sub(1);
-    }
+        value.wrapping_sub(1)
+    };
 
     cpu.write_data(am, 0, value);
 
@@ -44,8 +46,9 @@ mod tests {
     #[test]
     fn dec_set_flags() {
         let cases = [
-            (0x05u8, Am::Direct_B, 0u8, 0xFFu16, (false, false)),
-            (0x35, Am::Indirect_HL, 0x1, 0x0, (true, true)),
+            (0x05u8, Am::Direct_B, 0u8, 0xFFu16, (false, true)),
+            (0x35, Am::Indirect_HL, 1, 0, (true, false)),
+            (0x35, Am::Indirect_HL, 0x10, 0xF, (false, true)),
         ];
 
         for (opcode, am, val, ret, (z, h)) in cases {

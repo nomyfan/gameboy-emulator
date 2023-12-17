@@ -7,7 +7,7 @@ pub(crate) fn check_condition(cond: Option<&Condition>, cpu: &mut impl Cpu16) ->
             Condition::Z => cpu.flags().0,
             Condition::NZ => !cpu.flags().0,
             Condition::C => cpu.flags().3,
-            Condition::NC => !cpu.flags().0,
+            Condition::NC => !cpu.flags().3,
         },
         None => true,
     }
@@ -30,13 +30,17 @@ mod tests {
 
     #[test]
     fn condition_checking() {
-        let mut mock = MockCpu16::new();
-        mock.expect_flags().return_const((false, false, false, false));
+        let cases = [(true, false), (true, true), (false, true), (false, false)];
 
-        assert_eq!(check_condition(None.as_ref(), &mut mock), true);
-        assert_eq!(check_condition(Some(Condition::C).as_ref(), &mut mock), false);
-        assert_eq!(check_condition(Some(Condition::NC).as_ref(), &mut mock), true);
-        assert_eq!(check_condition(Some(Condition::Z).as_ref(), &mut mock), false);
-        assert_eq!(check_condition(Some(Condition::NZ).as_ref(), &mut mock), true);
+        for (z, c) in cases.into_iter() {
+            let mut mock = MockCpu16::new();
+            mock.expect_flags().return_const((z, false, false, c));
+
+            assert_eq!(check_condition(None.as_ref(), &mut mock), true);
+            assert_eq!(check_condition(Some(Condition::C).as_ref(), &mut mock), c);
+            assert_eq!(check_condition(Some(Condition::NC).as_ref(), &mut mock), !c);
+            assert_eq!(check_condition(Some(Condition::Z).as_ref(), &mut mock), z);
+            assert_eq!(check_condition(Some(Condition::NZ).as_ref(), &mut mock), !z);
+        }
     }
 }
