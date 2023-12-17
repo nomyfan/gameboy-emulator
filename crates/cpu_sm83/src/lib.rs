@@ -572,4 +572,45 @@ mod tests {
             assert_eq!(cpu.reg_l, 0xF0);
         }
     }
+
+    mod pc {
+        use super::*;
+
+        #[test]
+        fn read_pc() {
+            let mut mock = MockBus::new();
+            mock.expect_read().with(eq(0x1234)).once().return_const(0x56);
+
+            let mut cpu = Cpu::new(mock);
+            cpu.pc = 0x1234;
+
+            let data = cpu.read_pc();
+            assert_eq!(data, 0x56);
+            assert_eq!(cpu.pc, 0x1235);
+        }
+
+        #[test]
+        fn read_pc2() {
+            let pc = 0x1234;
+
+            let mut mock = MockBus::new();
+            let mut count = 0;
+            mock.expect_read().returning(move |addr| {
+                count += 1;
+                if count == 1 {
+                    assert_eq!(addr, pc);
+                    0x56
+                } else {
+                    assert_eq!(addr, pc + 1);
+                    0x78
+                }
+            });
+
+            let mut cpu = Cpu::new(mock);
+            cpu.pc = pc;
+            let data = cpu.read_pc2();
+            assert_eq!(cpu.pc, 0x1236);
+            assert_eq!(data, 0x7856);
+        }
+    }
 }
