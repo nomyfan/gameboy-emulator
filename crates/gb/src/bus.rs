@@ -3,7 +3,7 @@ use gb_ppu::PPU;
 use gb_shared::Memory;
 use log::debug;
 
-use crate::{dma::DMA, hram::HighRam, serial::Serial, wram::WorkRam};
+use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, wram::WorkRam};
 
 struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -33,6 +33,7 @@ struct BusInner {
     dma: DMA,
     /// Serial transfer
     serial: Serial,
+    joypad: Joypad,
 
     ppu_ptr: *const PPU<Bus>,
     ref_count: usize,
@@ -81,9 +82,7 @@ impl Memory for BusInner {
             0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF00..=0xFF7F => {
                 match addr {
-                    0xFF00 => {
-                        todo!("Joypad");
-                    }
+                    0xFF00 => self.joypad.write(addr, value),
                     0xFF01..=0xFF02 => self.serial.write(addr, value),
                     0xFF04..=0xFF07 => {
                         todo!("Timer");
@@ -155,9 +154,7 @@ impl Memory for BusInner {
             }
             0xFF00..=0xFF7F => {
                 match addr {
-                    0xFF00 => {
-                        todo!("Joypad");
-                    }
+                    0xFF00 => self.joypad.read(addr),
                     0xFF01..=0xFF02 => self.serial.read(addr),
                     0xFF04..=0xFF07 => {
                         todo!("Timer");
@@ -213,9 +210,10 @@ impl Bus {
                 interrupt_enable: 0,
                 interrupt_flag: 0,
                 ppu_ptr: std::ptr::null_mut(),
+                ref_count: 1,
                 dma: DMA::new(),
                 serial: Serial::new(),
-                ref_count: 1,
+                joypad: Joypad::new(),
             })),
         }
     }

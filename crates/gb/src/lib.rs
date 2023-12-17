@@ -1,6 +1,7 @@
 mod bus;
 mod dma;
 mod hram;
+mod joypad;
 mod serial;
 mod wram;
 
