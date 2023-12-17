@@ -77,17 +77,36 @@ impl Memory for BusInner {
                 }
             }
             0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
-            0xFF0F => {
-                // IF
-                self.interrupt_flag = value
-            }
-            0xFF46 => {
-                // DMA
-                self.dma.write(addr, value);
-            }
-            // Exclude 0xFF46(DMA)
-            0xFF40..=0xFF4B => {
-                self.ppu_mut().write(addr, value);
+            0xFF00..=0xFF7F => {
+                match addr {
+                    0xFF00 => {
+                        todo!("Joypad");
+                    }
+                    0xFF01..=0xFF02 => {
+                        todo!("Serial transfer");
+                    }
+                    0xFF04..=0xFF07 => {
+                        todo!("Timer");
+                    }
+                    0xFF0F => {
+                        // IF
+                        self.interrupt_flag = value
+                    }
+                    0xFF10..=0xFF3F => {
+                        // TODO: Sound
+                    }
+                    0xFF46 => {
+                        // DMA
+                        self.dma.write(addr, value);
+                    }
+                    // Exclude 0xFF46(DMA)
+                    0xFF40..=0xFF4B => {
+                        self.ppu_mut().write(addr, value);
+                    }
+                    _ => {
+                        debug!("Unsupported");
+                    }
+                }
             }
             0xFF80..=0xFFFE => {
                 // HRAM
@@ -97,8 +116,6 @@ impl Memory for BusInner {
                 // IE
                 self.interrupt_enable = value;
             }
-            // TODO [FF00, FF7F] IO registers.
-            _ => {}
         }
     }
 
@@ -136,13 +153,34 @@ impl Memory for BusInner {
                 debug!("Unusable memory [0xFEA0, 0xFEFF]");
                 0
             }
-            0xFF0F => {
-                // IF
-                self.interrupt_flag
+            0xFF00..=0xFF7F => {
+                match addr {
+                    0xFF00 => {
+                        todo!("Joypad");
+                    }
+                    0xFF01..=0xFF02 => {
+                        todo!("Serial transfer");
+                    }
+                    0xFF04..=0xFF07 => {
+                        todo!("Timer");
+                    }
+                    0xFF0F => {
+                        // IF
+                        self.interrupt_flag
+                    }
+                    0xFF10..=0xFF3F => {
+                        // TODO: Sound
+                        0
+                    }
+                    0xFF46 => self.dma.read(addr),
+                    0xFF40..=0xFF4B => self.ppu().read(addr),
+                    _ => {
+                        debug!("Unsupported");
+                        0
+                    }
+                }
             }
-            0xFF46 => self.dma.read(addr),
             // Exclude 0xFF46(DMA)
-            0xFF40..=0xFF4B => self.ppu().read(addr),
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
@@ -151,8 +189,6 @@ impl Memory for BusInner {
                 // IE
                 self.interrupt_enable
             }
-            // TODO [FF00, FF7F] IO registers.
-            _ => 0,
         };
 
         debug!("bus read at {:#04X}, value: {:#04X}", addr, value);
