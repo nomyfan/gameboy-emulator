@@ -1,7 +1,7 @@
 use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode, CbInstruction};
 
-pub(crate) fn proc_cb(cpu: &mut impl Cpu16, _opcode: u8) -> u8 {
+pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
     fn decode_addressing_mode(opcode: u8) -> AddressingMode {
         match opcode {
             0 => AddressingMode::Direct_B,
@@ -129,7 +129,6 @@ mod tests {
 
     const AM_PC1: Am = Am::PC1;
     const AM_HL: Am = Am::Indirect_HL;
-    const OPCODE: u8 = 0xCB;
 
     #[test]
     fn rlc_set_flag_c() {
@@ -149,7 +148,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -164,7 +163,7 @@ mod tests {
             .once()
             .return_const(());
 
-        proc_cb(&mut mock, OPCODE);
+        proc_cb(&mut mock);
     }
 
     #[test]
@@ -185,7 +184,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -200,7 +199,7 @@ mod tests {
             .once()
             .return_const(());
 
-        proc_cb(&mut mock, OPCODE);
+        proc_cb(&mut mock);
     }
 
     #[test]
@@ -225,7 +224,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -249,7 +248,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -275,7 +274,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -299,7 +298,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -323,7 +322,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -347,7 +346,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -370,7 +369,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -390,7 +389,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -413,7 +412,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -433,7 +432,7 @@ mod tests {
                 .once()
                 .return_const(());
 
-            proc_cb(&mut mock, OPCODE);
+            proc_cb(&mut mock);
         }
     }
 
@@ -444,7 +443,7 @@ mod tests {
         mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0xFFu16);
         mock.expect_write_data().with(eq(AM_HL), always(), eq(0b1111_1011)).once().return_const(());
 
-        proc_cb(&mut mock, OPCODE);
+        proc_cb(&mut mock);
     }
 
     #[test]
@@ -454,6 +453,6 @@ mod tests {
         mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
         mock.expect_write_data().with(eq(AM_HL), always(), eq(0b0001_0000)).once().return_const(());
 
-        proc_cb(&mut mock, OPCODE);
+        proc_cb(&mut mock);
     }
 }

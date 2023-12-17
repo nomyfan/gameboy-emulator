@@ -389,7 +389,7 @@ where
             Instruction::SCF => proc::proc_scf(self, opcode),
             Instruction::CCF => proc::proc_ccf(self, opcode),
             Instruction::CP(addr) => proc::proc_cp(self, opcode, addr),
-            Instruction::CB => proc::proc_cb(self, opcode),
+            Instruction::CB => proc::proc_cb(self),
         }
     }
 }
