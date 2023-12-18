@@ -17,3 +17,4 @@ gb_shared = { path = "crates/shared" }
 gb = { path = "crates/gb" }
 log = "0.4.17"
 anyhow = "1.0.66"
+mockall = "0.12.0"
