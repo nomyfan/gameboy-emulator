@@ -81,6 +81,7 @@ dependencies = [
  "gb_ppu",
  "gb_shared",
  "log",
+ "mockall",
 ]
 
 [[package]]

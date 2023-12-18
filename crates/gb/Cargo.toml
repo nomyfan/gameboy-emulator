@@ -12,3 +12,6 @@ gb_cartridge = { workspace = true }
 gb_shared = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
+
+[dev-dependencies]
+mockall = { workspace = true }
