@@ -77,9 +77,9 @@ impl<INT: InterruptRequest> Timer<INT> {
         Self { div: 0, tima: 0, tma: 0, tac: 0, cycles_so_far: 0, interrupt_request }
     }
 
-    pub fn step(&mut self, cycles: u8) {
+    pub fn step(&mut self) {
         let old_cycles_so_far = self.cycles_so_far;
-        self.cycles_so_far = self.cycles_so_far.wrapping_add(cycles as u16);
+        self.cycles_so_far = self.cycles_so_far.wrapping_add(1);
 
         if self.cycles_so_far / 256 != old_cycles_so_far / 256 {
             self.div = self.div.wrapping_add(1);
@@ -139,11 +139,13 @@ mod tests {
         let mut timer = Timer::new(MockInterruptRequest::new());
         write_tac(&mut timer, 0);
 
-        timer.step(255);
+        for _ in 0..255 {
+            timer.step();
+        }
         assert_eq!(timer.cycles_so_far, 255);
         assert_eq!(timer.div, 0);
 
-        timer.step(1);
+        timer.step();
         assert_eq!(timer.cycles_so_far, 256);
         assert_eq!(timer.div, 1);
     }
@@ -154,22 +156,30 @@ mod tests {
         write_tac(&mut timer, 0b100);
 
         for _ in 0..4 {
-            timer.step(255);
+            for _ in 0..255 {
+                timer.step();
+            }
         }
         assert_eq!(timer.cycles_so_far, 1020);
         assert_eq!(timer.tima, 0);
 
-        timer.step(4);
+        for _ in 0..4 {
+            timer.step();
+        }
         assert_eq!(timer.cycles_so_far, 1024);
         assert_eq!(timer.tima, 1);
 
         for _ in 0..4 {
-            timer.step(255);
+            for _ in 0..255 {
+                timer.step();
+            }
         }
         assert_eq!(timer.cycles_so_far, 2044);
         assert_eq!(timer.tima, 1);
 
-        timer.step(4);
+        for _ in 0..4 {
+            timer.step();
+        }
         assert_eq!(timer.cycles_so_far, 2048);
         assert_eq!(timer.tima, 2);
     }
@@ -179,12 +189,16 @@ mod tests {
         let mut timer = Timer::new(MockInterruptRequest::new());
         write_tac(&mut timer, 0b101);
 
-        timer.step(16);
+        for _ in 0..16 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 1);
 
-        timer.step(15);
+        for _ in 0..15 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 1);
-        timer.step(1);
+        timer.step();
         assert_eq!(timer.tima, 2);
     }
 
@@ -193,12 +207,16 @@ mod tests {
         let mut timer = Timer::new(MockInterruptRequest::new());
         write_tac(&mut timer, 0b110);
 
-        timer.step(64);
+        for _ in 0..64 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 1);
 
-        timer.step(63);
+        for _ in 0..63 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 1);
-        timer.step(1);
+        timer.step();
         assert_eq!(timer.tima, 2);
     }
 
@@ -207,14 +225,18 @@ mod tests {
         let mut timer = Timer::new(MockInterruptRequest::new());
         write_tac(&mut timer, 0b111);
 
-        timer.step(255);
+        for _ in 0..255 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 0);
-        timer.step(1);
+        timer.step();
         assert_eq!(timer.tima, 1);
 
-        timer.step(255);
+        for _ in 0..255 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 1);
-        timer.step(1);
+        timer.step();
         assert_eq!(timer.tima, 2);
     }
 
@@ -223,10 +245,14 @@ mod tests {
         let mut timer = Timer::new(MockInterruptRequest::new());
         write_tac(&mut timer, 0b001);
 
-        timer.step(16);
+        for _ in 0..16 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 0);
 
-        timer.step(16);
+        for _ in 0..16 {
+            timer.step();
+        }
         assert_eq!(timer.tima, 0);
     }
 
@@ -240,8 +266,10 @@ mod tests {
         write_tima(&mut timer, 0xFF);
         write_tac(&mut timer, 0b111);
 
-        timer.step(255);
-        timer.step(1);
+        for _ in 0..255 {
+            timer.step();
+        }
+        timer.step();
 
         assert_eq!(timer.tima, 0xFE);
     }
@@ -254,12 +282,14 @@ mod tests {
         write_tac(&mut timer, 0b111);
 
         for _ in 0..257 {
-            timer.step(255);
+            for _ in 0..255 {
+                timer.step();
+            }
         }
         assert_eq!(timer.cycles_so_far, 0xFFFF);
         assert_eq!(timer.div, 255);
 
-        timer.step(1);
+        timer.step();
         assert_eq!(timer.cycles_so_far, 0);
         assert_eq!(timer.div, 0);
     }

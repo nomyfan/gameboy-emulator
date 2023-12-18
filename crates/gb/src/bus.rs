@@ -248,6 +248,7 @@ impl Bus {
 
     pub(crate) fn step(&mut self) {
         self.step_dma();
+        self.inner_mut().timer_mut().step();
     }
 }
 
