@@ -1,9 +1,9 @@
 use gb_cartridge::Cartridge;
 use gb_ppu::PPU;
-use gb_shared::Memory;
+use gb_shared::{InterruptRequest, Memory};
 use log::debug;
 
-use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, wram::WorkRam};
+use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
 
 struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -36,6 +36,8 @@ struct BusInner {
     joypad: Joypad,
 
     ppu_ptr: *const PPU<Bus>,
+    timer_ptr: *const Timer<Bus>,
+
     ref_count: usize,
 }
 
@@ -48,6 +50,16 @@ impl BusInner {
     #[inline]
     fn ppu(&self) -> &PPU<Bus> {
         unsafe { &*self.ppu_ptr }
+    }
+
+    #[inline]
+    fn timer_mut(&mut self) -> &mut Timer<Bus> {
+        unsafe { &mut *(self.timer_ptr as *mut Timer<Bus>) }
+    }
+
+    #[inline]
+    fn timer(&self) -> &Timer<Bus> {
+        unsafe { &*self.timer_ptr }
     }
 }
 
@@ -84,9 +96,7 @@ impl Memory for BusInner {
                 match addr {
                     0xFF00 => self.joypad.write(addr, value),
                     0xFF01..=0xFF02 => self.serial.write(addr, value),
-                    0xFF04..=0xFF07 => {
-                        todo!("Timer");
-                    }
+                    0xFF04..=0xFF07 => self.timer_mut().write(addr, value),
                     0xFF0F => {
                         // IF
                         self.interrupt_flag = value
@@ -156,9 +166,7 @@ impl Memory for BusInner {
                 match addr {
                     0xFF00 => self.joypad.read(addr),
                     0xFF01..=0xFF02 => self.serial.read(addr),
-                    0xFF04..=0xFF07 => {
-                        todo!("Timer");
-                    }
+                    0xFF04..=0xFF07 => self.timer().read(addr),
                     0xFF0F => {
                         // IF
                         self.interrupt_flag
@@ -209,11 +217,12 @@ impl Bus {
                 hram: HighRam::new(),
                 interrupt_enable: 0,
                 interrupt_flag: 0,
-                ppu_ptr: std::ptr::null_mut(),
-                ref_count: 1,
                 dma: DMA::new(),
                 serial: Serial::new(),
                 joypad: Joypad::new(),
+                ppu_ptr: std::ptr::null(),
+                timer_ptr: std::ptr::null(),
+                ref_count: 1,
             })),
         }
     }
@@ -221,6 +230,12 @@ impl Bus {
     pub(crate) fn set_ppu(&mut self, ppu: *const PPU<Bus>) {
         unsafe {
             (*self.ptr).ppu_ptr = ppu;
+        }
+    }
+
+    pub(crate) fn set_timer(&mut self, timer: *const Timer<Bus>) {
+        unsafe {
+            (*self.ptr).timer_ptr = timer;
         }
     }
 
@@ -266,5 +281,11 @@ impl Memory for Bus {
 
     fn read(&self, addr: u16) -> u8 {
         unsafe { (*self.ptr).read(addr) }
+    }
+}
+
+impl InterruptRequest for Bus {
+    fn request(&mut self, interrupt_type: gb_shared::InterruptType) {
+        self.write(0xFF0F, self.read(0xFF0F) | interrupt_type as u8);
     }
 }

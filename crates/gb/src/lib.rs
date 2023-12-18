@@ -14,6 +14,7 @@ use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_ppu::PPU;
 use log::debug;
+use timer::Timer;
 
 pub struct GameBoy {
     cpu: Cpu<Bus>,
@@ -29,6 +30,8 @@ impl GameBoy {
 
         let ppu = Box::new(PPU::new(bus.clone()));
         bus.set_ppu(ppu.as_ref());
+        let timer = Box::new(Timer::new(bus.clone()));
+        bus.set_timer(timer.as_ref());
 
         Self { cpu, ppu, bus: Box::new(bus) }
     }
