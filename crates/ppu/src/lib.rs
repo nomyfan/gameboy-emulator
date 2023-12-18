@@ -10,7 +10,7 @@ use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use crate::tile::{BackgroundTileDataBuilder, ObjectTileDataBuilder, TileData, TileDataBuilder};
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::{is_bit_set, pick_bits, set_bits, unset_bits, Memory};
+use gb_shared::{is_bit_set, pick_bits, set_bits, unset_bits, InterruptRequest, Memory};
 use log::debug;
 
 /// The first fourth steps takes 2 dots each.
@@ -99,7 +99,7 @@ pub struct PPU<BUS: Memory> {
     bus: BUS,
 }
 
-impl<BUS: Memory> PPU<BUS> {
+impl<BUS: Memory + InterruptRequest> PPU<BUS> {
     pub fn new(bus: BUS) -> Self {
         Self {
             vram: BoxedArray::default(),
@@ -188,18 +188,6 @@ impl<BUS: Memory> PPU<BUS> {
         color
     }
 
-    fn request_lcd_stat_interrupt(&mut self) {
-        let addr = 0xFF0F;
-        // TODO: replace 0b10 with enum value
-        self.bus.write(addr, self.bus.read(addr) | 0b10);
-    }
-
-    fn request_vblank_interrupt(&mut self) {
-        let addr = 0xFF0F;
-        // TODO: replace 0b1 with enum value
-        self.bus.write(addr, self.bus.read(addr) | 0b1);
-    }
-
     fn move_to_next_scanline(&mut self) {
         self.work_state.scanline_dots = 0;
         self.work_state.scanline_x = 0;
@@ -211,7 +199,7 @@ impl<BUS: Memory> PPU<BUS> {
 
             // LY == LYC stat interrupt
             if is_bit_set!(self.lcd.stat, 6) {
-                self.request_lcd_stat_interrupt();
+                self.bus.request_lcd_stat();
             }
         } else {
             self.lcd.stat = unset_bits!(self.lcd.stat, 2);
@@ -233,7 +221,7 @@ impl<BUS: Memory> PPU<BUS> {
         if self.work_state.scanline_dots == 1 {
             // Mode 2(OAM scan) stat interrupt
             if is_bit_set!(self.lcd.stat, 5) {
-                self.request_lcd_stat_interrupt();
+                self.bus.request_lcd_stat();
             }
 
             let obj_size = self.lcd.object_size();
@@ -377,7 +365,7 @@ impl<BUS: Memory> PPU<BUS> {
 
             // Mode 0(HBlank) stat interrupt
             if is_bit_set!(self.lcd.stat, 3) {
-                self.request_lcd_stat_interrupt();
+                self.bus.request_lcd_stat();
             }
         }
     }
@@ -395,10 +383,10 @@ impl<BUS: Memory> PPU<BUS> {
             self.set_lcd_mode(LCDMode::VBlank);
 
             // VBlank interrupt
-            self.request_vblank_interrupt();
+            self.bus.request_vblank();
             // Mode 1(VBlank) stat interrupt
             if is_bit_set!(self.lcd.stat, 4) {
-                self.request_lcd_stat_interrupt();
+                self.bus.request_lcd_stat();
             }
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
@@ -418,7 +406,7 @@ impl<BUS: Memory> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory> PPU<BUS> {
+impl<BUS: Memory + InterruptRequest> PPU<BUS> {
     /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
     fn block_vram(&self, addr: u16) -> bool {
         (0x8000..=0x9FFF).contains(&addr) && self.lcd_mode() == LCDMode::RenderPixel
@@ -432,7 +420,7 @@ impl<BUS: Memory> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory> Memory for PPU<BUS> {
+impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
     fn write(&mut self, addr: u16, value: u8) {
         if self.block_vram(addr) || self.block_oam(addr) {
             return;
