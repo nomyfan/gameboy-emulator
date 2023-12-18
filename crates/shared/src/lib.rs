@@ -1,5 +1,6 @@
 pub mod bitwise;
 pub mod boxed;
+pub mod builder;
 
 pub fn boxed_array<T: Copy, const SIZE: usize>(val: T) -> Box<[T; SIZE]> {
     let boxed_slice = vec![val; SIZE].into_boxed_slice();

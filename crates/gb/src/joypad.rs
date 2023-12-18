@@ -1,4 +1,4 @@
-use gb_shared::{set_bits, unset_bits, Memory};
+use gb_shared::{builder::ImBuilder, set_bits, unset_bits, Memory};
 
 /// The state is true when the value is zero.
 #[derive(Debug, Default)]
@@ -34,23 +34,10 @@ impl Memory for Joypad {
             (false, false, false, false)
         };
 
-        {
-            let mut value = 0xCFu8;
-            if b3 {
-                value = unset_bits!(value, 3);
-            }
-            if b2 {
-                value = unset_bits!(value, 2);
-            }
-            if b1 {
-                value = unset_bits!(value, 1);
-            }
-            if b0 {
-                value = unset_bits!(value, 0);
-            }
-
-            value
-        }
+        0xCF.if_then(|_| b3, |v| unset_bits!(v, 3))
+            .if_then(|_| b2, |v| unset_bits!(v, 2))
+            .if_then(|_| b1, |v| unset_bits!(v, 1))
+            .if_then(|_| b0, |v| unset_bits!(v, 0))
     }
 }
 
