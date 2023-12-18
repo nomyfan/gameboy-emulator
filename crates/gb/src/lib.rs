@@ -3,6 +3,7 @@ mod dma;
 mod hram;
 mod joypad;
 mod serial;
+mod timer;
 mod wram;
 
 use std::path::Path;
