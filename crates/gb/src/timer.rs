@@ -118,14 +118,9 @@ mock! {
 
 #[cfg(test)]
 mod tests {
-    use core::time;
     use mockall::predicate::*;
 
     use super::*;
-
-    fn write_div(timer: &mut Timer<MockInterruptRequest>, value: u8) {
-        timer.write(0xFF04, value);
-    }
 
     fn write_tima(timer: &mut Timer<MockInterruptRequest>, value: u8) {
         timer.write(0xFF05, value);
@@ -249,5 +244,23 @@ mod tests {
         timer.step(1);
 
         assert_eq!(timer.tima, 0xFE);
+    }
+
+    #[test]
+    fn cycles_overflow() {
+        let mut mock_int_req = MockInterruptRequest::new();
+        mock_int_req.expect_request().with(eq(InterruptType::Timer)).once().return_const(());
+        let mut timer = Timer::new(mock_int_req);
+        write_tac(&mut timer, 0b111);
+
+        for _ in 0..257 {
+            timer.step(255);
+        }
+        assert_eq!(timer.cycles_so_far, 0xFFFF);
+        assert_eq!(timer.div, 255);
+
+        timer.step(1);
+        assert_eq!(timer.cycles_so_far, 0);
+        assert_eq!(timer.div, 0);
     }
 }
