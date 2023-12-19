@@ -20,6 +20,8 @@ pub struct GameBoy {
     cpu: Cpu<Bus>,
     ppu: Box<PPU<Bus>>,
     bus: Box<Bus>,
+    // We need to hold it to make it live as long as the GameBoy.
+    _timer: Box<Timer<Bus>>,
 }
 
 impl GameBoy {
@@ -33,7 +35,7 @@ impl GameBoy {
         let timer = Box::new(Timer::new(bus.clone()));
         bus.set_timer(timer.as_ref());
 
-        Self { cpu, ppu, bus: Box::new(bus) }
+        Self { cpu, ppu, bus: Box::new(bus), _timer: timer }
     }
 
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
