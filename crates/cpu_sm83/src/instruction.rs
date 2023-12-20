@@ -33,6 +33,7 @@ pub(crate) enum Condition {
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
+#[cfg_attr(test, derive(strum_macros::AsRefStr))]
 pub(crate) enum Instruction {
     NONE,
     NOP,
@@ -656,4 +657,41 @@ pub(crate) fn get_instruction(opcode: u8) -> &'static Instruction {
 
 pub(crate) fn get_cycles(opcode: u8) -> &'static Cycle {
     CYCLES.get(opcode as usize).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INSTRUCTION_NAMES: [&str; 256] = [
+        "NOP", "LD", "LD", "INC", "INC", "DEC", "LD", "RLCA", "LD", "ADD", "LD", "DEC", "INC",
+        "DEC", "LD", "RRCA", "STOP", "LD", "LD", "INC", "INC", "DEC", "LD", "RLA", "JR", "ADD",
+        "LD", "DEC", "INC", "DEC", "LD", "RRA", "JR", "LD", "LD", "INC", "INC", "DEC", "LD", "DAA",
+        "JR", "ADD", "LD", "DEC", "INC", "DEC", "LD", "CPL", "JR", "LD", "LD", "INC", "INC", "DEC",
+        "LD", "SCF", "JR", "ADD", "LD", "DEC", "INC", "DEC", "LD", "CCF", "LD", "LD", "LD", "LD",
+        "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD",
+        "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD",
+        "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD",
+        "LD", "LD", "LD", "LD", "LD", "HALT", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD", "LD",
+        "ADD", "ADD", "ADD", "ADD", "ADD", "ADD", "ADD", "ADD", "ADC", "ADC", "ADC", "ADC", "ADC",
+        "ADC", "ADC", "ADC", "SUB", "SUB", "SUB", "SUB", "SUB", "SUB", "SUB", "SUB", "SBC", "SBC",
+        "SBC", "SBC", "SBC", "SBC", "SBC", "SBC", "AND", "AND", "AND", "AND", "AND", "AND", "AND",
+        "AND", "XOR", "XOR", "XOR", "XOR", "XOR", "XOR", "XOR", "XOR", "OR", "OR", "OR", "OR",
+        "OR", "OR", "OR", "OR", "CP", "CP", "CP", "CP", "CP", "CP", "CP", "CP", "RET", "POP", "JP",
+        "JP", "CALL", "PUSH", "ADD", "RST", "RET", "RET", "JP", "CB", "CALL", "CALL", "ADC", "RST",
+        "RET", "POP", "JP", "NONE", "CALL", "PUSH", "SUB", "RST", "RET", "RETI", "JP", "NONE",
+        "CALL", "NONE", "SBC", "RST", "LD", /* LDH */
+        "POP", "LD", "NONE", "NONE", "PUSH", "AND", "RST", "ADD", "JP", "LD", "NONE", "NONE",
+        "NONE", "XOR", "RST", "LD", /* LDH */
+        "POP", "LD", "DI", "NONE", "PUSH", "OR", "RST", "LD", "LD", "LD", "EI", "NONE", "NONE",
+        "CP", "RST",
+    ];
+
+    #[test]
+    fn declaration() {
+        for (opcode, name) in INSTRUCTION_NAMES.iter().enumerate() {
+            let inst = get_instruction(opcode as u8);
+            assert_eq!(&inst.as_ref(), name);
+        }
+    }
 }
