@@ -219,14 +219,14 @@ where
     pub fn new(bus: BUS) -> Self {
         // TODO init
         Self {
-            reg_a: 0xB0,
-            reg_f: 0x01,
-            reg_b: 0x13,
-            reg_c: 0,
-            reg_d: 0xD8,
-            reg_e: 0,
-            reg_h: 0x4D,
-            reg_l: 0x01,
+            reg_a: 0x01,
+            reg_f: 0xB0,
+            reg_b: 0,
+            reg_c: 0x13,
+            reg_d: 0,
+            reg_e: 0xD8,
+            reg_h: 0x01,
+            reg_l: 0x4D,
             sp: 0xFFFE,
             pc: 0x100,
 
@@ -353,7 +353,7 @@ where
         let inst = get_instruction(opcode);
         debug!("{:?}", inst);
 
-        match inst {
+        4 + match inst {
             Instruction::NONE => {
                 panic!("No such instruction");
             }
@@ -439,6 +439,22 @@ mod tests {
             cpu.set_flags(Some(false), Some(true), Some(false), Some(true));
 
             assert_eq!(cpu.flags(), (false, true, false, true));
+        }
+    }
+
+    mod registers {
+        use super::*;
+
+        #[test]
+        fn cpu_initial_register_value() {
+            let cpu = Cpu::new(MockBus::new());
+
+            assert_ne!(cpu.af(), 0x010B);
+            assert_eq!(cpu.bc(), 0x0013);
+            assert_eq!(cpu.de(), 0x00D8);
+            assert_eq!(cpu.hl(), 0x014D);
+            assert_eq!(cpu.sp, 0xFFFE);
+            assert_eq!(cpu.pc, 0x0100);
         }
     }
 
