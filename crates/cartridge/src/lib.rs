@@ -400,7 +400,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
         };
 
         let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
-            0x00 => Box::new(mbc::none_mbc::NoneMbc::new()),
+            0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
             0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(rom_size, ram_size)),
             _ => panic!(
                 "MBC {} is not supported yet",
