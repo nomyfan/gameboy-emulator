@@ -37,7 +37,11 @@ pub(crate) fn proc_ld(
         operand2 = cpu.bus_read(operand2) as u16;
     }
 
-    cpu.write_data(am1, operand1, operand2);
+    if opcode == 0xE2 || opcode == 0xEA {
+        cpu.write_data(&AddressingMode::PC1, operand1, operand2);
+    } else {
+        cpu.write_data(am1, operand1, operand2);
+    }
 
     if opcode == 0x22 || opcode == 0x2A {
         // HL+
@@ -131,7 +135,7 @@ mod tests {
             let mut mock = MockCpu16::new();
             mock.expect_fetch_data().with(eq(am2)).once().return_const(val2 as u16);
             mock.expect_fetch_data().with(eq(am1)).once().return_const(val1 as u16);
-            mock.expect_write_data().with(eq(am1), eq(addr), eq(value as u16)).return_const(());
+            mock.expect_write_data().with(eq(Am::PC1), eq(addr), eq(value as u16)).return_const(());
 
             assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
         }
