@@ -3,13 +3,16 @@ use gb_shared::{boxed_array_fn, builder::ImBuilder, kib};
 
 /// https://gbdev.io/pandocs/MBC1.html
 pub(crate) struct Mbc1 {
-    /// 00h = ROM Banking Mode (up to 8KiB RAM, 2MiB ROM) (default)
-    /// 01h = RAM Banking Mode (up to 32KiB RAM, 512KiB ROM)
+    /// 00h = ROM Banking Mode (up to 8KiB banked RAM, 2MiB ROM) (default)
+    /// 01h = RAM Banking Mode (up to 32KiB banked RAM, 512KiB ROM)
     banking_mode: u8,
     /// Only enable it when writing any value whose lower 4 bits is 0xA.
     ram_enabled: bool,
+    /// The lower 2 + 5 bits are used.
     banking_num: usize,
+    /// Initialized with max size, 2MiB - 16KiB(this is from fixed ROM).
     rom_banks: Box<[RomBank; 127]>,
+    /// Initialized with max size, 32KiB.
     ram_banks: Box<[RamBank; 4]>,
     // Cartridge header attributes
     rom_size: usize,
@@ -21,7 +24,7 @@ impl Mbc1 {
         Mbc1 {
             banking_mode: 0,
             ram_enabled: false,
-            banking_num: 1,
+            banking_num: 0,
             rom_banks: boxed_array_fn(|_| [0u8; 0x4000]),
             ram_banks: boxed_array_fn(|_| [0u8; 0x2000]),
             rom_size,
@@ -68,10 +71,9 @@ impl super::Mbc for Mbc1 {
             0x0000..=0x3FFF => rom[addr as usize],
             // ROM bank
             0x4000..=0x7FFF => {
+                // https://gbdev.io/pandocs/MBC1.html#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only:~:text=no%20observable%20effect
                 let rom_bank_num = if self.banking_mode == 1
-                    // https://gbdev.io/pandocs/MBC1.html#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only:~:text=no%20observable%20effect
-                    && self.rom_size > kib(512)
-                    && self.ram_size > kib(32)
+                    && (self.rom_size > kib(512) || self.ram_size > kib(32))
                 {
                     // 7 bits
                     self.banking_num & 0x7F
