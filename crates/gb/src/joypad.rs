@@ -34,7 +34,9 @@ impl Memory for Joypad {
             (false, false, false, false)
         };
 
-        0xCF.if_then(|_| b3, |v| unset_bits!(v, 3))
+        0x3F.if_then(|_| self.select_buttons, |v| unset_bits!(v, 5))
+            .if_then(|_| self.select_d_pad, |v| unset_bits!(v, 4))
+            .if_then(|_| b3, |v| unset_bits!(v, 3))
             .if_then(|_| b2, |v| unset_bits!(v, 2))
             .if_then(|_| b1, |v| unset_bits!(v, 1))
             .if_then(|_| b0, |v| unset_bits!(v, 0))
@@ -60,7 +62,7 @@ mod tests {
         joypad.b = true;
 
         let value = joypad.read(0xFF00);
-        assert_eq!(0b1100_0101, value);
+        assert_eq!(0b0001_0101, value);
     }
 
     #[test]
@@ -72,7 +74,7 @@ mod tests {
         joypad.right = true;
 
         let value = joypad.read(0xFF00);
-        assert_eq!(0b1100_1010, value);
+        assert_eq!(0b0010_1010, value);
     }
 
     #[test]
@@ -84,6 +86,6 @@ mod tests {
         joypad.up = true;
 
         let value = joypad.read(0xFF00);
-        assert_eq!(0xCF, value);
+        assert_eq!(0x3F, value);
     }
 }

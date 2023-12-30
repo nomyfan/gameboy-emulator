@@ -1,7 +1,7 @@
 mod mbc;
 
 use anyhow::Result;
-use log::debug;
+use gb_shared::kib;
 use std::{borrow::Cow, fmt::Display, path::Path};
 
 const CARRIAGE_TYPE: [(u8, &str); 28] = [
@@ -388,11 +388,20 @@ impl TryFrom<Vec<u8>> for Cartridge {
 
         assert_eq!(checksum, header.checksum);
 
-        debug!("{}", &header);
+        log::debug!("{}", &header);
+
+        let rom_size = kib(32) * 1usize << header.rom_size;
+        let ram_size = match header.ram_size {
+            0x02 => kib(8),
+            0x03 => kib(32),
+            0x04 => kib(128),
+            0x05 => kib(64),
+            _ => 0,
+        };
 
         let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
-            0x00 => Box::new(mbc::none_mbc::NoneMbc::new()),
-            0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new()),
+            0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
+            0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(rom_size, ram_size)),
             _ => panic!(
                 "MBC {} is not supported yet",
                 CARRIAGE_TYPE

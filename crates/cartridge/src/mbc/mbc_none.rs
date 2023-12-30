@@ -1,12 +1,12 @@
-pub(crate) struct NoneMbc {}
+pub(crate) struct MbcNone {}
 
-impl NoneMbc {
+impl MbcNone {
     pub(crate) fn new() -> Self {
-        NoneMbc {}
+        MbcNone {}
     }
 }
 
-impl super::Mbc for NoneMbc {
+impl super::Mbc for MbcNone {
     fn write(&mut self, _addr: u16, _value: u8) {
         // Noop
     }

@@ -52,3 +52,11 @@ pub trait InterruptRequest {
         self.request(InterruptType::Joypad);
     }
 }
+
+pub const fn kib(k: usize) -> usize {
+    k * 1024
+}
+
+pub const fn mib(m: usize) -> usize {
+    kib(m) * 1024
+}
