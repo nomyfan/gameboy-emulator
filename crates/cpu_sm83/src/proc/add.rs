@@ -1,3 +1,4 @@
+use crate::alu::add::*;
 use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode};
 
@@ -13,36 +14,19 @@ pub(crate) fn proc_add(
     let is_rr = (opcode & 0x09) == 0x09;
     let is_sp_r8 = opcode == 0xE8;
 
-    let sum = if is_sp_r8 {
-        operand1.wrapping_add_signed(operand2 as u8 as i8 as i16)
-    } else if is_rr {
-        operand1.wrapping_add(operand2)
-    } else {
-        (operand1 as u8).wrapping_add(operand2 as u8) as u16
-    };
-
-    let z = if is_rr {
-        None
+    if is_rr {
+        let (sum, h, c) = alu_add_16(operand1, operand2);
+        cpu.write_data(am1, 0, sum);
+        cpu.set_flags(None, Some(false), Some(h), Some(c));
     } else if is_sp_r8 {
-        Some(false)
+        let (sum, h, c) = alu_add_sp_r8(operand1, operand2 as u8 as i8);
+        cpu.write_data(am1, 0, sum);
+        cpu.set_flags(Some(false), Some(false), Some(h), Some(c));
     } else {
-        Some(sum as u8 == 0)
-    };
-
-    let (h, c) =
-        // 16 bits
-        if is_rr {
-            let h = (operand1 & 0xFFF) + (operand2 & 0xFFF) > 0xFFF;
-            let c = (operand1 as u32) + (operand2 as u32) > 0xFFFF;
-            (Some(h), Some(c))
-        } else { // 8 bits
-            let h = (operand1 & 0xF) + (operand2 & 0xF) > 0xF;
-            let c = (operand1 & 0xFF) as i16 + (operand2 & 0xFF) as i16 > 0xFF;
-            (Some(h), Some(c))
-        };
-
-    cpu.write_data(am1, 0, sum);
-    cpu.set_flags(z, Some(false), h, c);
+        let (sum, z, h, c) = alu_add_8(operand1 as u8, operand2 as u8);
+        cpu.write_data(am1, 0, sum as u16);
+        cpu.set_flags(Some(z), Some(false), Some(h), Some(c));
+    }
 
     get_cycles(opcode).0
 }

@@ -1,27 +1,17 @@
 use super::utils::{cpu_fetch_a, cpu_write_a};
+use crate::alu::daa::alu_daa;
 use crate::cpu16::Cpu16;
 use crate::instruction::get_cycles;
 
 /// Decimal adjust A
 pub(crate) fn proc_daa(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
-    let mut acc = 0;
-    let mut c = false;
     let a = cpu_fetch_a(cpu);
-
     let (_, flag_n, flag_h, flag_c) = cpu.flags();
 
-    if flag_h || (!flag_n && (a & 0xF) > 0x9) {
-        acc |= 0x6;
-    }
+    let (value, z, c) = alu_daa(a, flag_n, flag_h, flag_c);
 
-    if flag_c || (!flag_n && a > 0x99) {
-        acc |= 0x60;
-        c = true;
-    }
-
-    let value = if flag_n { a.wrapping_sub(acc) } else { a.wrapping_add(acc) };
     cpu_write_a(cpu, value);
-    cpu.set_flags(Some(value == 0), None, Some(false), Some(c));
+    cpu.set_flags(Some(z), None, Some(false), Some(c));
 
     get_cycles(opcode).0
 }
