@@ -1,7 +1,9 @@
 pub(crate) fn alu_inc_8(value: u8) -> (u8, bool, bool) {
     let ret = value.wrapping_add(1);
 
-    (ret, ret == 0, (ret & 0xF) == 0)
+    let z = ret == 0;
+    let h = (ret & 0xF) == 0;
+    (ret, z, h)
 }
 
 #[inline]

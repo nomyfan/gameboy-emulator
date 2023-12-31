@@ -12,6 +12,7 @@ pub(crate) fn alu_daa(value: u8, flag_n: bool, flag_h: bool, flag_c: bool) -> (u
     }
 
     let ret = if flag_n { value.wrapping_sub(acc) } else { value.wrapping_add(acc) };
+    let z = ret == 0;
 
-    (ret, ret == 0, c)
+    (ret, z, c)
 }
