@@ -22,7 +22,7 @@ pub(crate) fn proc_ld(
 
     if opcode == 0xF8 {
         // SP+r8
-        let unsigned_r8 = cpu.fetch_data(&AddressingMode::PC1);
+        let unsigned_r8 = cpu.fetch_data(&AddressingMode::Eight);
 
         let h = (operand2 & 0xF) + (unsigned_r8 & 0xF) > 0xF;
         let c = (operand2 & 0xFF) + (unsigned_r8 & 0xFF) > 0xFF;
@@ -38,7 +38,7 @@ pub(crate) fn proc_ld(
     }
 
     if opcode == 0xE2 || opcode == 0xEA {
-        cpu.write_data(&AddressingMode::PC1, operand1, operand2);
+        cpu.write_data(&AddressingMode::Eight, operand1, operand2);
     } else {
         cpu.write_data(am1, operand1, operand2);
     }
@@ -112,7 +112,7 @@ mod tests {
 
         let mut mock = MockCpu16::new();
         mock.expect_fetch_data().with(eq(am_sp)).once().return_const(2u16);
-        mock.expect_fetch_data().with(eq(Am::PC1)).once().return_const((-1i8) as u16);
+        mock.expect_fetch_data().with(eq(Am::Eight)).once().return_const((-1i8) as u16);
         mock.expect_fetch_data().with(eq(am_hl)).return_const(0x34u16);
         mock.expect_write_data().with(eq(am_hl), always(), eq(2 - 1)).return_const(());
         mock.expect_set_flags()
@@ -127,7 +127,7 @@ mod tests {
     fn ld_add_0xff00() {
         // (a8) / (C)
         let cases = [
-            (0xE0, (Am::PC1, 0x12u8), (Am::Direct_A, 0x34u8), 0xFF12u16, 0x34u8),
+            (0xE0, (Am::Eight, 0x12u8), (Am::Direct_A, 0x34u8), 0xFF12u16, 0x34u8),
             (0xE2, (Am::Direct_C, 0x12), (Am::Direct_A, 0x34), 0xFF12, 0x34),
         ];
 
@@ -135,7 +135,9 @@ mod tests {
             let mut mock = MockCpu16::new();
             mock.expect_fetch_data().with(eq(am2)).once().return_const(val2 as u16);
             mock.expect_fetch_data().with(eq(am1)).once().return_const(val1 as u16);
-            mock.expect_write_data().with(eq(Am::PC1), eq(addr), eq(value as u16)).return_const(());
+            mock.expect_write_data()
+                .with(eq(Am::Eight), eq(addr), eq(value as u16))
+                .return_const(());
 
             assert_eq!(proc_ld(&mut mock, opcode, &am1, &am2), get_cycles(opcode).0);
         }
@@ -145,7 +147,7 @@ mod tests {
     fn ld_add_0xff00_2() {
         // (a8) / (C)
         let cases = [
-            (0xF0, (Am::Direct_A, 0x12u8), (Am::PC1, 0x34u8), 0xFF34, 0x34u8),
+            (0xF0, (Am::Direct_A, 0x12u8), (Am::Eight, 0x34u8), 0xFF34, 0x34u8),
             (0xF2, (Am::Direct_A, 0x12), (Am::Direct_C, 0x34), 0xFF34, 0x34),
         ];
 

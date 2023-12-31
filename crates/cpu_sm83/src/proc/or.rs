@@ -25,7 +25,7 @@ mod tests {
     fn or() {
         let opcode = 0xF6u8;
         let am_a = Am::Direct_A;
-        let am_pc1 = Am::PC1;
+        let am_8 = Am::Eight;
 
         let cases =
             [(1u16, 0u16, 1u16, false), (0, 1, 1, false), (1, 1, 1, false), (0, 0, 0, true)];
@@ -33,13 +33,13 @@ mod tests {
         for (a, v, ret, z) in cases.into_iter() {
             let mut mock = MockCpu16::new();
             mock.expect_fetch_data().with(eq(am_a)).once().return_const(a);
-            mock.expect_fetch_data().with(eq(am_pc1)).once().return_const(v);
+            mock.expect_fetch_data().with(eq(am_8)).once().return_const(v);
             mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
             mock.expect_set_flags()
                 .once()
                 .with(eq(Some(z)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
                 .return_const(());
-            proc_or(&mut mock, opcode, &am_pc1);
+            proc_or(&mut mock, opcode, &am_8);
         }
     }
 }

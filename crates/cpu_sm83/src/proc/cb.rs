@@ -32,7 +32,7 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
         }
     }
 
-    let cb_opcode = cpu.fetch_data(&AddressingMode::PC1) as u8;
+    let cb_opcode = cpu.fetch_data(&AddressingMode::Eight) as u8;
     let am = decode_addressing_mode(cb_opcode & 0b111);
     let value = cpu.fetch_data(&am) as u8;
 
@@ -127,7 +127,7 @@ mod tests {
     use crate::instruction::AddressingMode as Am;
     use mockall::predicate::*;
 
-    const AM_PC1: Am = Am::PC1;
+    const AM_8: Am = Am::Eight;
     const AM_HL: Am = Am::Indirect_HL;
 
     #[test]
@@ -140,7 +140,7 @@ mod tests {
 
         for (in_v, (out_v, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x06u16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x06u16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
             mock.expect_set_flags()
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn rlc_set_flag_z() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x06u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x06u16);
         mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
         mock.expect_write_data().with(eq(AM_HL), always(), eq(0u16)).return_const(());
         mock.expect_set_flags()
@@ -176,7 +176,7 @@ mod tests {
 
         for (in_v, (out_v, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x0Eu16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x0Eu16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
             mock.expect_set_flags()
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn rrc_set_flag_z() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x0Eu16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x0Eu16);
         mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
         mock.expect_write_data().with(eq(AM_HL), always(), eq(0u16)).return_const(());
         mock.expect_set_flags()
@@ -214,7 +214,7 @@ mod tests {
 
         for ((in_v, in_c), (out_v, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x16u16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x16u16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_flags().once().return_const([false, false, false, in_c]);
 
@@ -238,7 +238,7 @@ mod tests {
 
         for ((in_v, in_c), out_c) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x16u16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x16u16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_flags().once().return_const([false, false, false, in_c]);
 
@@ -264,7 +264,7 @@ mod tests {
 
         for ((in_v, in_c), (out_v, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x1Eu16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x1Eu16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_flags().once().return_const([false, false, false, in_c]);
 
@@ -288,7 +288,7 @@ mod tests {
 
         for ((in_v, in_c), out_c) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x1Eu16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x1Eu16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_flags().once().return_const([false, false, false, in_c]);
 
@@ -313,7 +313,7 @@ mod tests {
 
         for (in_v, (out_v, out_z, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x26u16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x26u16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
 
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
@@ -337,7 +337,7 @@ mod tests {
 
         for (in_v, (out_v, out_z, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x2Eu16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x2Eu16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
 
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
@@ -360,7 +360,7 @@ mod tests {
 
         for (in_v, (out_v, out_z)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x36u16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x36u16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
 
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
@@ -380,7 +380,7 @@ mod tests {
 
         for (in_v, (out_v, out_c)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x3Eu16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x3Eu16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
 
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
@@ -403,7 +403,7 @@ mod tests {
 
         for (in_v, (out_v, out_z)) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x3Eu16);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x3Eu16);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
 
             mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
@@ -425,7 +425,7 @@ mod tests {
         ];
         for ((in_cb_opcode, in_v), out_z) in cases.into_iter() {
             let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(in_cb_opcode);
+            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(in_cb_opcode);
             mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
             mock.expect_set_flags()
                 .with(eq(Some(out_z)), eq(Some(false)), eq(Some(true)), eq(None))
@@ -439,7 +439,7 @@ mod tests {
     #[test]
     fn res() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x96u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x96u16);
         mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0xFFu16);
         mock.expect_write_data().with(eq(AM_HL), always(), eq(0b1111_1011)).once().return_const(());
 
@@ -449,7 +449,7 @@ mod tests {
     #[test]
     fn set() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0xE6u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0xE6u16);
         mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
         mock.expect_write_data().with(eq(AM_HL), always(), eq(0b0001_0000)).once().return_const(());
 

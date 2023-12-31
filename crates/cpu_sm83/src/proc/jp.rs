@@ -29,7 +29,7 @@ mod tests {
     fn jp_condition_success() {
         let cases = [
             (0xE9u8, Am::Indirect_HL, None, (false, false, false, false)),
-            (0xD2, Am::PC2, Some(Condition::NC), (false, true, true, false)),
+            (0xD2, Am::Sixteen, Some(Condition::NC), (false, true, true, false)),
         ];
 
         for (opcode, am, cond, (z, n, h, c)) in cases.into_iter() {
@@ -47,9 +47,9 @@ mod tests {
     #[test]
     fn jp_condition_fail() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(Am::PC2)).once().return_const(1u16);
+        mock.expect_fetch_data().with(eq(Am::Sixteen)).once().return_const(1u16);
         mock.expect_flags().once().returning(move || (false, true, true, true));
 
-        assert_eq!(proc_jp(&mut mock, 0xCA, &Some(Condition::Z), &Am::PC2), get_cycles(0xCA).1)
+        assert_eq!(proc_jp(&mut mock, 0xCA, &Some(Condition::Z), &Am::Sixteen), get_cycles(0xCA).1)
     }
 }

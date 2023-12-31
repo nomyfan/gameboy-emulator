@@ -26,12 +26,12 @@ mod tests {
 
     const OPCODE: u8 = 0xCE;
     const AM_A: Am = Am::Direct_A;
-    const AM_PC1: Am = Am::PC1;
+    const AM_8: Am = Am::Eight;
 
     #[test]
     fn adc_flag_c_set_then_add_carry() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(1u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(1u16);
         mock.expect_fetch_data().with(eq(AM_A)).once().return_const(1u16);
         mock.expect_flags().once().return_const([false, false, false, true]);
 
@@ -40,7 +40,7 @@ mod tests {
             .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
             .return_const(());
 
-        proc_adc(&mut mock, OPCODE, &AM_PC1);
+        proc_adc(&mut mock, OPCODE, &AM_8);
     }
 
     #[test]
@@ -50,7 +50,7 @@ mod tests {
         let ret = a.wrapping_add(a8);
 
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(a8 as u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(a8 as u16);
         mock.expect_fetch_data().with(eq(AM_A)).once().return_const(a as u16);
         mock.expect_flags().once().return_const([false, false, false, false]);
 
@@ -59,13 +59,13 @@ mod tests {
             .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(true)))
             .return_const(());
 
-        proc_adc(&mut mock, OPCODE, &AM_PC1);
+        proc_adc(&mut mock, OPCODE, &AM_8);
     }
 
     #[test]
     fn adc_set_flag_h() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(0x1u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x1u16);
         mock.expect_fetch_data().with(eq(AM_A)).once().return_const(0xFu16);
         mock.expect_flags().once().return_const([false, false, false, false]);
 
@@ -74,13 +74,13 @@ mod tests {
             .with(eq(Some(false)), eq(Some(false)), eq(Some(true)), eq(Some(false)))
             .return_const(());
 
-        proc_adc(&mut mock, OPCODE, &AM_PC1);
+        proc_adc(&mut mock, OPCODE, &AM_8);
     }
 
     #[test]
     fn adc_set_flag_z() {
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_PC1)).once().return_const(127u16);
+        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(127u16);
         mock.expect_fetch_data().with(eq(AM_A)).once().return_const((-127i8) as u8 as u16);
         mock.expect_flags().once().return_const([false, false, false, false]);
 
@@ -89,6 +89,6 @@ mod tests {
             .with(eq(Some(true)), eq(Some(false)), eq(Some(true)), eq(Some(true)))
             .return_const(());
 
-        proc_adc(&mut mock, OPCODE, &AM_PC1);
+        proc_adc(&mut mock, OPCODE, &AM_8);
     }
 }

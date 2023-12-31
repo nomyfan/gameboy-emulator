@@ -59,18 +59,18 @@ mod tests {
     fn add_sp_r8() {
         let opcode = 0xE8u8;
         let am_sp = Am::Direct_SP;
-        let am_pc1 = Am::PC1;
+        let am_8 = Am::Eight;
 
         let mut mock = MockCpu16::new();
         mock.expect_fetch_data().with(eq(am_sp)).once().return_const(1u16);
-        mock.expect_fetch_data().with(eq(am_pc1)).once().return_const((-1i8) as u16);
+        mock.expect_fetch_data().with(eq(am_8)).once().return_const((-1i8) as u16);
         mock.expect_write_data().with(eq(am_sp), always(), eq(0)).once().return_const(());
         mock.expect_set_flags()
             .with(eq(Some(false)), eq(Some(false)), eq(Some(true)), eq(Some(true)))
             .once()
             .return_const(());
 
-        assert_eq!(proc_add(&mut mock, opcode, &am_sp, &am_pc1), 16);
+        assert_eq!(proc_add(&mut mock, opcode, &am_sp, &am_8), 16);
     }
 
     #[test]
@@ -78,7 +78,7 @@ mod tests {
         let cases = [
             (0x85u8, Am::Direct_A, Am::Direct_L),
             (0x86u8, Am::Direct_A, Am::Indirect_HL),
-            (0xC5u8, Am::Direct_A, Am::PC1),
+            (0xC5u8, Am::Direct_A, Am::Eight),
         ];
 
         for (opcode, am1, am2) in cases.into_iter() {

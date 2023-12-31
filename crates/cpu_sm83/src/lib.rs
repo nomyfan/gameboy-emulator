@@ -27,8 +27,8 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
             AddressingMode::Indirect_BC => self.bus_read(self.bc()) as u16,
             AddressingMode::Indirect_DE => self.bus_read(self.de()) as u16,
             AddressingMode::Indirect_HL => self.bus_read(self.hl()) as u16,
-            AddressingMode::PC1 => self.read_pc() as u16,
-            AddressingMode::PC2 => self.read_pc2(),
+            AddressingMode::Eight => self.read_pc() as u16,
+            AddressingMode::Sixteen => self.read_pc2(),
         }
     }
 
@@ -49,10 +49,10 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
             AddressingMode::Indirect_BC => self.bus_write(self.bc(), value as u8),
             AddressingMode::Indirect_DE => self.bus_write(self.de(), value as u8),
             AddressingMode::Indirect_HL => self.bus_write(self.hl(), value as u8),
-            AddressingMode::PC1 => {
+            AddressingMode::Eight => {
                 self.bus_write(address, value as u8);
             }
-            AddressingMode::PC2 => {
+            AddressingMode::Sixteen => {
                 self.bus_write(address, value as u8);
                 self.bus_write(address.wrapping_add(1), (value >> 8) as u8);
             }
@@ -722,9 +722,9 @@ mod tests {
             assert_eq!(cpu.fetch_data(&Am::Indirect_BC), 0x87);
             assert_eq!(cpu.fetch_data(&Am::Indirect_DE), 0xCB);
             assert_eq!(cpu.fetch_data(&Am::Indirect_HL), 0x0F);
-            assert_eq!(cpu.fetch_data(&Am::PC1), 0x55);
+            assert_eq!(cpu.fetch_data(&Am::Eight), 0x55);
             assert_eq!(cpu.pc, 0x4322);
-            assert_eq!(cpu.fetch_data(&Am::PC2), 0x7766);
+            assert_eq!(cpu.fetch_data(&Am::Sixteen), 0x7766);
             assert_eq!(cpu.pc, 0x4324);
         }
 
@@ -808,8 +808,8 @@ mod tests {
             cpu.write_data(&Am::Indirect_DE, 0, 0xCB);
             cpu.write_data(&Am::Indirect_HL, 0, 0x0F);
 
-            cpu.write_data(&Am::PC1, 0x1111, 0x55);
-            cpu.write_data(&Am::PC2, 0x1112, 0x7766);
+            cpu.write_data(&Am::Eight, 0x1111, 0x55);
+            cpu.write_data(&Am::Sixteen, 0x1112, 0x7766);
         }
     }
 }

@@ -30,7 +30,7 @@ mod tests {
     fn sbc_carry() {
         let opcode = 0xDE;
         let am_a = Am::Direct_A;
-        let am_pc1 = Am::PC1;
+        let am_8 = Am::Eight;
 
         let cases = [
             ((2u16, 1u16, true), (0u16, (true, false, false))),
@@ -40,7 +40,7 @@ mod tests {
         for ((a, v, cv), (ret, (z, h, c))) in cases.into_iter() {
             let mut mock = MockCpu16::new();
             mock.expect_fetch_data().with(eq(am_a)).once().return_const(a);
-            mock.expect_fetch_data().with(eq(am_pc1)).once().return_const(v);
+            mock.expect_fetch_data().with(eq(am_8)).once().return_const(v);
             mock.expect_flags().with().once().return_const((false, false, false, cv));
 
             mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
@@ -49,7 +49,7 @@ mod tests {
                 .with(eq(Some(z)), eq(Some(true)), eq(Some(h)), eq(Some(c)))
                 .return_const(());
 
-            proc_sbc(&mut mock, opcode, &am_pc1);
+            proc_sbc(&mut mock, opcode, &am_8);
         }
     }
 
@@ -57,7 +57,7 @@ mod tests {
     fn sbc_set_flags() {
         let opcode = 0xDE;
         let am_a = Am::Direct_A;
-        let am_pc1 = Am::PC1;
+        let am_8 = Am::Eight;
 
         let cases = [
             // z
@@ -71,7 +71,7 @@ mod tests {
         for ((a, v, cv), (ret, (z, h, c))) in cases.into_iter() {
             let mut mock = MockCpu16::new();
             mock.expect_fetch_data().with(eq(am_a)).once().return_const(a);
-            mock.expect_fetch_data().with(eq(am_pc1)).once().return_const(v);
+            mock.expect_fetch_data().with(eq(am_8)).once().return_const(v);
             mock.expect_flags().with().once().return_const((false, false, false, cv));
 
             mock.expect_write_data().with(eq(am_a), always(), eq(ret)).once().return_const(());
@@ -80,7 +80,7 @@ mod tests {
                 .with(eq(Some(z)), eq(Some(true)), eq(Some(h)), eq(Some(c)))
                 .return_const(());
 
-            proc_sbc(&mut mock, opcode, &am_pc1);
+            proc_sbc(&mut mock, opcode, &am_8);
         }
     }
 }

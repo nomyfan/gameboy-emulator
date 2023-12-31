@@ -3,7 +3,7 @@ use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode, Condition};
 
 pub(crate) fn proc_call(cpu: &mut impl Cpu16, opcode: u8, cond: &Option<Condition>) -> u8 {
-    let value = cpu.fetch_data(&AddressingMode::PC2);
+    let value = cpu.fetch_data(&AddressingMode::Sixteen);
     if check_condition(cond.as_ref(), cpu) {
         cpu.stack_push_pc();
         cpu.jp(value);
@@ -31,7 +31,7 @@ mod tests {
         for (opcode, cond, flags) in cases.into_iter() {
             let mut mock = MockCpu16::new();
             let addr = 0x1234u16;
-            mock.expect_fetch_data().once().with(eq(AddressingMode::PC2)).return_const(addr);
+            mock.expect_fetch_data().once().with(eq(AddressingMode::Sixteen)).return_const(addr);
             mock.expect_flags().times(if cond.is_none() { 0 } else { 1 }).return_const(flags);
             mock.expect_stack_push_pc().once().return_const(());
             mock.expect_jp().once().with(eq(addr)).return_const(());
@@ -46,7 +46,7 @@ mod tests {
         let addr = 0x1234u16;
 
         let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().once().with(eq(AddressingMode::PC2)).return_const(addr);
+        mock.expect_fetch_data().once().with(eq(AddressingMode::Sixteen)).return_const(addr);
         mock.expect_flags().once().return_const((false, false, false, false));
         mock.expect_stack_push_pc().never();
 
