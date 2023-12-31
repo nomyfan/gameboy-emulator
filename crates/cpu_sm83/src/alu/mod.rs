@@ -1,0 +1,15 @@
+pub(crate) mod adc;
+pub(crate) mod add;
+pub(crate) mod and;
+pub(crate) mod cp;
+pub(crate) mod daa;
+pub(crate) mod dec;
+pub(crate) mod inc;
+pub(crate) mod or;
+pub(crate) mod rla;
+pub(crate) mod rlca;
+pub(crate) mod rra;
+pub(crate) mod rrca;
+pub(crate) mod sbc;
+pub(crate) mod sub;
+pub(crate) mod xor;

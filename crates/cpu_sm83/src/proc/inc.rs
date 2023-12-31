@@ -1,19 +1,17 @@
+use crate::alu::inc::*;
 use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode};
 
 pub(crate) fn proc_inc(cpu: &mut impl Cpu16, opcode: u8, am: &AddressingMode) -> u8 {
     let value = cpu.fetch_data(am);
 
-    let value = if (opcode & 0x03) != 0x03 {
-        let value = (value as u8).wrapping_add(1) as u16;
-        cpu.set_flags(Some(value == 0), Some(false), Some((value & 0xF) == 0), None);
-
-        value
+    if (opcode & 0x03) != 0x03 {
+        let (value, z, h) = alu_inc_8(value as u8);
+        cpu.write_data(am, 0, value as u16);
+        cpu.set_flags(Some(z), Some(false), Some(h), None);
     } else {
-        value.wrapping_add(1)
-    };
-
-    cpu.write_data(am, 0, value);
+        cpu.write_data(am, 0, alu_inc_16(value));
+    }
 
     get_cycles(opcode).0
 }

@@ -1,3 +1,4 @@
+mod alu;
 mod cpu16;
 mod instruction;
 mod interrupt;
