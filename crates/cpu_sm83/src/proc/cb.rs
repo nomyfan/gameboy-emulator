@@ -1,3 +1,14 @@
+use crate::alu::bit::alu_bit;
+use crate::alu::res::alu_res;
+use crate::alu::rla::alu_rla;
+use crate::alu::rlca::alu_rlca;
+use crate::alu::rra::alu_rra;
+use crate::alu::rrca::alu_rrca;
+use crate::alu::set::alu_set;
+use crate::alu::sla::alu_sla;
+use crate::alu::sra::alu_sra;
+use crate::alu::srl::alu_srl;
+use crate::alu::swap::alu_swap;
 use crate::cpu16::Cpu16;
 use crate::instruction::{get_cycles, AddressingMode, CbInstruction};
 
@@ -38,80 +49,66 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
 
     match decode_inst(cb_opcode) {
         CbInstruction::RLC => {
-            // 左移1位，MSB换到MLB。
-            let msb = (value >> 7) & 1;
-            let new_value = (value << 1) | msb;
+            let (new_value, c) = alu_rlca(value);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RRC => {
-            // 右移1位，MLB换到MSB。
-            let mlb = value & 1;
-            let new_value = (value >> 1) | (mlb << 7);
+            let (new_value, c) = alu_rrca(value);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RL => {
-            // 左移1位，Flag C作为MLB。
-            let msb = (value >> 7) & 1;
-            let mlb = if cpu.flags().3 { 1 } else { 0 };
-            let new_value = (value << 1) | mlb;
+            let (new_value, c) = alu_rla(value, cpu.flags().3);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RR => {
-            // 右移1位，Flag C作为MSB。
-            let mlb = value & 1;
-            let msb = if cpu.flags().3 { 1 } else { 0 };
-            let new_value = (value >> 1) | (msb << 7);
+            let (new_value, c) = alu_rra(value, cpu.flags().3);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SLA => {
-            let msb = (value >> 7) & 1;
-            let new_value = value << 1;
+            let (new_value, c) = alu_sla(value);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(msb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SRA => {
-            let mlb = value & 1;
-            let new_value = ((value as i8) >> 1) as u8;
+            let (new_value, c) = alu_sra(value);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SWAP => {
-            // 高低4位交换。
-            let new_value = ((value & 0xF0) >> 4) | ((value & 0x0F) << 4);
+            let new_value = alu_swap(value);
 
             cpu.write_data(&am, 0, new_value as u16);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(false));
         }
         CbInstruction::SRL => {
-            let mlb = value & 1;
-            let new_value = value >> 1;
+            let (new_value, c) = alu_srl(value);
 
             cpu.write_data(&am, 0, new_value as u16);
-            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(mlb == 1));
+            cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::BIT => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            cpu.set_flags(Some((value & (1 << bit)) == 0), Some(false), Some(true), None);
+            cpu.set_flags(Some(alu_bit(value, bit)), Some(false), Some(true), None);
         }
         CbInstruction::RES => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            let new_value = value & (!(1 << bit));
+            let new_value = alu_res(value, bit);
 
             cpu.write_data(&am, 0, new_value as u16);
         }
         CbInstruction::SET => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            let new_value = value | (1 << bit);
+            let new_value = alu_set(value, bit);
 
             cpu.write_data(&am, 0, new_value as u16);
         }
