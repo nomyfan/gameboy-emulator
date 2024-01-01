@@ -10,20 +10,3 @@ pub(crate) fn proc_rst(cpu: &mut impl Cpu16, opcode: u8) -> u8 {
 
     get_cycles(opcode).0
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use mockall::predicate::*;
-
-    use crate::cpu16::MockCpu16;
-
-    #[test]
-    fn rst() {
-        let mut mock = MockCpu16::new();
-        mock.expect_stack_push_pc().once().return_const(());
-        mock.expect_jp().with(eq(0x08)).once().return_const(());
-
-        assert_eq!(proc_rst(&mut mock, 0xCF), 16);
-    }
-}

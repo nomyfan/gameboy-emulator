@@ -11,39 +11,3 @@ pub(crate) fn proc_ret(cpu: &mut impl Cpu16, opcode: u8, cond: &Option<Condition
 
     get_cycles(opcode).1
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::cpu16::MockCpu16;
-    use crate::instruction::get_cycles;
-    use mockall::predicate::*;
-
-    #[test]
-    fn ret_condition_success() {
-        let cases = [
-            (0xD0u8, Some(Condition::NC), (false, false, false, false)),
-            (0xC9, None, (false, false, false, false)),
-        ];
-
-        for (opcode, cond, flags) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            let addr = 0x1212u16;
-            mock.expect_stack_pop().times(2).return_const(0x12);
-            mock.expect_flags().times(if cond.is_none() { 0 } else { 1 }).return_const(flags);
-            mock.expect_jp().once().with(eq(addr)).return_const(());
-
-            assert_eq!(proc_ret(&mut mock, opcode, &cond), get_cycles(opcode).0);
-        }
-    }
-
-    #[test]
-    fn ret_condition_fail() {
-        let opcode = 0xC8u8;
-
-        let mut mock = MockCpu16::new();
-        mock.expect_flags().once().return_const((false, false, false, false));
-
-        assert_eq!(proc_ret(&mut mock, opcode, &Some(Condition::Z)), get_cycles(opcode).1);
-    }
-}

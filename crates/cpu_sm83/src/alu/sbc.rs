@@ -7,3 +7,38 @@ pub(crate) fn alu_sbc(lhs: u8, rhs: u8, flag_c: bool) -> (u8, bool, bool, bool) 
 
     (ret, z, h, c)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sbc_carry() {
+        let cases =
+            [((2, 1, true), (0, true, false, false)), ((2, 1, false), (1, false, false, false))];
+
+        for ((a, v, cv), output) in cases.into_iter() {
+            let ret = alu_sbc(a, v, cv);
+
+            assert_eq!(ret, output);
+        }
+    }
+
+    #[test]
+    fn sbc_set_flags() {
+        let cases = [
+            // z
+            ((2, 2, false), (0, true, false, false)),
+            // h
+            ((0xFE, 0xEF, false), (0xF, false, true, false)),
+            // c
+            ((0xEF, 0xFF, false), (0xF0, false, false, true)),
+        ];
+
+        for ((a, v, cv), output) in cases.into_iter() {
+            let ret = alu_sbc(a, v, cv);
+
+            assert_eq!(ret, output);
+        }
+    }
+}

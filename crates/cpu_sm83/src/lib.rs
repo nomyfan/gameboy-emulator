@@ -8,7 +8,6 @@ use cpu16::Cpu16;
 use gb_shared::{is_bit_set, set_bits, unset_bits};
 use instruction::{get_instruction, AddressingMode, Instruction};
 use interrupt::INTERRUPTS;
-use log::debug;
 
 impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
     fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
@@ -352,7 +351,7 @@ where
     pub fn step(&mut self) -> u8 {
         let opcode = self.read_pc();
         let inst = get_instruction(opcode);
-        debug!("{:?}", inst);
+        log::debug!("{:?}", inst);
 
         4 + match inst {
             Instruction::NONE => {
