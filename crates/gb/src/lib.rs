@@ -13,6 +13,7 @@ use anyhow::Ok;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_ppu::PPU;
+use gb_shared::Memory;
 use log::debug;
 use timer::Timer;
 
@@ -52,8 +53,6 @@ impl GameBoy {
         let mut gb = self;
         // TODO: loop and accept signals to stop
         loop {
-            debug!("{:?}", &gb.cpu);
-
             if gb.cpu.stopped {
                 println!("Stopping...");
                 // TODO
@@ -61,11 +60,14 @@ impl GameBoy {
             }
 
             let cycles = if gb.cpu.halted {
-                // TODO
+                if gb.bus.read(0xFF0F) != 0 {
+                    gb.cpu.halted = false;
+                }
                 1
             } else {
                 gb.cpu.step()
             };
+            debug!("{:?}", &gb.cpu);
 
             for _ in 0..cycles {
                 for _ in 0..4 {
@@ -77,6 +79,11 @@ impl GameBoy {
 
             if gb.cpu.ime {
                 gb.cpu.handle_interrupts();
+                gb.cpu.enabling_ime = false;
+            }
+
+            if gb.cpu.enabling_ime {
+                gb.cpu.ime = true;
             }
         }
     }

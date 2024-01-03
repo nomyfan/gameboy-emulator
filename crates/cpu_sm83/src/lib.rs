@@ -6,7 +6,7 @@ mod proc;
 
 use cpu16::Cpu16;
 use gb_shared::{is_bit_set, set_bits, unset_bits};
-use instruction::{get_instruction, AddressingMode, Instruction};
+use instruction::{get_cycles, get_instruction, AddressingMode, Instruction};
 use interrupt::INTERRUPTS;
 
 impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
@@ -163,6 +163,7 @@ where
     /// Interrupt master enable.
     /// Set by instructions(EI, RETI, DI).
     pub ime: bool,
+    pub enabling_ime: bool,
     /// Set by instruction HALT
     ///
     /// HALT mode is exited when a flag in register IF is set and
@@ -231,6 +232,7 @@ where
             pc: 0x100,
 
             ime: false,
+            enabling_ime: false,
             halted: false,
             stopped: false,
             bus,
@@ -378,7 +380,10 @@ where
             Instruction::XOR(addr) => proc::proc_xor(self, opcode, addr),
             Instruction::STOP => proc::proc_stop(self, opcode),
             Instruction::DI => proc::proc_di(self, opcode),
-            Instruction::EI => proc::proc_ei(self, opcode),
+            Instruction::EI => {
+                self.enabling_ime = true;
+                get_cycles(opcode).0
+            }
             Instruction::HALT => proc::proc_halt(self, opcode),
             Instruction::RLA => proc::proc_rla(self, opcode),
             Instruction::RRA => proc::proc_rra(self, opcode),
