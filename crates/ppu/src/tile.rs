@@ -77,11 +77,7 @@ fn apply_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
         for value in data.iter_mut() {
             let mut new_value = 0;
             for offset in (0..16).step_by(2) {
-                let mut val = pick_bits!(*value, offset, offset + 1);
-                val >>= offset;
-                val <<= 14 - offset;
-
-                new_value |= val;
+                new_value |= (((*value) >> offset) & 0b11) << (14 - offset);
             }
             *value = new_value;
         }

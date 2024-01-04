@@ -129,29 +129,34 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
             }
+            return;
         }
+
+        #[cfg(debug_assertions)]
+        debug_window.request_redraw();
+        main_window.request_redraw();
 
         // Handle input events
-        if input.update(&event) {
-            // Close events
-            if input.key_pressed(KeyCode::Escape) || input.close_requested() {
-                // TODO: stop GameBoy instance
-                target.exit();
-                return;
-            }
+        // if input.update(&event) {
+        //     // Close events
+        //     if input.key_pressed(KeyCode::Escape) || input.close_requested() {
+        //         // TODO: stop GameBoy instance
+        //         target.exit();
+        //         return;
+        //     }
 
-            // Resize the window
-            if let Some(size) = input.window_resized() {
-                if let Err(_err) = pixels.resize_surface(size.width, size.height) {
-                    target.exit();
-                    return;
-                }
-            }
+        //     // Resize the window
+        //     if let Some(size) = input.window_resized() {
+        //         if let Err(_err) = pixels.resize_surface(size.width, size.height) {
+        //             target.exit();
+        //             return;
+        //         }
+        //     }
 
-            #[cfg(debug_assertions)]
-            debug_window.request_redraw();
-            main_window.request_redraw();
-        }
+        //     #[cfg(debug_assertions)]
+        //     debug_window.request_redraw();
+        //     main_window.request_redraw();
+        // }
     })?;
 
     let _ = gameboy_handle.join().unwrap();
