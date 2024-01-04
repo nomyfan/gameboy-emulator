@@ -1189,6 +1189,13 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
+    fn prepare_bus() -> MockBus {
+        let mut mock = MockBus::new();
+        mock.expect_step().withf(|cycles| cycles % 4 == 0).return_const(());
+
+        mock
+    }
+
     mod flags {
         use super::*;
 
@@ -1234,7 +1241,7 @@ mod tests {
         use super::*;
 
         fn setup_stack_bus() -> (MockBus, Rc<RefCell<Vec<(u16, u8)>>>) {
-            let mut mock = MockBus::new();
+            let mut mock = prepare_bus();
             let stack = Rc::new(RefCell::new(Vec::new()));
 
             let stack_writer = stack.clone();
@@ -1257,7 +1264,7 @@ mod tests {
             let sp = 0xFFFE;
             let data = 0x12;
 
-            let mut mock = MockBus::new();
+            let mut mock = prepare_bus();
             mock.expect_write().with(eq(sp - 1), eq(data)).once().return_const(());
 
             let mut cpu = Cpu::new(mock);
@@ -1272,7 +1279,7 @@ mod tests {
             let sp = 0xFFFE;
             let data = 0x12;
 
-            let mut mock = MockBus::new();
+            let mut mock = prepare_bus();
             mock.expect_read().with(eq(sp)).once().return_const(data);
 
             let mut cpu = Cpu::new(mock);
@@ -1375,7 +1382,7 @@ mod tests {
 
         #[test]
         fn read_pc() {
-            let mut mock = MockBus::new();
+            let mut mock = prepare_bus();
             mock.expect_read().with(eq(0x1234)).once().return_const(0x56);
 
             let mut cpu = Cpu::new(mock);
@@ -1390,7 +1397,7 @@ mod tests {
         fn read_pc2() {
             let pc = 0x1234;
 
-            let mut mock = MockBus::new();
+            let mut mock = prepare_bus();
             let mut count = 0;
             mock.expect_read().returning(move |addr| {
                 count += 1;
