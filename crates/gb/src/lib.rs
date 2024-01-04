@@ -14,6 +14,7 @@ use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_ppu::PPU;
 use gb_shared::event::EventSender;
+use gb_shared::Component;
 use gb_shared::Memory;
 use log::debug;
 use timer::Timer;
@@ -61,18 +62,15 @@ impl GameBoy {
                 break;
             }
 
-            // FIXME: sync cycles
-            let cycles = if self.cpu.halted {
+            if self.cpu.halted {
                 if self.bus.read(0xFF0F) != 0 {
                     self.cpu.halted = false;
                 }
-                4
+                self.bus.step(4);
             } else {
-                self.cpu.step()
+                self.cpu.step();
             };
             debug!("{:?}", &self.cpu);
-
-            self.bus.step(cycles);
 
             if self.cpu.ime {
                 self.cpu.handle_interrupts();

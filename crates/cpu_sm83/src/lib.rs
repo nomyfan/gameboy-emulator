@@ -1,70 +1,31 @@
 mod alu;
 mod cpu16;
-mod instruction;
 mod interrupt;
 mod proc;
 
-use cpu16::Cpu16;
+use cpu16::{Cpu16, Register16, Register8};
 use gb_shared::{is_bit_set, set_bits, unset_bits};
-use instruction::{get_cycles, get_instruction, AddressingMode, Instruction};
 use interrupt::INTERRUPTS;
 
-impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
-    fn fetch_data(&mut self, am: &AddressingMode) -> u16 {
-        match am {
-            AddressingMode::Direct_A => self.reg_a as u16,
-            AddressingMode::Direct_B => self.reg_b as u16,
-            AddressingMode::Direct_C => self.reg_c as u16,
-            AddressingMode::Direct_D => self.reg_d as u16,
-            AddressingMode::Direct_E => self.reg_e as u16,
-            AddressingMode::Direct_H => self.reg_h as u16,
-            AddressingMode::Direct_L => self.reg_l as u16,
-            AddressingMode::Direct_AF => self.af(),
-            AddressingMode::Direct_BC => self.bc(),
-            AddressingMode::Direct_DE => self.de(),
-            AddressingMode::Direct_HL => self.hl(),
-            AddressingMode::Direct_SP => self.sp,
-            AddressingMode::Indirect_BC => self.bus_read(self.bc()) as u16,
-            AddressingMode::Indirect_DE => self.bus_read(self.de()) as u16,
-            AddressingMode::Indirect_HL => self.bus_read(self.hl()) as u16,
-            AddressingMode::Eight => self.read_pc() as u16,
-            AddressingMode::Sixteen => self.read_pc2(),
-        }
+impl<BUS> Cpu16 for Cpu<BUS>
+where
+    BUS: gb_shared::Memory + gb_shared::Component,
+{
+    fn adv_cycles(&mut self, cycles: u8) {
+        self.bus.step(cycles);
     }
 
-    fn write_data(&mut self, am: &AddressingMode, address: u16, value: u16) {
-        match am {
-            AddressingMode::Direct_A => self.reg_a = value as u8,
-            AddressingMode::Direct_B => self.reg_b = value as u8,
-            AddressingMode::Direct_C => self.reg_c = value as u8,
-            AddressingMode::Direct_D => self.reg_d = value as u8,
-            AddressingMode::Direct_E => self.reg_e = value as u8,
-            AddressingMode::Direct_H => self.reg_h = value as u8,
-            AddressingMode::Direct_L => self.reg_l = value as u8,
-            AddressingMode::Direct_AF => self.set_af(value),
-            AddressingMode::Direct_BC => self.set_bc(value),
-            AddressingMode::Direct_DE => self.set_de(value),
-            AddressingMode::Direct_HL => self.set_hl(value),
-            AddressingMode::Direct_SP => self.sp = value,
-            AddressingMode::Indirect_BC => self.bus_write(self.bc(), value as u8),
-            AddressingMode::Indirect_DE => self.bus_write(self.de(), value as u8),
-            AddressingMode::Indirect_HL => self.bus_write(self.hl(), value as u8),
-            AddressingMode::Eight => {
-                self.bus_write(address, value as u8);
-            }
-            AddressingMode::Sixteen => {
-                self.bus_write(address, value as u8);
-                self.bus_write(address.wrapping_add(1), (value >> 8) as u8);
-            }
-        }
-    }
+    fn bus_read(&mut self, addr: u16) -> u8 {
+        let value = self.bus.read(addr);
+        self.adv_cycles(4);
 
-    fn bus_read(&self, addr: u16) -> u8 {
-        self.bus.read(addr)
+        value
     }
 
     fn bus_write(&mut self, addr: u16, value: u8) {
         self.bus.write(addr, value);
+
+        self.adv_cycles(4)
     }
 
     fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
@@ -100,8 +61,7 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
     }
 
     fn stack_push_pc(&mut self) {
-        let pc = self.pc;
-        self.stack_push2(pc);
+        self.stack_push2(self.pc);
     }
 
     fn jp(&mut self, addr: u16) {
@@ -110,14 +70,6 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
 
     fn jr(&mut self, r8: i8) {
         self.pc = self.pc.wrapping_add_signed(r8 as i16);
-    }
-
-    fn inc_dec_hl(&mut self, inc: bool) {
-        if inc {
-            self.set_hl(self.hl().wrapping_add(1));
-        } else {
-            self.set_hl(self.hl().wrapping_sub(1));
-        }
     }
 
     fn set_ime(&mut self, enabled: bool) {
@@ -131,11 +83,62 @@ impl<BUS: gb_shared::Memory> Cpu16 for Cpu<BUS> {
     fn stop(&mut self) {
         self.stopped = true;
     }
+
+    fn read_r8(&self, reg: Register8) -> u8 {
+        match reg {
+            Register8::A => self.reg_a,
+            Register8::B => self.reg_b,
+            Register8::C => self.reg_c,
+            Register8::D => self.reg_d,
+            Register8::E => self.reg_e,
+            Register8::H => self.reg_h,
+            Register8::L => self.reg_l,
+        }
+    }
+
+    fn write_r8(&mut self, reg: Register8, value: u8) {
+        match reg {
+            Register8::A => self.reg_a = value,
+            Register8::B => self.reg_b = value,
+            Register8::C => self.reg_c = value,
+            Register8::D => self.reg_d = value,
+            Register8::E => self.reg_e = value,
+            Register8::H => self.reg_h = value,
+            Register8::L => self.reg_l = value,
+        }
+    }
+
+    fn read_r16(&self, reg: Register16) -> u16 {
+        match reg {
+            Register16::AF => self.af(),
+            Register16::BC => self.bc(),
+            Register16::DE => self.de(),
+            Register16::HL => self.hl(),
+            Register16::SP => self.sp,
+        }
+    }
+
+    fn write_r16(&mut self, reg: Register16, value: u16) {
+        match reg {
+            Register16::AF => self.set_af(value),
+            Register16::BC => self.set_bc(value),
+            Register16::DE => self.set_de(value),
+            Register16::HL => self.set_hl(value),
+            Register16::SP => self.sp = value,
+        }
+    }
+
+    fn read_pc(&mut self) -> u8 {
+        let value = self.bus_read(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+
+        value
+    }
 }
 
 pub struct Cpu<BUS>
 where
-    BUS: gb_shared::Memory,
+    BUS: gb_shared::Memory + gb_shared::Component,
 {
     /// Accumulator register
     pub reg_a: u8,
@@ -183,7 +186,7 @@ where
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
 where
-    BUS: gb_shared::Memory,
+    BUS: gb_shared::Memory + gb_shared::Component,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Cpu")
@@ -215,7 +218,7 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
 
 impl<BUS> Cpu<BUS>
 where
-    BUS: gb_shared::Memory,
+    BUS: gb_shared::Memory + gb_shared::Component,
 {
     pub fn new(bus: BUS) -> Self {
         // TODO init
@@ -308,19 +311,6 @@ where
         is_bit_set!(self.reg_f, 4)
     }
 
-    fn inc_pc(&mut self) -> u16 {
-        let pc = self.pc;
-        self.pc = self.pc.wrapping_add(1);
-
-        pc
-    }
-
-    #[inline]
-    fn read_pc(&mut self) -> u8 {
-        let addr = self.inc_pc();
-        self.bus_read(addr)
-    }
-
     #[inline]
     fn read_pc2(&mut self) -> u16 {
         let lo = self.read_pc();
@@ -331,11 +321,11 @@ where
 
     #[inline]
     fn bus_write_16(&mut self, addr: u16, value: u16) {
-        self.bus.write(addr, value as u8);
-        self.bus.write(addr.wrapping_add(1), (value >> 8) as u8);
+        self.bus_write(addr, value as u8);
+        self.bus_write(addr.wrapping_add(1), (value >> 8) as u8);
     }
 
-    fn read_reg(&self, loc: u8) -> u8 {
+    fn read_reg(&mut self, loc: u8) -> u8 {
         match loc {
             0 => self.reg_b,
             1 => self.reg_c,
@@ -343,10 +333,21 @@ where
             3 => self.reg_e,
             4 => self.reg_h,
             5 => self.reg_l,
+            // (HL)
             6 => self.bus_read(self.hl()),
             7 => self.reg_a,
             _ => unreachable!(),
         }
+    }
+
+    #[inline]
+    fn inc_hl(&mut self) {
+        self.set_hl(self.hl().wrapping_add(1));
+    }
+
+    #[inline]
+    fn dec_hl(&mut self) {
+        self.set_hl(self.hl().wrapping_sub(1));
     }
 
     /// Push current PC to stack, and jump to corresponding
@@ -369,11 +370,8 @@ where
         }
     }
 
-    pub fn step(&mut self) -> u8 {
+    pub fn step(&mut self) {
         let opcode = self.read_pc();
-
-        let mut condition_met = false;
-        let mut cb_cycles = 0;
 
         match opcode {
             0x00 => {
@@ -391,6 +389,8 @@ where
             0x03 => {
                 // INC BC
                 self.set_bc(alu::inc::alu_inc_16(self.bc()));
+
+                self.adv_cycles(4);
             }
             0x04 => {
                 // INC B
@@ -424,6 +424,8 @@ where
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.bc());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
+
+                self.adv_cycles(4);
             }
             0x0A => {
                 // LD A,(BC)
@@ -432,6 +434,8 @@ where
             0x0B => {
                 // DEC BC
                 self.set_bc(alu::dec::alu_dec_16(self.bc()));
+
+                self.adv_cycles(4);
             }
             0x0C => {
                 // INC C
@@ -471,6 +475,7 @@ where
             0x13 => {
                 // INC DE
                 self.set_de(alu::inc::alu_inc_16(self.de()));
+                self.adv_cycles(4);
             }
             0x14 => {
                 // INC D
@@ -498,12 +503,14 @@ where
                 // JR r8
                 let r8 = self.read_pc() as i8;
                 self.jr(r8);
+                self.adv_cycles(4);
             }
             0x19 => {
                 // ADD HL,DE
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.de());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
+                self.adv_cycles(4);
             }
             0x1A => {
                 // LD A,(DE)
@@ -512,6 +519,7 @@ where
             0x1B => {
                 // DEC DE
                 self.set_de(alu::dec::alu_dec_16(self.de()));
+                self.adv_cycles(4);
             }
             0x1C => {
                 // INC E
@@ -540,8 +548,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if !self.flag_z() {
                     self.jr(r8);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0x21 => {
@@ -552,11 +559,12 @@ where
             0x22 => {
                 // LD (HL+),A
                 self.bus_write(self.hl(), self.reg_a);
-                self.inc_dec_hl(true);
+                self.inc_hl();
             }
             0x23 => {
                 // INC HL
                 self.set_hl(alu::inc::alu_inc_16(self.hl()));
+                self.adv_cycles(4);
             }
             0x24 => {
                 // INC H
@@ -586,8 +594,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if self.flag_z() {
                     self.jr(r8);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0x29 => {
@@ -595,15 +602,17 @@ where
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.hl());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
+                self.adv_cycles(4);
             }
             0x2A => {
                 // LD A,(HL+)
                 self.reg_a = self.bus_read(self.hl());
-                self.inc_dec_hl(true);
+                self.inc_hl();
             }
             0x2B => {
                 // DEC HL
                 self.set_hl(alu::dec::alu_dec_16(self.hl()));
+                self.adv_cycles(4);
             }
             0x2C => {
                 // INC L
@@ -631,8 +640,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if !self.flag_c() {
                     self.jr(r8);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0x31 => {
@@ -642,11 +650,12 @@ where
             0x32 => {
                 // LD (HL-),A
                 self.bus_write(self.hl(), self.reg_a);
-                self.inc_dec_hl(false);
+                self.dec_hl();
             }
             0x33 => {
                 // INC SP
                 self.sp = alu::inc::alu_inc_16(self.sp);
+                self.adv_cycles(4);
             }
             0x34 => {
                 // INC (HL)
@@ -674,8 +683,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if self.flag_c() {
                     self.jr(r8);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0x39 => {
@@ -683,15 +691,17 @@ where
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.sp);
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
+                self.adv_cycles(4);
             }
             0x3A => {
                 // LD A,(HL-)
                 self.reg_a = self.bus_read(self.hl());
-                self.inc_dec_hl(false);
+                self.dec_hl();
             }
             0x3B => {
                 // DEC SP
                 self.sp = alu::dec::alu_dec_16(self.sp);
+                self.adv_cycles(4);
             }
             0x3C => {
                 // INC A
@@ -743,7 +753,8 @@ where
             }
             0x70..=0x77 => {
                 // LD (HL),B..LD (HL),A
-                self.bus_write(self.hl(), self.read_reg(opcode & 0x07));
+                let value = self.read_reg(opcode & 0x07);
+                self.bus_write(self.hl(), value);
             }
             0x78..=0x7F => {
                 // LD A,B..LD A,A
@@ -801,10 +812,10 @@ where
             }
             0xC0 => {
                 // RET NZ
+                self.adv_cycles(4);
                 if !self.flag_z() {
                     self.pc = self.stack_pop2();
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xC1 => {
@@ -817,14 +828,14 @@ where
                 let addr = self.read_pc2();
                 if !self.flag_z() {
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xC3 => {
                 // JP a16
                 let addr = self.read_pc2();
                 self.jp(addr);
+                self.adv_cycles(4);
             }
             0xC4 => {
                 // CALL NZ,a16
@@ -832,13 +843,13 @@ where
                 if !self.flag_z() {
                     self.stack_push_pc();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xC5 => {
                 // PUSH BC
                 self.stack_push2(self.bc());
+                self.adv_cycles(4);
             }
             0xC6 => {
                 // ADD A,d8
@@ -850,33 +861,34 @@ where
                 // RST 00H
                 self.stack_push_pc();
                 self.jp(0x00);
+                self.adv_cycles(4);
             }
             0xC8 => {
                 // RET Z
+                self.adv_cycles(4);
                 if self.flag_z() {
                     let addr = self.stack_pop2();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xC9 => {
                 // RET
                 let addr = self.stack_pop2();
                 self.jp(addr);
+                self.adv_cycles(4);
             }
             0xCA => {
                 // JP Z,a16
                 let addr = self.read_pc2();
                 if self.flag_z() {
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xCB => {
                 // CB
-                cb_cycles = proc::proc_cb(self);
+                proc::proc_cb(self);
             }
             0xCC => {
                 // CALL Z,a16
@@ -884,8 +896,7 @@ where
                 if self.flag_z() {
                     self.stack_push_pc();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xCD => {
@@ -893,6 +904,7 @@ where
                 let addr = self.read_pc2();
                 self.stack_push_pc();
                 self.jp(addr);
+                self.adv_cycles(4);
             }
             0xCE => {
                 // ADC A,d8
@@ -904,14 +916,15 @@ where
                 // RST 08H
                 self.stack_push_pc();
                 self.jp(0x08);
+                self.adv_cycles(4);
             }
             0xD0 => {
                 // RET NC
+                self.adv_cycles(4);
                 if !self.flag_c() {
                     let addr = self.stack_pop2();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xD1 => {
@@ -924,8 +937,7 @@ where
                 let addr = self.read_pc2();
                 if !self.flag_c() {
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xD4 => {
@@ -934,13 +946,13 @@ where
                 if !self.flag_c() {
                     self.stack_push_pc();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xD5 => {
                 // PUSH DE
                 self.stack_push2(self.de());
+                self.adv_cycles(4);
             }
             0xD6 => {
                 // SUB A,d8
@@ -952,14 +964,15 @@ where
                 // RST 10H
                 self.stack_push_pc();
                 self.jp(0x10);
+                self.adv_cycles(4);
             }
             0xD8 => {
                 // RET C
+                self.adv_cycles(4);
                 if self.flag_c() {
                     let addr = self.stack_pop2();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xD9 => {
@@ -967,14 +980,14 @@ where
                 self.set_ime(true);
                 let addr = self.stack_pop2();
                 self.jp(addr);
+                self.adv_cycles(4);
             }
             0xDA => {
                 // JP C,a16
                 let addr = self.read_pc2();
                 if self.flag_c() {
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xDC => {
@@ -983,8 +996,7 @@ where
                 if self.flag_c() {
                     self.stack_push_pc();
                     self.jp(addr);
-
-                    condition_met = true;
+                    self.adv_cycles(4);
                 }
             }
             0xDE => {
@@ -997,6 +1009,7 @@ where
                 // RST 18H
                 self.stack_push_pc();
                 self.jp(0x18);
+                self.adv_cycles(4);
             }
             0xE0 => {
                 // LDH (a8),A
@@ -1015,6 +1028,7 @@ where
             0xE5 => {
                 // PUSH HL
                 self.stack_push2(self.hl());
+                self.adv_cycles(4);
             }
             0xE6 => {
                 // AND A,d8
@@ -1026,12 +1040,14 @@ where
                 // RST 20H
                 self.stack_push_pc();
                 self.jp(0x20);
+                self.adv_cycles(4);
             }
             0xE8 => {
                 // ADD SP,r8
                 let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
                 self.sp = value;
                 self.set_flags(Some(false), Some(false), Some(h), Some(c));
+                self.adv_cycles(8);
             }
             0xE9 => {
                 // JP (HL)
@@ -1052,6 +1068,7 @@ where
                 // RST 28H
                 self.stack_push_pc();
                 self.jp(0x28);
+                self.adv_cycles(4);
             }
             0xF0 => {
                 // LDH A,(a8)
@@ -1074,6 +1091,7 @@ where
             0xF5 => {
                 // PUSH AF
                 self.stack_push2(self.af());
+                self.adv_cycles(4);
             }
             0xF6 => {
                 // OR A,d8
@@ -1085,16 +1103,19 @@ where
                 // RST 30H
                 self.stack_push_pc();
                 self.jp(0x30);
+                self.adv_cycles(4);
             }
             0xF8 => {
                 // LD HL,SP+r8
                 let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
                 self.set_hl(value);
                 self.set_flags(Some(false), Some(false), Some(h), Some(c));
+                self.adv_cycles(4);
             }
             0xF9 => {
                 // LD SP,HL
                 self.sp = self.hl();
+                self.adv_cycles(4);
             }
             0xFA => {
                 // LD A,(a16)
@@ -1114,13 +1135,12 @@ where
                 // RST 38H
                 self.stack_push_pc();
                 self.jp(0x38);
+                self.adv_cycles(4);
             }
             _ => {
                 panic!("No such instruction, opcode:{:#02X}", opcode);
             }
         }
-
-        4 + if condition_met { get_cycles(opcode).0 } else { get_cycles(opcode).1 } + cb_cycles
     }
 }
 
@@ -1139,6 +1159,12 @@ mock! {
         }
         fn read(&self, addr: u16) -> u8 {
             0
+        }
+    }
+
+    impl gb_shared::Component for Bus {
+        fn step(&mut self, cycles: u8) {
+            // Noop
         }
     }
 }
@@ -1323,10 +1349,10 @@ mod tests {
             let mut cpu = Cpu::new(MockBus::new());
             cpu.set_hl(0x1234);
 
-            cpu.inc_dec_hl(true);
+            cpu.inc_hl();
             assert_eq!(cpu.hl(), 0x1235);
 
-            cpu.inc_dec_hl(false);
+            cpu.dec_hl();
             assert_eq!(cpu.hl(), 0x1234);
         }
     }
@@ -1394,152 +1420,6 @@ mod tests {
 
             cpu.jr(2);
             assert_eq!(cpu.pc, 0x1235);
-        }
-    }
-
-    mod memory {
-        use super::*;
-        use crate::instruction::AddressingMode;
-        type Am = AddressingMode;
-
-        #[test]
-        fn fetch_data() {
-            let mut mock_bus = MockBus::new();
-            mock_bus.expect_read().returning(|addr| {
-                if addr == 0x5678 {
-                    // BC
-                    0x87
-                } else if addr == 0x9ABC {
-                    // DE
-                    0xCB
-                } else if addr == 0xDEF0 {
-                    // HL
-                    0x0F
-                } else if addr == 0x4321 {
-                    0x55
-                } else if addr == 0x4322 {
-                    0x66
-                } else if addr == 0x4323 {
-                    0x77
-                } else {
-                    unreachable!()
-                }
-            });
-            let mut cpu = Cpu::new(mock_bus);
-            cpu.reg_a = 0x12;
-            cpu.reg_f = 0x34;
-            cpu.reg_b = 0x56;
-            cpu.reg_c = 0x78;
-            cpu.reg_d = 0x9A;
-            cpu.reg_e = 0xBC;
-            cpu.reg_h = 0xDE;
-            cpu.reg_l = 0xF0;
-            cpu.sp = 0x1122;
-            cpu.pc = 0x4321;
-
-            assert_eq!(cpu.fetch_data(&Am::Direct_A), 0x12);
-            assert_eq!(cpu.fetch_data(&Am::Direct_B), 0x56);
-            assert_eq!(cpu.fetch_data(&Am::Direct_C), 0x78);
-            assert_eq!(cpu.fetch_data(&Am::Direct_D), 0x9A);
-            assert_eq!(cpu.fetch_data(&Am::Direct_E), 0xBC);
-            assert_eq!(cpu.fetch_data(&Am::Direct_H), 0xDE);
-            assert_eq!(cpu.fetch_data(&Am::Direct_L), 0xF0);
-            assert_eq!(cpu.fetch_data(&Am::Direct_AF), 0x1234);
-            assert_eq!(cpu.fetch_data(&Am::Direct_BC), 0x5678);
-            assert_eq!(cpu.fetch_data(&Am::Direct_DE), 0x9ABC);
-            assert_eq!(cpu.fetch_data(&Am::Direct_HL), 0xDEF0);
-            assert_eq!(cpu.fetch_data(&Am::Direct_SP), 0x1122);
-            assert_eq!(cpu.fetch_data(&Am::Indirect_BC), 0x87);
-            assert_eq!(cpu.fetch_data(&Am::Indirect_DE), 0xCB);
-            assert_eq!(cpu.fetch_data(&Am::Indirect_HL), 0x0F);
-            assert_eq!(cpu.fetch_data(&Am::Eight), 0x55);
-            assert_eq!(cpu.pc, 0x4322);
-            assert_eq!(cpu.fetch_data(&Am::Sixteen), 0x7766);
-            assert_eq!(cpu.pc, 0x4324);
-        }
-
-        #[test]
-        fn write_data() {
-            let mut mock_bus = MockBus::new();
-            mock_bus.expect_write().returning(|addr, value| {
-                match addr {
-                    0x5678 => {
-                        // BC
-                        assert_eq!(value, 0x87);
-                    }
-                    0x9ABC => {
-                        // DE
-                        assert_eq!(value, 0xCB);
-                    }
-                    0xDEF0 => {
-                        // HL
-                        assert_eq!(value, 0x0F);
-                    }
-                    0x1111 => {
-                        assert_eq!(value, 0x55);
-                    }
-                    0x1112 => {
-                        assert_eq!(value, 0x66);
-                    }
-                    0x1113 => {
-                        assert_eq!(value, 0x77);
-                    }
-                    _ => unreachable!(),
-                }
-            });
-            let mut cpu = Cpu::new(mock_bus);
-            cpu.reg_a = 0x12;
-            cpu.reg_f = 0x34;
-            cpu.reg_b = 0x56;
-            cpu.reg_c = 0x78;
-            cpu.reg_d = 0x9A;
-            cpu.reg_e = 0xBC;
-            cpu.reg_h = 0xDE;
-            cpu.reg_l = 0xF0;
-            cpu.sp = 0x1122;
-            cpu.pc = 0x4321;
-
-            cpu.write_data(&Am::Direct_A, 0, 0x21);
-            assert_eq!(cpu.reg_a, 0x21);
-            cpu.write_data(&Am::Direct_B, 0, 0x65);
-            assert_eq!(cpu.reg_b, 0x65);
-            cpu.write_data(&Am::Direct_C, 0, 0x87);
-            assert_eq!(cpu.reg_c, 0x87);
-            cpu.write_data(&Am::Direct_D, 0, 0xA9);
-            assert_eq!(cpu.reg_d, 0xA9);
-            cpu.write_data(&Am::Direct_E, 0, 0xCB);
-            assert_eq!(cpu.reg_e, 0xCB);
-            cpu.write_data(&Am::Direct_H, 0, 0xED);
-            assert_eq!(cpu.reg_h, 0xED);
-            cpu.write_data(&Am::Direct_L, 0, 0x0F);
-            assert_eq!(cpu.reg_l, 0x0F);
-
-            cpu.write_data(&Am::Direct_AF, 0, 0x4321);
-            assert_eq!(cpu.af(), 0x4320);
-            cpu.write_data(&Am::Direct_BC, 0, 0x8765);
-            assert_eq!(cpu.bc(), 0x8765);
-            cpu.write_data(&Am::Direct_DE, 0, 0xCBA9);
-            assert_eq!(cpu.de(), 0xCBA9);
-            cpu.write_data(&Am::Direct_HL, 0, 0x0FED);
-            assert_eq!(cpu.hl(), 0x0FED);
-            cpu.write_data(&Am::Direct_SP, 0, 0x1122);
-            assert_eq!(cpu.sp, 0x1122);
-
-            // Reset rr
-            cpu.reg_a = 0x12;
-            cpu.reg_f = 0x34;
-            cpu.reg_b = 0x56;
-            cpu.reg_c = 0x78;
-            cpu.reg_d = 0x9A;
-            cpu.reg_e = 0xBC;
-            cpu.reg_h = 0xDE;
-            cpu.reg_l = 0xF0;
-            cpu.write_data(&Am::Indirect_BC, 0, 0x87);
-            cpu.write_data(&Am::Indirect_DE, 0, 0xCB);
-            cpu.write_data(&Am::Indirect_HL, 0, 0x0F);
-
-            cpu.write_data(&Am::Eight, 0x1111, 0x55);
-            cpu.write_data(&Am::Sixteen, 0x1112, 0x7766);
         }
     }
 }

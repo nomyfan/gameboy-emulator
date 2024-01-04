@@ -250,8 +250,10 @@ impl Bus {
     pub(crate) fn step_timer(&mut self) {
         self.inner_mut().timer_mut().step();
     }
+}
 
-    pub(crate) fn step(&mut self, cycles: u8) {
+impl gb_shared::Component for Bus {
+    fn step(&mut self, cycles: u8) {
         let cycles = cycles / 4;
         debug_assert!(cycles > 0);
 

@@ -9,21 +9,49 @@ use crate::alu::sla::alu_sla;
 use crate::alu::sra::alu_sra;
 use crate::alu::srl::alu_srl;
 use crate::alu::swap::alu_swap;
-use crate::cpu16::Cpu16;
-use crate::instruction::{AddressingMode, CbInstruction};
+use crate::cpu16::{Cpu16, Register, Register16, Register8};
 
-pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
-    fn decode_addressing_mode(opcode: u8) -> AddressingMode {
+type R8 = Register8;
+type R16 = Register16;
+
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug)]
+pub(crate) enum CbInstruction {
+    /// Rotate Left Circular
+    RLC,
+    /// Rotate Right Circular
+    RRC,
+    /// Rotate Left
+    RL,
+    /// Rotate Right
+    RR,
+    /// Shift Left Arithmetic
+    SLA,
+    /// Shift Right Arithmetic
+    SRA,
+    SWAP,
+    /// Shift Right Logical
+    SRL,
+    /// Test whether nth is 0.
+    BIT,
+    /// Reset nth bit to 0
+    RES,
+    /// Set nth bit to 1
+    SET,
+}
+
+pub(crate) fn proc_cb(cpu: &mut impl Cpu16) {
+    fn decode_register(opcode: u8) -> Register {
         match opcode {
-            0 => AddressingMode::Direct_B,
-            1 => AddressingMode::Direct_C,
-            2 => AddressingMode::Direct_D,
-            3 => AddressingMode::Direct_E,
-            4 => AddressingMode::Direct_H,
-            5 => AddressingMode::Direct_L,
-            6 => AddressingMode::Indirect_HL,
-            7 => AddressingMode::Direct_A,
-            _ => unreachable!("Only B,C,D,E,H,L,HL,A are valid for CB instruction."),
+            0 => Register::R8(R8::B),
+            1 => Register::R8(R8::C),
+            2 => Register::R8(R8::D),
+            3 => Register::R8(R8::E),
+            4 => Register::R8(R8::H),
+            5 => Register::R8(R8::L),
+            6 => Register::R16(R16::HL),
+            7 => Register::R8(R8::A),
+            _ => unreachable!(),
         }
     }
 
@@ -43,57 +71,69 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
         }
     }
 
-    let cb_opcode = cpu.fetch_data(&AddressingMode::Eight) as u8;
-    let am = decode_addressing_mode(cb_opcode & 0b111);
-    let value = cpu.fetch_data(&am) as u8;
+    let cb_opcode = cpu.read_pc();
+    let reg = decode_register(cb_opcode & 0b111);
+    let value = match reg {
+        Register::R8(reg) => cpu.read_r8(reg),
+        // (HL) only
+        Register::R16(reg) => cpu.bus_read(cpu.read_r16(reg)),
+    };
+
+    fn write_data(cpu: &mut impl Cpu16, reg: Register, value: u8) {
+        match reg {
+            Register::R8(reg) => cpu.write_r8(reg, value),
+            // (HL) only
+            Register::R16(reg) => cpu.bus_write(cpu.read_r16(reg), value),
+        }
+    }
 
     match decode_inst(cb_opcode) {
         CbInstruction::RLC => {
             let (new_value, c) = alu_rlca(value);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RRC => {
             let (new_value, c) = alu_rrca(value);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RL => {
             let (new_value, c) = alu_rla(value, cpu.flags().3);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RR => {
             let (new_value, c) = alu_rra(value, cpu.flags().3);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SLA => {
             let (new_value, c) = alu_sla(value);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SRA => {
             let (new_value, c) = alu_sra(value);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SWAP => {
             let new_value = alu_swap(value);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(false));
         }
         CbInstruction::SRL => {
             let (new_value, c) = alu_srl(value);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::BIT => {
@@ -104,356 +144,13 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
             let bit = (cb_opcode & 0b111000) >> 3;
             let new_value = alu_res(value, bit);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
         }
         CbInstruction::SET => {
             let bit = (cb_opcode & 0b111000) >> 3;
             let new_value = alu_set(value, bit);
 
-            cpu.write_data(&am, 0, new_value as u16);
+            write_data(cpu, reg, new_value);
         }
-    }
-
-    if let AddressingMode::Indirect_HL = am {
-        16
-    } else {
-        8
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::cpu16::MockCpu16;
-    use crate::instruction::AddressingMode as Am;
-    use mockall::predicate::*;
-
-    const AM_8: Am = Am::Eight;
-    const AM_HL: Am = Am::Indirect_HL;
-
-    #[test]
-    fn rlc_set_flag_c() {
-        let cases = [
-            //
-            ((0b1010_1000u16), (0b0101_0001u16, true)),
-            ((0b0100_1000), (0b1001_0000, false)),
-        ];
-
-        for (in_v, (out_v, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x06u16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn rlc_set_flag_z() {
-        let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x06u16);
-        mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
-        mock.expect_write_data().with(eq(AM_HL), always(), eq(0u16)).return_const(());
-        mock.expect_set_flags()
-            .with(eq(Some(true)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
-            .once()
-            .return_const(());
-
-        proc_cb(&mut mock);
-    }
-
-    #[test]
-    fn rrc_set_flag_c() {
-        let cases = [
-            //
-            ((0b0010_1001u16), (0b1001_0100u16, true)),
-            ((0b0100_1000), (0b0010_0100, false)),
-        ];
-
-        for (in_v, (out_v, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x0Eu16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn rrc_set_flag_z() {
-        let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x0Eu16);
-        mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
-        mock.expect_write_data().with(eq(AM_HL), always(), eq(0u16)).return_const(());
-        mock.expect_set_flags()
-            .with(eq(Some(true)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
-            .once()
-            .return_const(());
-
-        proc_cb(&mut mock);
-    }
-
-    #[test]
-    fn rl_set_flag_c() {
-        let cases = [
-            //
-            ((0b1000_1000u16, true), (0b0001_0001u16, true)),
-            ((0b1000_1000u16, false), (0b0001_0000, true)),
-            ((0b0100_1000, true), (0b1001_0001, false)),
-            ((0b0100_1000, false), (0b1001_0000, false)),
-        ];
-
-        for ((in_v, in_c), (out_v, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x16u16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_flags().once().return_const([false, false, false, in_c]);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn rl_set_flag_z() {
-        let cases = [
-            //
-            ((0u16, false), (false)),
-            ((0b1000_0000u16, false), (true)),
-        ];
-
-        for ((in_v, in_c), out_c) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x16u16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_flags().once().return_const([false, false, false, in_c]);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(0)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(true)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn rr_set_flag_c() {
-        let cases = [
-            //
-            ((0b1000_1001u16, true), (0b1100_0100u16, true)),
-            ((0b1000_1001, false), (0b0100_0100, true)),
-            ((0b0100_1000, true), (0b1010_0100, false)),
-            ((0b0100_1000, false), (0b0010_0100, false)),
-        ];
-
-        for ((in_v, in_c), (out_v, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x1Eu16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_flags().once().return_const([false, false, false, in_c]);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn rr_set_flag_z() {
-        let cases = [
-            //
-            ((0u16, false), (false)),
-            ((0b0000_0001u16, false), (true)),
-        ];
-
-        for ((in_v, in_c), out_c) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x1Eu16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_flags().once().return_const([false, false, false, in_c]);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(0)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(true)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn sla() {
-        let cases = [
-            //
-            ((0b1001_0000u16), (0b0010_0000u16, false, true)),
-            ((0b0100_0000), (0b1000_0000, false, false)),
-            ((0u16), (0, true, false)),
-        ];
-
-        for (in_v, (out_v, out_z, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x26u16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(out_z)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn sra_set_flag_z() {
-        let cases = [
-            //
-            ((0b0001_0001u16), (0b0000_1000u16, false, true)),
-            ((0b1000_0000), (0b1100_0000, false, false)),
-            ((0), (0, true, false)),
-        ];
-
-        for (in_v, (out_v, out_z, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x2Eu16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(out_z)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn swap_set_flag_z() {
-        let cases = [
-            //
-            ((0b1010_0101u16), (0b0101_1010u16, false)),
-            ((0), (0, true)),
-        ];
-
-        for (in_v, (out_v, out_z)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x36u16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(out_z)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn srl_set_flag_c() {
-        let cases =
-            [((0b0001_0001u16), (0b0000_1000u16, true)), ((0b1000_0000), (0b0100_0000, false))];
-
-        for (in_v, (out_v, out_c)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x3Eu16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(false)), eq(Some(false)), eq(Some(false)), eq(Some(out_c)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn srl_set_flag_z() {
-        let cases = [
-            //
-            ((0b1000_0000u16), (0b0100_0000, false)),
-            ((0), (0, true)),
-        ];
-
-        for (in_v, (out_v, out_z)) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x3Eu16);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-
-            mock.expect_write_data().with(eq(AM_HL), always(), eq(out_v)).return_const(());
-            mock.expect_set_flags()
-                .with(eq(Some(out_z)), eq(Some(false)), eq(Some(false)), eq(Some(false)))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn bit_set_flag_z() {
-        let cases = [
-            //
-            ((0x46u16, 1u16), (false)),
-            ((0x46u16, 0b0100_0000), (true)),
-        ];
-        for ((in_cb_opcode, in_v), out_z) in cases.into_iter() {
-            let mut mock = MockCpu16::new();
-            mock.expect_fetch_data().with(eq(AM_8)).once().return_const(in_cb_opcode);
-            mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(in_v);
-            mock.expect_set_flags()
-                .with(eq(Some(out_z)), eq(Some(false)), eq(Some(true)), eq(None))
-                .once()
-                .return_const(());
-
-            proc_cb(&mut mock);
-        }
-    }
-
-    #[test]
-    fn res() {
-        let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0x96u16);
-        mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0xFFu16);
-        mock.expect_write_data().with(eq(AM_HL), always(), eq(0b1111_1011)).once().return_const(());
-
-        proc_cb(&mut mock);
-    }
-
-    #[test]
-    fn set() {
-        let mut mock = MockCpu16::new();
-        mock.expect_fetch_data().with(eq(AM_8)).once().return_const(0xE6u16);
-        mock.expect_fetch_data().with(eq(AM_HL)).once().return_const(0u16);
-        mock.expect_write_data().with(eq(AM_HL), always(), eq(0b0001_0000)).once().return_const(());
-
-        proc_cb(&mut mock);
     }
 }
