@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 gb_shared = { workspace = true }
 log = { workspace = true }
+mockall = { workspace = true }

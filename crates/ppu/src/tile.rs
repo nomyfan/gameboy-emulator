@@ -39,7 +39,7 @@ impl BackgroundTileDataBuilder {
     }
 }
 
-fn mix_colors(low: [u8; 8], high: [u8; 8]) -> [u16; 8] {
+pub(crate) fn mix_colors(low: [u8; 8], high: [u8; 8]) -> [u16; 8] {
     let mut colors: [u16; 8] = Default::default();
 
     let mut mix = |data: [u8; 8], offset: usize| {

@@ -10,7 +10,7 @@ use crate::alu::sra::alu_sra;
 use crate::alu::srl::alu_srl;
 use crate::alu::swap::alu_swap;
 use crate::cpu16::Cpu16;
-use crate::instruction::{get_cycles, AddressingMode, CbInstruction};
+use crate::instruction::{AddressingMode, CbInstruction};
 
 pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
     fn decode_addressing_mode(opcode: u8) -> AddressingMode {
@@ -114,7 +114,11 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) -> u8 {
         }
     }
 
-    get_cycles(0xCB).0 + if let AddressingMode::Indirect_HL = am { 16 } else { 8 }
+    if let AddressingMode::Indirect_HL = am {
+        16
+    } else {
+        8
+    }
 }
 
 #[cfg(test)]

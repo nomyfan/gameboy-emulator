@@ -20,12 +20,11 @@ impl From<u8> for CounterIncCycles {
 }
 
 pub(crate) struct Timer<INT: InterruptRequest> {
-    cycles_so_far: u16,
     /// Divider
     /// It's increased at a rate of 16384 Hz.
     /// While CPU is working on a frequency of 4194304 Hz(256 times of 16384).
     /// Which means it's increased by 1 every 256 cycles.
-    div: u8,
+    div: u16,
     /// Timer counter
     tima: u8,
     /// Timer modulo
@@ -59,7 +58,7 @@ impl<INT: InterruptRequest> Memory for Timer<INT> {
 
     fn read(&self, addr: u16) -> u8 {
         if addr == 0xFF04 {
-            self.div
+            (self.div >> 8) as u8
         } else if addr == 0xFF05 {
             self.tima
         } else if addr == 0xFF06 {
@@ -74,22 +73,18 @@ impl<INT: InterruptRequest> Memory for Timer<INT> {
 
 impl<INT: InterruptRequest> Timer<INT> {
     pub fn new(interrupt_request: INT) -> Self {
-        Self { div: 0, tima: 0, tma: 0, tac: 0, cycles_so_far: 0, interrupt_request }
+        Self { div: 0, tima: 0, tma: 0, tac: 0, interrupt_request }
     }
 
     pub fn step(&mut self) {
-        let old_cycles_so_far = self.cycles_so_far;
-        self.cycles_so_far = self.cycles_so_far.wrapping_add(1);
-
-        if self.cycles_so_far / 256 != old_cycles_so_far / 256 {
-            self.div = self.div.wrapping_add(1);
-        }
+        let old_div = self.div;
+        self.div = self.div.wrapping_add(1);
 
         let inc_tima = match CounterIncCycles::from(self.tac) {
-            CounterIncCycles::Cycles1024 => self.cycles_so_far / 1024 != old_cycles_so_far / 1024,
-            CounterIncCycles::Cycles16 => self.cycles_so_far / 16 != old_cycles_so_far / 16,
-            CounterIncCycles::Cycles64 => self.cycles_so_far / 64 != old_cycles_so_far / 64,
-            CounterIncCycles::Cycles256 => self.cycles_so_far / 256 != old_cycles_so_far / 256,
+            CounterIncCycles::Cycles1024 => self.div / 1024 != old_div / 1024,
+            CounterIncCycles::Cycles16 => self.div / 16 != old_div / 16,
+            CounterIncCycles::Cycles64 => self.div / 64 != old_div / 64,
+            CounterIncCycles::Cycles256 => self.div / 256 != old_div / 256,
         };
 
         if is_bit_set!(self.tac, 2) && inc_tima {
@@ -142,12 +137,12 @@ mod tests {
         for _ in 0..255 {
             timer.step();
         }
-        assert_eq!(timer.cycles_so_far, 255);
-        assert_eq!(timer.div, 0);
+        assert_eq!(timer.div, 255);
+        assert_eq!(timer.read(0xFF04), 0);
 
         timer.step();
-        assert_eq!(timer.cycles_so_far, 256);
-        assert_eq!(timer.div, 1);
+        assert_eq!(timer.div, 256);
+        assert_eq!(timer.read(0xFF04), 1);
     }
 
     #[test]
@@ -155,32 +150,24 @@ mod tests {
         let mut timer = Timer::new(MockInterruptRequest::new());
         write_tac(&mut timer, 0b100);
 
-        for _ in 0..4 {
-            for _ in 0..255 {
-                timer.step();
-            }
+        for _ in 0..1023 {
+            timer.step();
         }
-        assert_eq!(timer.cycles_so_far, 1020);
+        assert_eq!(timer.div, 1023);
         assert_eq!(timer.tima, 0);
 
-        for _ in 0..4 {
-            timer.step();
-        }
-        assert_eq!(timer.cycles_so_far, 1024);
+        timer.step();
+        assert_eq!(timer.div, 1024);
         assert_eq!(timer.tima, 1);
 
-        for _ in 0..4 {
-            for _ in 0..255 {
-                timer.step();
-            }
-        }
-        assert_eq!(timer.cycles_so_far, 2044);
-        assert_eq!(timer.tima, 1);
-
-        for _ in 0..4 {
+        for _ in 0..1023 {
             timer.step();
         }
-        assert_eq!(timer.cycles_so_far, 2048);
+        assert_eq!(timer.div, 2047);
+        assert_eq!(timer.tima, 1);
+
+        timer.step();
+        assert_eq!(timer.div, 2048);
         assert_eq!(timer.tima, 2);
     }
 
@@ -281,16 +268,14 @@ mod tests {
         let mut timer = Timer::new(mock_int_req);
         write_tac(&mut timer, 0b111);
 
-        for _ in 0..257 {
-            for _ in 0..255 {
-                timer.step();
-            }
+        for _ in 0..0xFFFF {
+            timer.step();
         }
-        assert_eq!(timer.cycles_so_far, 0xFFFF);
-        assert_eq!(timer.div, 255);
+        assert_eq!(timer.div, 0xFFFF);
+        assert_eq!(timer.read(0xFF04), 255);
 
         timer.step();
-        assert_eq!(timer.cycles_so_far, 0);
+        assert_eq!(timer.div, 0);
         assert_eq!(timer.div, 0);
     }
 }

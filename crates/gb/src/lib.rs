@@ -13,6 +13,7 @@ use anyhow::Ok;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_ppu::PPU;
+use gb_shared::event::EventSender;
 use gb_shared::Memory;
 use log::debug;
 use timer::Timer;
@@ -49,42 +50,40 @@ impl GameBoy {
         Ok(Self::from_cartridge(cart))
     }
 
-    pub fn play(self) -> anyhow::Result<()> {
-        let mut gb = self;
+    pub fn play(mut self, event_sender: EventSender) -> anyhow::Result<()> {
+        self.ppu.event_sender.replace(event_sender);
+
         // TODO: loop and accept signals to stop
         loop {
-            if gb.cpu.stopped {
+            if self.cpu.stopped {
                 println!("Stopping...");
                 // TODO
-                std::process::exit(0);
+                break;
             }
 
-            let cycles = if gb.cpu.halted {
-                if gb.bus.read(0xFF0F) != 0 {
-                    gb.cpu.halted = false;
+            // FIXME: sync cycles
+            let cycles = if self.cpu.halted {
+                if self.bus.read(0xFF0F) != 0 {
+                    self.cpu.halted = false;
                 }
-                1
+                4
             } else {
-                gb.cpu.step()
+                self.cpu.step()
             };
-            debug!("{:?}", &gb.cpu);
+            debug!("{:?}", &self.cpu);
 
-            for _ in 0..cycles {
-                for _ in 0..4 {
-                    gb.ppu.step();
-                }
+            self.bus.step(cycles);
 
-                gb.bus.step();
+            if self.cpu.ime {
+                self.cpu.handle_interrupts();
+                self.cpu.enabling_ime = false;
             }
 
-            if gb.cpu.ime {
-                gb.cpu.handle_interrupts();
-                gb.cpu.enabling_ime = false;
-            }
-
-            if gb.cpu.enabling_ime {
-                gb.cpu.ime = true;
+            if self.cpu.enabling_ime {
+                self.cpu.ime = true;
             }
         }
+
+        Ok(())
     }
 }

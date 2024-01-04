@@ -1,4 +1,4 @@
-use super::{RamBank, RomBank};
+use super::RamBank;
 use gb_shared::{boxed_array_fn, builder::ImBuilder, kib};
 
 /// https://gbdev.io/pandocs/MBC1.html
@@ -10,8 +10,6 @@ pub(crate) struct Mbc1 {
     ram_enabled: bool,
     /// The lower 2 + 5 bits are used.
     banking_num: usize,
-    /// Initialized with max size, 2MiB - 16KiB(this is from fixed ROM).
-    rom_banks: Box<[RomBank; 127]>,
     /// Initialized with max size, 32KiB.
     ram_banks: Box<[RamBank; 4]>,
     // Cartridge header attributes
@@ -25,7 +23,6 @@ impl Mbc1 {
             banking_mode: 0,
             ram_enabled: false,
             banking_num: 0,
-            rom_banks: boxed_array_fn(|_| [0u8; 0x4000]),
             ram_banks: boxed_array_fn(|_| [0u8; 0x2000]),
             rom_size,
             ram_size,
@@ -82,7 +79,8 @@ impl super::Mbc for Mbc1 {
                     self.banking_num & 0x1F
                 }
                 .if_then(|bank_num| bank_num == &0, |_| 1); // Bank 0 is the fixed ROM.
-                self.rom_banks[rom_bank_num - 1][(addr - 0x4000) as usize]
+                let rom_offset = rom_bank_num * kib(16) + (addr - 0x4000) as usize;
+                rom[rom_offset]
             }
             // RAM bank
             0xA000..=0xBFFF => {

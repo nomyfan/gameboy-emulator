@@ -249,7 +249,7 @@ where
         let (hi, lo) = convert_u16_to_u8_tuple(value);
 
         self.reg_a = hi;
-        self.reg_f = lo;
+        self.reg_f = lo & 0xF0;
     }
 
     #[inline]
@@ -329,10 +329,29 @@ where
         convert_u8_tuple_to_u16(hi, lo)
     }
 
+    #[inline]
+    fn bus_write_16(&mut self, addr: u16, value: u16) {
+        self.bus.write(addr, value as u8);
+        self.bus.write(addr.wrapping_add(1), (value >> 8) as u8);
+    }
+
+    fn read_reg(&self, loc: u8) -> u8 {
+        match loc {
+            0 => self.reg_b,
+            1 => self.reg_c,
+            2 => self.reg_d,
+            3 => self.reg_e,
+            4 => self.reg_h,
+            5 => self.reg_l,
+            6 => self.bus_read(self.hl()),
+            7 => self.reg_a,
+            _ => unreachable!(),
+        }
+    }
+
     /// Push current PC to stack, and jump to corresponding
     /// interrupt handler address.
     pub fn handle_interrupts(&mut self) {
-        // TODO abstract interrupts RW
         let interrupt_flag = self.bus_read(0xFF0F);
         let interrupt_enable = self.bus_read(0xFFFF);
 
@@ -352,50 +371,756 @@ where
 
     pub fn step(&mut self) -> u8 {
         let opcode = self.read_pc();
-        let inst = get_instruction(opcode);
-        log::debug!("{:?}", inst);
 
-        4 + match inst {
-            Instruction::NONE => {
-                panic!("No such instruction");
+        let mut condition_met = false;
+        let mut cb_cycles = 0;
+
+        match opcode {
+            0x00 => {
+                // NOP
             }
-            Instruction::NOP => 4,
-            Instruction::LD(addr1, addr2) => proc::proc_ld(self, opcode, addr1, addr2),
-            Instruction::INC(addr) => proc::proc_inc(self, opcode, addr),
-            Instruction::DEC(addr) => proc::proc_dec(self, opcode, addr),
-            Instruction::JR(cond) => proc::proc_jr(self, opcode, cond),
-            Instruction::JP(cond, addr) => proc::proc_jp(self, opcode, cond, addr),
-            Instruction::CALL(cond) => proc::proc_call(self, opcode, cond),
-            Instruction::ADD(addr1, addr2) => proc::proc_add(self, opcode, addr1, addr2),
-            Instruction::ADC(addr) => proc::proc_adc(self, opcode, addr),
-            Instruction::SUB(addr) => proc::proc_sub(self, opcode, addr),
-            Instruction::SBC(addr) => proc::proc_sbc(self, opcode, addr),
-            Instruction::PUSH(addr) => proc::proc_push(self, opcode, addr),
-            Instruction::POP(addr) => proc::proc_pop(self, opcode, addr),
-            Instruction::RET(cond) => proc::proc_ret(self, opcode, cond),
-            Instruction::RETI => proc::proc_reti(self, opcode),
-            Instruction::RST => proc::proc_rst(self, opcode),
-            Instruction::AND(addr) => proc::proc_and(self, opcode, addr),
-            Instruction::OR(addr) => proc::proc_or(self, opcode, addr),
-            Instruction::XOR(addr) => proc::proc_xor(self, opcode, addr),
-            Instruction::STOP => proc::proc_stop(self, opcode),
-            Instruction::DI => proc::proc_di(self, opcode),
-            Instruction::EI => {
+            0x01 => {
+                // LD BC,d16
+                let d16 = self.read_pc2();
+                self.set_bc(d16);
+            }
+            0x02 => {
+                // LD (BC),A
+                self.bus_write(self.bc(), self.reg_a);
+            }
+            0x03 => {
+                // INC BC
+                self.set_bc(alu::inc::alu_inc_16(self.bc()));
+            }
+            0x04 => {
+                // INC B
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_b);
+                self.reg_b = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x05 => {
+                // DEC B
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_b);
+                self.reg_b = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x06 => {
+                // LD B,d8
+                self.reg_b = self.read_pc();
+            }
+            0x07 => {
+                // RLCA
+                let (value, c) = alu::rlca::alu_rlca(self.reg_a);
+                self.reg_a = value;
+                self.set_flags(Some(false), Some(false), Some(false), Some(c));
+            }
+            0x08 => {
+                // LD (a16),SP
+                let addr = self.read_pc2();
+                self.bus_write_16(addr, self.sp);
+            }
+            0x09 => {
+                // ADD HL,BC
+                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.bc());
+                self.set_hl(value);
+                self.set_flags(None, Some(false), Some(h), Some(c));
+            }
+            0x0A => {
+                // LD A,(BC)
+                self.reg_a = self.bus_read(self.bc());
+            }
+            0x0B => {
+                // DEC BC
+                self.set_bc(alu::dec::alu_dec_16(self.bc()));
+            }
+            0x0C => {
+                // INC C
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_c);
+                self.reg_c = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x0D => {
+                // DEC C
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_c);
+                self.reg_c = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x0E => {
+                // LD C,d8
+                self.reg_c = self.read_pc();
+            }
+            0x0F => {
+                // RRCA
+                let (value, c) = alu::rrca::alu_rrca(self.reg_a);
+                self.reg_a = value;
+                self.set_flags(Some(false), Some(false), Some(false), Some(c));
+            }
+            0x10 => {
+                // STOP
+                self.stop();
+            }
+            0x11 => {
+                // LD DE,d16
+                let d16 = self.read_pc2();
+                self.set_de(d16);
+            }
+            0x12 => {
+                // LD (DE),A
+                self.bus_write(self.de(), self.reg_a);
+            }
+            0x13 => {
+                // INC DE
+                self.set_de(alu::inc::alu_inc_16(self.de()));
+            }
+            0x14 => {
+                // INC D
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_d);
+                self.reg_d = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x15 => {
+                // DEC D
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_d);
+                self.reg_d = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x16 => {
+                // LD D,d8
+                self.reg_d = self.read_pc();
+            }
+            0x17 => {
+                // RLA
+                let (value, c) = alu::rla::alu_rla(self.reg_a, self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(false), Some(false), Some(false), Some(c));
+            }
+            0x18 => {
+                // JR r8
+                let r8 = self.read_pc() as i8;
+                self.jr(r8);
+            }
+            0x19 => {
+                // ADD HL,DE
+                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.de());
+                self.set_hl(value);
+                self.set_flags(None, Some(false), Some(h), Some(c));
+            }
+            0x1A => {
+                // LD A,(DE)
+                self.reg_a = self.bus_read(self.de());
+            }
+            0x1B => {
+                // DEC DE
+                self.set_de(alu::dec::alu_dec_16(self.de()));
+            }
+            0x1C => {
+                // INC E
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_e);
+                self.reg_e = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x1D => {
+                // DEC E
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_e);
+                self.reg_e = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x1E => {
+                // LD E,d8
+                self.reg_e = self.read_pc();
+            }
+            0x1F => {
+                // RRA
+                let (value, c) = alu::rra::alu_rra(self.reg_a, self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(false), Some(false), Some(false), Some(c));
+            }
+            0x20 => {
+                // JR NZ,r8
+                let r8 = self.read_pc() as i8;
+                if !self.flag_z() {
+                    self.jr(r8);
+
+                    condition_met = true;
+                }
+            }
+            0x21 => {
+                // LD HL,d16
+                let d16 = self.read_pc2();
+                self.set_hl(d16);
+            }
+            0x22 => {
+                // LD (HL+),A
+                self.bus_write(self.hl(), self.reg_a);
+                self.inc_dec_hl(true);
+            }
+            0x23 => {
+                // INC HL
+                self.set_hl(alu::inc::alu_inc_16(self.hl()));
+            }
+            0x24 => {
+                // INC H
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_h);
+                self.reg_h = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x25 => {
+                // DEC H
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_h);
+                self.reg_h = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x26 => {
+                // LD H,d8
+                self.reg_h = self.read_pc();
+            }
+            0x27 => {
+                // DAA
+                let (value, z, c) =
+                    alu::daa::alu_daa(self.reg_a, self.flag_n(), self.flag_h(), self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(z), None, Some(false), Some(c));
+            }
+            0x28 => {
+                // JR Z,r8
+                let r8 = self.read_pc() as i8;
+                if self.flag_z() {
+                    self.jr(r8);
+
+                    condition_met = true;
+                }
+            }
+            0x29 => {
+                // ADD HL,HL
+                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.hl());
+                self.set_hl(value);
+                self.set_flags(None, Some(false), Some(h), Some(c));
+            }
+            0x2A => {
+                // LD A,(HL+)
+                self.reg_a = self.bus_read(self.hl());
+                self.inc_dec_hl(true);
+            }
+            0x2B => {
+                // DEC HL
+                self.set_hl(alu::dec::alu_dec_16(self.hl()));
+            }
+            0x2C => {
+                // INC L
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_l);
+                self.reg_l = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x2D => {
+                // DEC L
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_l);
+                self.reg_l = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x2E => {
+                // LD L,d8
+                self.reg_l = self.read_pc();
+            }
+            0x2F => {
+                // CPL
+                self.reg_a = !self.reg_a;
+                self.set_flags(None, Some(true), Some(true), None);
+            }
+            0x30 => {
+                // JR NC,r8
+                let r8 = self.read_pc() as i8;
+                if !self.flag_c() {
+                    self.jr(r8);
+
+                    condition_met = true;
+                }
+            }
+            0x31 => {
+                // LD SP,d16
+                self.sp = self.read_pc2();
+            }
+            0x32 => {
+                // LD (HL-),A
+                self.bus_write(self.hl(), self.reg_a);
+                self.inc_dec_hl(false);
+            }
+            0x33 => {
+                // INC SP
+                self.sp = alu::inc::alu_inc_16(self.sp);
+            }
+            0x34 => {
+                // INC (HL)
+                let (value, z, h) = alu::inc::alu_inc_8(self.bus_read(self.hl()));
+                self.bus_write(self.hl(), value);
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x35 => {
+                // DEC (HL)
+                let (value, z, h) = alu::dec::alu_dec_8(self.bus_read(self.hl()));
+                self.bus_write(self.hl(), value);
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x36 => {
+                // LD (HL),d8
+                let d8 = self.read_pc();
+                self.bus_write(self.hl(), d8);
+            }
+            0x37 => {
+                // SCF
+                self.set_flags(None, Some(false), Some(false), Some(true));
+            }
+            0x38 => {
+                // JR C,r8
+                let r8 = self.read_pc() as i8;
+                if self.flag_c() {
+                    self.jr(r8);
+
+                    condition_met = true;
+                }
+            }
+            0x39 => {
+                // ADD HL,SP
+                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.sp);
+                self.set_hl(value);
+                self.set_flags(None, Some(false), Some(h), Some(c));
+            }
+            0x3A => {
+                // LD A,(HL-)
+                self.reg_a = self.bus_read(self.hl());
+                self.inc_dec_hl(false);
+            }
+            0x3B => {
+                // DEC SP
+                self.sp = alu::dec::alu_dec_16(self.sp);
+            }
+            0x3C => {
+                // INC A
+                let (value, z, h) = alu::inc::alu_inc_8(self.reg_a);
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(h), None);
+            }
+            0x3D => {
+                // DEC A
+                let (value, z, h) = alu::dec::alu_dec_8(self.reg_a);
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(true), Some(h), None);
+            }
+            0x3E => {
+                // LD A,d8
+                self.reg_a = self.read_pc();
+            }
+            0x3F => {
+                // CCF
+                self.set_flags(None, Some(false), Some(false), Some(!self.flag_c()));
+            }
+            0x40..=0x47 => {
+                // LD B,B..LD B,A
+                self.reg_b = self.read_reg(opcode & 0x07);
+            }
+            0x48..=0x4F => {
+                // LD C,B..LD C,A
+                self.reg_c = self.read_reg(opcode & 0x07);
+            }
+            0x50..=0x57 => {
+                // LD D,B..LD D,A
+                self.reg_d = self.read_reg(opcode & 0x07);
+            }
+            0x58..=0x5F => {
+                // LD E,B..LD E,A
+                self.reg_e = self.read_reg(opcode & 0x07);
+            }
+            0x60..=0x67 => {
+                // LD H,B..LD H,A
+                self.reg_h = self.read_reg(opcode & 0x07);
+            }
+            0x68..=0x6F => {
+                // LD L,B..LD L,A
+                self.reg_l = self.read_reg(opcode & 0x07);
+            }
+            0x76 => {
+                // HALT
+                self.set_halt(true);
+            }
+            0x70..=0x77 => {
+                // LD (HL),B..LD (HL),A
+                self.bus_write(self.hl(), self.read_reg(opcode & 0x07));
+            }
+            0x78..=0x7F => {
+                // LD A,B..LD A,A
+                self.reg_a = self.read_reg(opcode & 0x07);
+            }
+            0x80..=0x87 => {
+                // ADD A,B..ADD A,A
+                let (value, z, h, c) =
+                    alu::add::alu_add_8(self.reg_a, self.read_reg(opcode & 0x07));
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(h), Some(c));
+            }
+            0x88..=0x8F => {
+                // ADC A,B..ADC A,A
+                let (value, z, h, c) =
+                    alu::adc::alu_adc(self.reg_a, self.read_reg(opcode & 0x07), self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(h), Some(c));
+            }
+            0x90..=0x97 => {
+                // SUB A,B..SUB A,A
+                let (value, z, h, c) = alu::sub::alu_sub(self.reg_a, self.read_reg(opcode & 0x07));
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(true), Some(h), Some(c));
+            }
+            0x98..=0x9F => {
+                // SBC A,B..SBC A,A
+                let (value, z, h, c) =
+                    alu::sbc::alu_sbc(self.reg_a, self.read_reg(opcode & 0x07), self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(true), Some(h), Some(c));
+            }
+            0xA0..=0xA7 => {
+                // AND A,B..AND A,A
+                let (value, z) = alu::and::alu_and(self.reg_a, self.read_reg(opcode & 0x07));
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(true), Some(false));
+            }
+            0xA8..=0xAF => {
+                // XOR A,B..XOR A,A
+                let (value, z) = alu::xor::alu_xor(self.reg_a, self.read_reg(opcode & 0x07));
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(false), Some(false));
+            }
+            0xB0..=0xB7 => {
+                // OR A,B..OR A,A
+                let (value, z) = alu::or::alu_or(self.reg_a, self.read_reg(opcode & 0x07));
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(false), Some(false));
+            }
+            0xB8..=0xBF => {
+                // CP A,B..CP A,A
+                let (z, h, c) = alu::cp::alu_cp(self.reg_a, self.read_reg(opcode & 0x07));
+                self.set_flags(Some(z), Some(true), Some(h), Some(c));
+            }
+            0xC0 => {
+                // RET NZ
+                if !self.flag_z() {
+                    self.pc = self.stack_pop2();
+
+                    condition_met = true;
+                }
+            }
+            0xC1 => {
+                // POP BC
+                let value = self.stack_pop2();
+                self.set_bc(value);
+            }
+            0xC2 => {
+                // JP NZ,a16
+                let addr = self.read_pc2();
+                if !self.flag_z() {
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xC3 => {
+                // JP a16
+                let addr = self.read_pc2();
+                self.jp(addr);
+            }
+            0xC4 => {
+                // CALL NZ,a16
+                let addr = self.read_pc2();
+                if !self.flag_z() {
+                    self.stack_push_pc();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xC5 => {
+                // PUSH BC
+                self.stack_push2(self.bc());
+            }
+            0xC6 => {
+                // ADD A,d8
+                let (value, z, h, c) = alu::add::alu_add_8(self.reg_a, self.read_pc());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(h), Some(c));
+            }
+            0xC7 => {
+                // RST 00H
+                self.stack_push_pc();
+                self.jp(0x00);
+            }
+            0xC8 => {
+                // RET Z
+                if self.flag_z() {
+                    let addr = self.stack_pop2();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xC9 => {
+                // RET
+                let addr = self.stack_pop2();
+                self.jp(addr);
+            }
+            0xCA => {
+                // JP Z,a16
+                let addr = self.read_pc2();
+                if self.flag_z() {
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xCB => {
+                // CB
+                cb_cycles = proc::proc_cb(self);
+            }
+            0xCC => {
+                // CALL Z,a16
+                let addr = self.read_pc2();
+                if self.flag_z() {
+                    self.stack_push_pc();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xCD => {
+                // CALL a16
+                let addr = self.read_pc2();
+                self.stack_push_pc();
+                self.jp(addr);
+            }
+            0xCE => {
+                // ADC A,d8
+                let (value, z, h, c) = alu::adc::alu_adc(self.reg_a, self.read_pc(), self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(h), Some(c));
+            }
+            0xCF => {
+                // RST 08H
+                self.stack_push_pc();
+                self.jp(0x08);
+            }
+            0xD0 => {
+                // RET NC
+                if !self.flag_c() {
+                    let addr = self.stack_pop2();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xD1 => {
+                // POP DE
+                let value = self.stack_pop2();
+                self.set_de(value);
+            }
+            0xD2 => {
+                // JP NC,a16
+                let addr = self.read_pc2();
+                if !self.flag_c() {
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xD4 => {
+                // CALL NC,a16
+                let addr = self.read_pc2();
+                if !self.flag_c() {
+                    self.stack_push_pc();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xD5 => {
+                // PUSH DE
+                self.stack_push2(self.de());
+            }
+            0xD6 => {
+                // SUB A,d8
+                let (value, z, h, c) = alu::sub::alu_sub(self.reg_a, self.read_pc());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(true), Some(h), Some(c));
+            }
+            0xD7 => {
+                // RST 10H
+                self.stack_push_pc();
+                self.jp(0x10);
+            }
+            0xD8 => {
+                // RET C
+                if self.flag_c() {
+                    let addr = self.stack_pop2();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xD9 => {
+                // RETI
+                self.set_ime(true);
+                let addr = self.stack_pop2();
+                self.jp(addr);
+            }
+            0xDA => {
+                // JP C,a16
+                let addr = self.read_pc2();
+                if self.flag_c() {
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xDC => {
+                // CALL C,a16
+                let addr = self.read_pc2();
+                if self.flag_c() {
+                    self.stack_push_pc();
+                    self.jp(addr);
+
+                    condition_met = true;
+                }
+            }
+            0xDE => {
+                // SBC A,d8
+                let (value, z, h, c) = alu::sbc::alu_sbc(self.reg_a, self.read_pc(), self.flag_c());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(true), Some(h), Some(c));
+            }
+            0xDF => {
+                // RST 18H
+                self.stack_push_pc();
+                self.jp(0x18);
+            }
+            0xE0 => {
+                // LDH (a8),A
+                let addr = 0xFF00 | (self.read_pc() as u16);
+                self.bus_write(addr, self.reg_a);
+            }
+            0xE1 => {
+                // POP HL
+                let value = self.stack_pop2();
+                self.set_hl(value);
+            }
+            0xE2 => {
+                // LD (C),A
+                self.bus_write(0xFF00 | (self.reg_c as u16), self.reg_a);
+            }
+            0xE5 => {
+                // PUSH HL
+                self.stack_push2(self.hl());
+            }
+            0xE6 => {
+                // AND A,d8
+                let (value, z) = alu::and::alu_and(self.reg_a, self.read_pc());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(true), Some(false));
+            }
+            0xE7 => {
+                // RST 20H
+                self.stack_push_pc();
+                self.jp(0x20);
+            }
+            0xE8 => {
+                // ADD SP,r8
+                let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
+                self.sp = value;
+                self.set_flags(Some(false), Some(false), Some(h), Some(c));
+            }
+            0xE9 => {
+                // JP (HL)
+                self.jp(self.hl());
+            }
+            0xEA => {
+                // LD (a16),A
+                let addr = self.read_pc2();
+                self.bus_write(addr, self.reg_a);
+            }
+            0xEE => {
+                // XOR A,d8
+                let (value, z) = alu::xor::alu_xor(self.reg_a, self.read_pc());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(false), Some(false));
+            }
+            0xEF => {
+                // RST 28H
+                self.stack_push_pc();
+                self.jp(0x28);
+            }
+            0xF0 => {
+                // LDH A,(a8)
+                let addr = 0xFF00 | (self.read_pc() as u16);
+                self.reg_a = self.bus_read(addr);
+            }
+            0xF1 => {
+                // POP AF
+                let value = self.stack_pop2();
+                self.set_af(value);
+            }
+            0xF2 => {
+                // LD A,(C)
+                self.reg_a = self.bus_read(0xFF00 | (self.reg_c as u16));
+            }
+            0xF3 => {
+                // DI
+                self.set_ime(false);
+            }
+            0xF5 => {
+                // PUSH AF
+                self.stack_push2(self.af());
+            }
+            0xF6 => {
+                // OR A,d8
+                let (value, z) = alu::or::alu_or(self.reg_a, self.read_pc());
+                self.reg_a = value;
+                self.set_flags(Some(z), Some(false), Some(false), Some(false));
+            }
+            0xF7 => {
+                // RST 30H
+                self.stack_push_pc();
+                self.jp(0x30);
+            }
+            0xF8 => {
+                // LD HL,SP+r8
+                let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
+                self.set_hl(value);
+                self.set_flags(Some(false), Some(false), Some(h), Some(c));
+            }
+            0xF9 => {
+                // LD SP,HL
+                self.sp = self.hl();
+            }
+            0xFA => {
+                // LD A,(a16)
+                let addr = self.read_pc2();
+                self.reg_a = self.bus_read(addr);
+            }
+            0xFB => {
+                // EI
                 self.enabling_ime = true;
-                get_cycles(opcode).0
             }
-            Instruction::HALT => proc::proc_halt(self, opcode),
-            Instruction::RLA => proc::proc_rla(self, opcode),
-            Instruction::RRA => proc::proc_rra(self, opcode),
-            Instruction::RLCA => proc::proc_rlca(self, opcode),
-            Instruction::RRCA => proc::proc_rrca(self, opcode),
-            Instruction::DAA => proc::proc_daa(self, opcode),
-            Instruction::CPL => proc::proc_cpl(self, opcode),
-            Instruction::SCF => proc::proc_scf(self, opcode),
-            Instruction::CCF => proc::proc_ccf(self, opcode),
-            Instruction::CP(addr) => proc::proc_cp(self, opcode, addr),
-            Instruction::CB => proc::proc_cb(self),
+            0xFE => {
+                // CP A,d8
+                let (z, h, c) = alu::cp::alu_cp(self.reg_a, self.read_pc());
+                self.set_flags(Some(z), Some(true), Some(h), Some(c));
+            }
+            0xFF => {
+                // RST 38H
+                self.stack_push_pc();
+                self.jp(0x38);
+            }
+            _ => {
+                panic!("No such instruction, opcode:{:#02X}", opcode);
+            }
         }
+
+        4 + if condition_met { get_cycles(opcode).0 } else { get_cycles(opcode).1 } + cb_cycles
     }
 }
 
@@ -584,7 +1309,7 @@ mod tests {
             cpu.set_hl(0xDEF0);
 
             assert_eq!(cpu.reg_a, 0x12);
-            assert_eq!(cpu.reg_f, 0x34);
+            assert_eq!(cpu.reg_f, 0x30);
             assert_eq!(cpu.reg_b, 0x56);
             assert_eq!(cpu.reg_c, 0x78);
             assert_eq!(cpu.reg_d, 0x9A);
@@ -790,7 +1515,7 @@ mod tests {
             assert_eq!(cpu.reg_l, 0x0F);
 
             cpu.write_data(&Am::Direct_AF, 0, 0x4321);
-            assert_eq!(cpu.af(), 0x4321);
+            assert_eq!(cpu.af(), 0x4320);
             cpu.write_data(&Am::Direct_BC, 0, 0x8765);
             assert_eq!(cpu.bc(), 0x8765);
             cpu.write_data(&Am::Direct_DE, 0, 0xCBA9);

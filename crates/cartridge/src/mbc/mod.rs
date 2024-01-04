@@ -1,9 +1,6 @@
 pub(crate) mod mbc1;
 pub(crate) mod mbc_none;
 
-/// The size of each ROM bank is 16KiB
-type RomBank = [u8; 0x4000];
-
 /// The size of each RAM bank is 8KiB
 type RamBank = [u8; 0x2000];
 

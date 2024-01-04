@@ -3,36 +3,20 @@ mod lcd;
 mod object;
 mod tile;
 
-use crate::config::{
-    COLOR_PALETTES, DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME,
-};
+use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use crate::tile::{BackgroundTileDataBuilder, ObjectTileDataBuilder, TileData, TileDataBuilder};
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::{is_bit_set, pick_bits, set_bits, unset_bits, InterruptRequest, Memory};
-use log::debug;
-
-/// The first fourth steps takes 2 dots each.
-/// The fifth step is attempted every dot until it succeeds.
-#[derive(Debug, Default)]
-pub(crate) enum RenderStage {
-    #[default]
-    GetTile,
-    GetTileDataLow,
-    GetTileDataHigh,
-    Sleep,
-    Push,
-}
+use gb_shared::event::{Event, EventSender};
+use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
 
 #[derive(Debug, Default)]
 pub(crate) struct PPUWorkState {
-    render_stage: RenderStage,
     /// X of current scanline.
     /// Reset when moving to next scanline.
     scanline_x: u8,
-    /// One dot equals 4 CPU cycles. It's 2 cycles when it's CGB
-    /// and CPU is in double speed mode.
+    /// PPU working frequency is the same as CPU. A dot equals to one CPU clock cycle.
     ///
     /// There are 456 dots per scanline, so there are 70224(456 * 154)
     /// dots per frame.
@@ -50,10 +34,6 @@ pub(crate) struct PPUWorkState {
     /// scy + ly
     /// Updated in mode3(render a pixel).
     map_y: u8,
-    /// Reset in FIFO push stage(by taking out the value).
-    bgw_tile_builder: Option<BackgroundTileDataBuilder>,
-    /// Reset in FIFO push stage(by taking out the value).
-    object_tile_builder: Option<ObjectTileDataBuilder>,
 }
 
 pub struct PPU<BUS: Memory> {
@@ -94,9 +74,11 @@ pub struct PPU<BUS: Memory> {
     obp1: u8,
     /// PPU work state.
     work_state: PPUWorkState,
-    video_buffer: BoxedMatrix<u32, RESOLUTION_X, RESOLUTION_Y>,
+    /// Storing palettes.
+    video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
 
     bus: BUS,
+    pub event_sender: Option<EventSender>,
 }
 
 impl<BUS: Memory + InterruptRequest> PPU<BUS> {
@@ -111,8 +93,10 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             work_state: PPUWorkState::default(),
             video_buffer: BoxedMatrix::default(),
             bus,
+            event_sender: None,
         }
     }
+
     fn lcd_mode(&self) -> LCDMode {
         LCDMode::from(self.lcd.stat)
     }
@@ -126,9 +110,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.lcd.stat = stat;
     }
 
-    /// For BGW only. Tile index for object is stored
-    /// in the Object.
-    fn get_tile_index(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
+    fn get_bgw_tile_index(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
         let vram_addr: u16 =
             if is_bit_set!(self.lcd.lcdc, if is_window { 6 } else { 3 }) { 0x9C00 } else { 0x9800 };
         let vram_addr = vram_addr + ((map_y as u16 / 8) * 32 + (map_x as u16) / 8);
@@ -144,19 +126,19 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             let index = index as i8; // Make it able to be negative.
             (256 + index as i16) as usize // It must be positive now before casting to usize.
         };
-        let addr = index * 16 + (if is_high { 8 } else { 0 });
-        self.vram[addr..(addr + 8)].try_into().unwrap()
+        let vram_offset = index * 16 + (if is_high { 8 } else { 0 });
+        self.vram[vram_offset..(vram_offset + 8)].try_into().unwrap()
     }
 
-    fn select_color(&self, bgw: &Option<TileData>, object: &Option<TileData>) -> u32 {
+    fn select_palette(&self, bgw: &Option<TileData>, object: &Option<TileData>) -> u8 {
         // Priority definition
         // 1. If BGW' color ID is 0, then render the object.
         // 2. If LCDC.0 is 0, then render the object.
         // 3. If OAM attributes.7 is 0, then render the object.
         // 4. Otherwise, render the BGW.
 
-        let mut color = 0;
         let mut color_id = 0;
+        let mut palette = 0;
         if let Some(tile) = bgw {
             if self.lcd.is_bgw_enabled() {
                 let x = self.work_state.map_x % 8;
@@ -164,8 +146,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
                 color_id = tile.get_color_id(x, y);
                 let offset = color_id * 2;
-                let palette = (pick_bits!(self.bgp, offset, offset + 1)) >> offset;
-                color = COLOR_PALETTES[palette as usize];
+                palette = (self.bgp >> offset) & 0b11;
             }
         }
 
@@ -179,13 +160,12 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                     color_id = tile.get_color_id(x, y);
                     let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = color_id * 2;
-                    let palette = pick_bits!(obp, offset, offset + 1) >> offset;
-                    color = COLOR_PALETTES[palette as usize];
+                    palette = (obp >> offset) & 0b11;
                 }
             }
         }
 
-        color
+        palette
     }
 
     fn move_to_next_scanline(&mut self) {
@@ -252,7 +232,6 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             //
             // It's worth mentioning that `sort_by` is stable.
             self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
-            debug!("{:?}", &self.work_state.scanline_objects);
         } else if self.work_state.scanline_dots == 80 {
             self.set_lcd_mode(LCDMode::RenderPixel);
         }
@@ -261,7 +240,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
     /// 持续172-289dots，加载Win/BG的tile，和object做像素合成。
     /// 结束后进入HBlank状态。
     fn step_render_pixel(&mut self) {
-        // TODO: penalty for canceling
+        // TODO: penalty for canceling?
         // https://gbdev.io/pandocs/pixel_fifo.html#object-fetch-canceling
         // https://gbdev.io/pandocs/Rendering.html#mode-3-length
         self.work_state.map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
@@ -273,94 +252,81 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             return;
         }
 
-        match self.work_state.render_stage {
-            RenderStage::GetTile => {
-                if self.lcd.is_bgw_enabled() {
+        let mut bgw_tile_builder = None;
+        let mut object_tile_builder = None;
+
+        {
+            if self.lcd.is_bgw_enabled() {
+                let index =
+                    self.get_bgw_tile_index(self.work_state.map_x, self.work_state.map_y, false);
+                bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
+
+                if self.lcd.is_window_enabled()
+                    && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
+                        .contains(&(self.work_state.map_x as u16 + 7))
+                    && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
+                        .contains(&(self.work_state.map_y as u16))
+                {
                     let index =
-                        self.get_tile_index(self.work_state.map_x, self.work_state.map_y, false);
-                    self.work_state.bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
+                        self.get_bgw_tile_index(self.work_state.map_x, self.work_state.map_y, true);
 
-                    if self.lcd.is_window_enabled()
-                        && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
-                            .contains(&(self.work_state.map_x as u16 + 7))
-                        && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
-                            .contains(&(self.work_state.map_y as u16))
-                    {
-                        let index =
-                            self.get_tile_index(self.work_state.map_x, self.work_state.map_y, true);
-
-                        self.work_state
-                            .bgw_tile_builder
-                            .replace(BackgroundTileDataBuilder::new(index));
-                    }
+                    bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
                 }
-
-                if self.lcd.is_obj_enabled() {
-                    let builder = self
-                        .work_state
-                        .scanline_objects
-                        .iter()
-                        .find(|object| {
-                            let x = object.x as i16 - 8;
-                            let scanline_x = self.work_state.scanline_x as i16;
-
-                            x + 8 >= scanline_x && x < scanline_x + 8
-                        })
-                        .map(|object| ObjectTileDataBuilder::new(*object, self.lcd.object_size()));
-
-                    self.work_state.object_tile_builder = builder;
-                }
-
-                self.work_state.render_stage = RenderStage::GetTileDataLow;
             }
-            RenderStage::GetTileDataLow => {
-                if let Some(mut builder) = self.work_state.bgw_tile_builder.take() {
-                    builder.low(self.read_tile_data(builder.index, false, false));
-                    self.work_state.bgw_tile_builder.replace(builder);
-                }
 
-                if let Some(mut builder) = self.work_state.object_tile_builder.take() {
-                    builder.low(self.read_tile_data(builder.tile_index(), true, false));
-                    self.work_state.object_tile_builder.replace(builder);
-                }
+            if self.lcd.is_obj_enabled() {
+                let builder = self
+                    .work_state
+                    .scanline_objects
+                    .iter()
+                    .find(|object| {
+                        let sx = self.work_state.scanline_x + 8;
+                        sx >= object.x && sx < object.x + 8
+                    })
+                    .map(|object| ObjectTileDataBuilder::new(*object, self.lcd.object_size()));
 
-                self.work_state.render_stage = RenderStage::GetTileDataHigh;
+                object_tile_builder = builder;
             }
-            RenderStage::GetTileDataHigh => {
-                if let Some(mut builder) = self.work_state.bgw_tile_builder.take() {
-                    builder.high(self.read_tile_data(builder.index, false, true));
-                    self.work_state.bgw_tile_builder.replace(builder);
-                }
+        }
 
-                if let Some(mut builder) = self.work_state.object_tile_builder.take() {
-                    builder.high(self.read_tile_data(builder.tile_index(), true, true));
-                    self.work_state.object_tile_builder = Some(builder);
-                }
-
-                self.work_state.render_stage = RenderStage::Sleep;
+        {
+            if let Some(mut builder) = bgw_tile_builder.take() {
+                builder.low(self.read_tile_data(builder.index, false, false));
+                bgw_tile_builder.replace(builder);
             }
-            RenderStage::Sleep => {
-                self.work_state.render_stage = RenderStage::Push;
-            }
-            RenderStage::Push => {
-                let bgw_tile =
-                    self.work_state.bgw_tile_builder.take().map(|builder| builder.build());
-                let object_tile =
-                    self.work_state.object_tile_builder.take().map(|builder| builder.build());
 
-                let color = self.select_color(&bgw_tile, &object_tile);
-                let viewport_x = self.work_state.scanline_x as usize;
-                let viewport_y = self.lcd.ly as usize;
-                self.video_buffer[viewport_y][viewport_x] = color;
-
-                self.work_state.scanline_x += 1;
-                self.work_state.render_stage = RenderStage::GetTile;
+            if let Some(mut builder) = object_tile_builder.take() {
+                builder.low(self.read_tile_data(builder.tile_index(), true, false));
+                object_tile_builder.replace(builder);
             }
+        }
+
+        {
+            if let Some(mut builder) = bgw_tile_builder.take() {
+                builder.high(self.read_tile_data(builder.index, false, true));
+                bgw_tile_builder.replace(builder);
+            }
+
+            if let Some(mut builder) = object_tile_builder.take() {
+                builder.high(self.read_tile_data(builder.tile_index(), true, true));
+                object_tile_builder = Some(builder);
+            }
+        }
+
+        {
+            let bgw_tile = bgw_tile_builder.take().map(|builder| builder.build());
+            let object_tile = object_tile_builder.take().map(|builder| builder.build());
+
+            let palette = self.select_palette(&bgw_tile, &object_tile);
+            let viewport_x = self.work_state.scanline_x as usize;
+            let viewport_y = self.lcd.ly as usize;
+            self.video_buffer[viewport_y][viewport_x] = palette;
+
+            self.work_state.scanline_x += 1;
         }
 
         // Pixels in current scanline are all rendered.
         if self.work_state.scanline_x >= RESOLUTION_X as u8 {
-            self.work_state.render_stage = RenderStage::GetTile;
             self.set_lcd_mode(LCDMode::HBlank);
 
             // Mode 0(HBlank) stat interrupt
@@ -387,6 +353,11 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             // Mode 1(VBlank) stat interrupt
             if is_bit_set!(self.lcd.stat, 4) {
                 self.bus.request_lcd_stat();
+            }
+
+            // Notify that a frame is rendered.
+            if let Some(event_sender) = self.event_sender.as_ref() {
+                event_sender.send(Event::OnFrame(self.video_buffer.clone())).unwrap();
             }
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
@@ -422,20 +393,52 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
 impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
     fn write(&mut self, addr: u16, value: u8) {
-        if self.block_vram(addr) || self.block_oam(addr) {
-            return;
-        }
+        // if self.block_vram(addr) || self.block_oam(addr) {
+        //     return;
+        // }
 
         match addr {
-            0x8000..=0x9FFF => self.vram[addr as usize - 0x8000] = value,
+            0x8000..=0x9FFF => {
+                self.vram[addr as usize - 0x8000] = value;
+                #[cfg(debug_assertions)]
+                {
+                    use crate::tile::mix_colors;
+
+                    // log::info!("write to vram {:#X} = {:#X}", addr, value);
+                    let data = self
+                        .vram
+                        .chunks(16)
+                        .map(|chunk| {
+                            mix_colors(
+                                chunk[0..8].try_into().unwrap(),
+                                chunk[8..16].try_into().unwrap(),
+                            )
+                        })
+                        .map(|ti| {
+                            let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
+                            for (y, yd) in ti.into_iter().enumerate() {
+                                for x in (0..16u8).step_by(2) {
+                                    let offset = 14 - x;
+                                    let value = (yd >> offset) & 0b11;
+                                    matrix_8_by_8[y][x as usize / 2] = value as u8;
+                                }
+                            }
+                            matrix_8_by_8
+                        })
+                        .collect::<Vec<_>>();
+
+                    if let Some(sender) = self.event_sender.as_ref() {
+                        sender.send(Event::OnDebugFrame(data)).unwrap();
+                    }
+                }
+            }
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => self.lcd.lcdc = value,
             0xFF41 => {
-                // TODO: STAT interrupts
                 // https://gbdev.io/pandocs/Interrupt_Sources.html#int-48--stat-interrupt
                 // https://gbdev.io/pandocs/STAT.html#ff41--stat-lcd-status
                 // Since bit 0..=2 is readonly, writes on them are ignored.
-                self.lcd.stat = (self.lcd.stat >> 3) << 3 | (value & 0b111);
+                self.lcd.stat = (value & !(0b111)) | (self.lcd.stat & 0b111);
             }
             0xFF42 => self.lcd.scy = value,
             0xFF43 => self.lcd.scx = value,
@@ -453,9 +456,9 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        if self.block_oam(addr) || self.block_vram(addr) {
-            return 0xFF;
-        }
+        // if self.block_oam(addr) || self.block_vram(addr) {
+        //     return 0xFF;
+        // }
 
         match addr {
             0x8000..=0x9FFF => self.vram[addr as usize - 0x8000],
@@ -473,5 +476,47 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
             0xFF4B => self.lcd.wx,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
+    }
+}
+
+#[cfg(test)]
+use gb_shared::InterruptType;
+#[cfg(test)]
+use mockall::mock;
+
+#[cfg(test)]
+mock! {
+    pub Bus {}
+
+    impl Memory for Bus {
+        fn write(&mut self, addr: u16, value: u8);
+        fn read(&self, addr: u16) -> u8;
+    }
+
+    impl InterruptRequest for Bus {
+        fn request(&mut self, interrupt_type: InterruptType);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_only_stat_bits() {
+        let mut ppu = PPU::new(MockBus::new());
+        ppu.lcd.stat = 0b0000_0101;
+
+        ppu.write(0xFF41, 0b1000_0010);
+        assert_eq!(ppu.read(0xFF41), 0b1000_0101);
+    }
+
+    #[test]
+    fn read_only_ly() {
+        let mut ppu = PPU::new(MockBus::new());
+        ppu.lcd.ly = 0x12;
+
+        ppu.write(0xFF44, 0x34);
+        assert_eq!(ppu.read(0xFF44), 0x12);
     }
 }

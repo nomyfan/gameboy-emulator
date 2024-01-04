@@ -86,10 +86,11 @@ impl Memory for BusInner {
             }
             0xE000..=0xFDFF => debug!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
-                if !self.dma.active() {
-                    // OAM
-                    self.ppu_mut().write(addr, value);
+                if self.dma.active() {
+                    return;
                 }
+                // OAM
+                self.ppu_mut().write(addr, value);
             }
             0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF00..=0xFF7F => {
@@ -246,9 +247,22 @@ impl Bus {
         }
     }
 
-    pub(crate) fn step(&mut self) {
-        self.step_dma();
+    pub(crate) fn step_timer(&mut self) {
         self.inner_mut().timer_mut().step();
+    }
+
+    pub(crate) fn step(&mut self, cycles: u8) {
+        let cycles = cycles / 4;
+        debug_assert!(cycles > 0);
+
+        for _ in 0..cycles {
+            for _ in 0..4 {
+                self.inner_mut().ppu_mut().step();
+                self.step_timer();
+            }
+
+            self.step_dma();
+        }
     }
 }
 

@@ -42,8 +42,10 @@ pub(crate) struct LCD {
     ///           2: Searching OAM
     ///           3: Transferring Data to LCD Controller
     pub(crate) stat: u8,
-    /// LCD Y coordinate, at 0xFF44.
-    /// Read only, it represents current scanline.
+    /// Read only, LCD Y coordinate, at 0xFF44, representing current scanline.
+    ///
+    /// The value is in range \[0, 153].
+    /// When it's in range \[144, 153], it's in VBlank period.
     pub(crate) ly: u8,
     /// LCD Y compare, at 0xFF45.
     /// When LYC == LY, LYC=LY flag is set, and (if enabled) a STAT interrupt is requested.
@@ -52,9 +54,9 @@ pub(crate) struct LCD {
     pub(crate) wy: u8,
     /// Window X position plus 7, at 0xFF4B.
     pub(crate) wx: u8,
-    /// Viewport Y position, at 0xFF42.
+    /// Scroll(viewport) Y position, at 0xFF42.
     pub(crate) scy: u8,
-    /// Viewport X position, at 0xFF43.
+    /// Scroll(viewport) X position, at 0xFF43.
     pub(crate) scx: u8,
 }
 

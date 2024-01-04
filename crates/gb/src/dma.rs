@@ -3,7 +3,7 @@ use gb_shared::Memory;
 #[derive(Debug)]
 pub(crate) struct DMA {
     value: u8,
-    /// 160 bytes, transferring each costs 1 cycle.
+    /// 160 bytes, transferring each costs 1 machine cycle(4 CPU clock cycles).
     offset: u8,
 }
 
