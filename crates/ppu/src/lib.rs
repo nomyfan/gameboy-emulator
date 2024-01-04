@@ -358,6 +358,38 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             // Notify that a frame is rendered.
             if let Some(event_sender) = self.event_sender.as_ref() {
                 event_sender.send(Event::OnFrame(self.video_buffer.clone())).unwrap();
+
+                #[cfg(debug_assertions)]
+                {
+                    use crate::tile::mix_colors;
+
+                    // log::info!("write to vram {:#X} = {:#X}", addr, value);
+                    let data = self
+                        .vram
+                        .chunks(16)
+                        .map(|chunk| {
+                            mix_colors(
+                                chunk[0..8].try_into().unwrap(),
+                                chunk[8..16].try_into().unwrap(),
+                            )
+                        })
+                        .map(|ti| {
+                            let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
+                            for (y, yd) in ti.into_iter().enumerate() {
+                                for x in (0..16u8).step_by(2) {
+                                    let offset = 14 - x;
+                                    let value = (yd >> offset) & 0b11;
+                                    matrix_8_by_8[y][x as usize / 2] = value as u8;
+                                }
+                            }
+                            matrix_8_by_8
+                        })
+                        .collect::<Vec<_>>();
+
+                    if let Some(sender) = self.event_sender.as_ref() {
+                        sender.send(Event::OnDebugFrame(data)).unwrap();
+                    }
+                }
             }
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
@@ -400,37 +432,6 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
         match addr {
             0x8000..=0x9FFF => {
                 self.vram[addr as usize - 0x8000] = value;
-                #[cfg(debug_assertions)]
-                {
-                    use crate::tile::mix_colors;
-
-                    // log::info!("write to vram {:#X} = {:#X}", addr, value);
-                    let data = self
-                        .vram
-                        .chunks(16)
-                        .map(|chunk| {
-                            mix_colors(
-                                chunk[0..8].try_into().unwrap(),
-                                chunk[8..16].try_into().unwrap(),
-                            )
-                        })
-                        .map(|ti| {
-                            let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                            for (y, yd) in ti.into_iter().enumerate() {
-                                for x in (0..16u8).step_by(2) {
-                                    let offset = 14 - x;
-                                    let value = (yd >> offset) & 0b11;
-                                    matrix_8_by_8[y][x as usize / 2] = value as u8;
-                                }
-                            }
-                            matrix_8_by_8
-                        })
-                        .collect::<Vec<_>>();
-
-                    if let Some(sender) = self.event_sender.as_ref() {
-                        sender.send(Event::OnDebugFrame(data)).unwrap();
-                    }
-                }
             }
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => self.lcd.lcdc = value,
