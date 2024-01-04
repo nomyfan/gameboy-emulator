@@ -56,12 +56,6 @@ impl GameBoy {
 
         // TODO: loop and accept signals to stop
         loop {
-            if self.cpu.stopped {
-                println!("Stopping...");
-                // TODO
-                break;
-            }
-
             if self.cpu.halted {
                 if self.bus.read(0xFF0F) != 0 {
                     self.cpu.halted = false;
@@ -81,7 +75,5 @@ impl GameBoy {
                 self.cpu.ime = true;
             }
         }
-
-        Ok(())
     }
 }
