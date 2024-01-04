@@ -7,11 +7,14 @@ use cpu16::{Cpu16, Register16, Register8};
 use gb_shared::{is_bit_set, set_bits, unset_bits};
 use interrupt::INTERRUPTS;
 
+pub const CPU_PERIOD_NANOS: f64 = 238.418579;
+
 impl<BUS> Cpu16 for Cpu<BUS>
 where
     BUS: gb_shared::Memory + gb_shared::Component,
 {
     fn adv_cycles(&mut self, cycles: u8) {
+        self.cycles = self.cycles.wrapping_add(cycles);
         self.bus.step(cycles);
     }
 
@@ -180,6 +183,8 @@ where
     /// Set by instruction STOP
     pub stopped: bool,
 
+    pub cycles: u8,
+
     bus: BUS,
     // TODO
 }
@@ -238,6 +243,7 @@ where
             enabling_ime: false,
             halted: false,
             stopped: false,
+            cycles: 0,
             bus,
         }
     }
@@ -323,6 +329,13 @@ where
     fn bus_write_16(&mut self, addr: u16, value: u16) {
         self.bus_write(addr, value as u8);
         self.bus_write(addr.wrapping_add(1), (value >> 8) as u8);
+    }
+
+    pub fn finish_cycles(&mut self) -> u8 {
+        let cycles = self.cycles;
+        self.cycles = 0;
+
+        cycles
     }
 
     fn read_reg(&mut self, loc: u8) -> u8 {

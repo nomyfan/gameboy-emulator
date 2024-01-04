@@ -12,6 +12,7 @@ use crate::bus::Bus;
 use anyhow::Ok;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
+use gb_cpu_sm83::CPU_PERIOD_NANOS;
 use gb_ppu::PPU;
 use gb_shared::event::EventSender;
 use gb_shared::Component;
@@ -64,6 +65,11 @@ impl GameBoy {
             } else {
                 self.cpu.step();
             };
+
+            std::thread::sleep(std::time::Duration::from_nanos(
+                (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64) as u64,
+            ));
+
             debug!("{:?}", &self.cpu);
 
             if self.cpu.ime {
