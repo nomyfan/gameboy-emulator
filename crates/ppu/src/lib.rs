@@ -6,7 +6,7 @@ mod tile;
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
-use crate::tile::{BackgroundTileDataBuilder, ObjectTileDataBuilder, TileData, TileDataBuilder};
+use crate::tile::TileData;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
 use gb_shared::event::{Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
@@ -34,6 +34,13 @@ pub(crate) struct PPUWorkState {
     /// scy + ly
     /// Updated in mode3(render a pixel).
     map_y: u8,
+    /// https://gbdev.io/pandocs/Scrolling.html#window:~:text=checked%20at%20the%20start%20of%20mode%202%20only
+    wy_condition: bool,
+    /// Window line counter.
+    /// It gets increased alongside with LY when window is visible.
+    window_line: u8,
+    // TODO:
+    is_window_visible: bool,
 }
 
 pub struct PPU<BUS: Memory> {
@@ -110,7 +117,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.lcd.stat = stat;
     }
 
-    fn get_bgw_tile_index(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
+    fn get_tile_map(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
         let vram_addr: u16 =
             if is_bit_set!(self.lcd.lcdc, if is_window { 6 } else { 3 }) { 0x9C00 } else { 0x9800 };
         let vram_addr = vram_addr + ((map_y as u16 / 8) * 32 + (map_x as u16) / 8);
@@ -119,53 +126,23 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.vram[vram_offset as usize]
     }
 
-    fn read_tile_data(&self, index: u8, for_object: bool, is_high: bool) -> [u8; 8] {
+    fn get_bg_tile_index(&self, map_x: u8, map_y: u8) -> u8 {
+        self.get_tile_map(map_x, map_y, false)
+    }
+
+    fn get_win_tile_index(&self, x: u8, y: u8) -> u8 {
+        self.get_tile_map(x, y, true)
+    }
+
+    fn read_tile_data(&self, index: u8, for_object: bool) -> [u8; 16] {
         let index = if for_object || is_bit_set!(self.lcd.lcdc, 4) {
             index as usize
         } else {
             let index = index as i8; // Make it able to be negative.
             (256 + index as i16) as usize // It must be positive now before casting to usize.
         };
-        let vram_offset = index * 16 + (if is_high { 8 } else { 0 });
-        self.vram[vram_offset..(vram_offset + 8)].try_into().unwrap()
-    }
-
-    fn select_palette(&self, bgw: &Option<TileData>, object: &Option<TileData>) -> u8 {
-        // Priority definition
-        // 1. If BGW' color ID is 0, then render the object.
-        // 2. If LCDC.0 is 0, then render the object.
-        // 3. If OAM attributes.7 is 0, then render the object.
-        // 4. Otherwise, render the BGW.
-
-        let mut color_id = 0;
-        let mut palette = 0;
-        if let Some(tile) = bgw {
-            if self.lcd.is_bgw_enabled() {
-                let x = self.work_state.map_x % 8;
-                let y = self.work_state.map_y % 8;
-
-                color_id = tile.get_color_id(x, y);
-                let offset = color_id * 2;
-                palette = (self.bgp >> offset) & 0b11;
-            }
-        }
-
-        if color_id == 0 {
-            if let Some(tile) = object {
-                let object = tile.object.as_ref().unwrap();
-                if !object.attrs.bgw_over_object() {
-                    let x = (self.work_state.scanline_x + 8) - object.x;
-                    let y = (self.lcd.ly + 16) - object.y;
-
-                    color_id = tile.get_color_id(x, y);
-                    let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
-                    let offset = color_id * 2;
-                    palette = (obp >> offset) & 0b11;
-                }
-            }
-        }
-
-        palette
+        let vram_offset = index * 16;
+        self.vram[vram_offset..(vram_offset + 16)].try_into().unwrap()
     }
 
     fn move_to_next_scanline(&mut self) {
@@ -173,6 +150,11 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.work_state.scanline_x = 0;
         self.work_state.scanline_objects.clear();
         self.lcd.ly += 1;
+
+        if self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166 {
+            self.work_state.window_line += 1;
+        }
+        // self.work_state.is_window_visible = false;
 
         if self.lcd.ly == self.lcd.lyc {
             self.lcd.stat = set_bits!(self.lcd.stat, 2);
@@ -198,14 +180,39 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
-        if self.work_state.scanline_dots == 1 {
+        if self.work_state.scanline_dots == 80 {
+            // https://gbdev.io/pandocs/OAM.html#drawing-priority
+            //
+            // For Non-CGB, the smaller X, the higher priority.
+            // If the X is same, object located first has higher priority.
+            //
+            // For CGB, the priority is determined by the location in OAM.
+            // The earlier the object, the higher its priority.
+            //
+            // It's notable that `sort_by` is stable.
+            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
+            self.set_lcd_mode(LCDMode::RenderPixel);
+            return;
+        }
+
+        if self.work_state.scanline_dots % 8 == 1 {
             // Mode 2(OAM scan) stat interrupt
-            if is_bit_set!(self.lcd.stat, 5) {
-                self.bus.request_lcd_stat();
+            if self.work_state.scanline_dots == 1 {
+                if is_bit_set!(self.lcd.stat, 5) {
+                    self.bus.request_lcd_stat();
+                }
+
+                // self.work_state.wy_condition = self.lcd.wy == self.lcd.ly;
+                self.work_state.is_window_visible =
+                    self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166;
             }
 
             let obj_size = self.lcd.object_size();
             for object_index in 0..40usize {
+                // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
+                if self.work_state.scanline_objects.len() >= 10 {
+                    break;
+                }
                 let object = unsafe {
                     let base_addr = object_index * 4;
                     std::mem::transmute_copy::<[u8; 4], Object>(
@@ -217,23 +224,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                 if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
                     self.work_state.scanline_objects.push(object);
                 }
-                // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
-                if self.work_state.scanline_objects.len() >= 10 {
-                    break;
-                }
             }
-            // https://gbdev.io/pandocs/OAM.html#drawing-priority
-            //
-            // For Non-CGB, the smaller X, the higher priority.
-            // If the X is same, object located first has higher priority.
-            //
-            // For CGB, the priority is determined by the location in OAM.
-            // The earlier the object, the higher its priority.
-            //
-            // It's worth mentioning that `sort_by` is stable.
-            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
-        } else if self.work_state.scanline_dots == 80 {
-            self.set_lcd_mode(LCDMode::RenderPixel);
         }
     }
 
@@ -243,8 +234,6 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         // TODO: penalty for canceling?
         // https://gbdev.io/pandocs/pixel_fifo.html#object-fetch-canceling
         // https://gbdev.io/pandocs/Rendering.html#mode-3-length
-        self.work_state.map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
-        self.work_state.map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
 
         // Extra 12 dots are needed for fetching two tiles at the beginning of mode 3.
         // https://gbdev.io/pandocs/Rendering.html#:~:text=the%2012%20extra%20cycles%20come%20from%20two%20tile%20fetches%20at%20the%20beginning%20of%20mode%203
@@ -252,78 +241,111 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             return;
         }
 
-        let mut bgw_tile_builder = None;
-        let mut object_tile_builder = None;
+        let mut color_id = 0;
+        let mut color_palette = self.bgp & 0b11;
 
-        {
-            if self.lcd.is_bgw_enabled() {
-                let index =
-                    self.get_bgw_tile_index(self.work_state.map_x, self.work_state.map_y, false);
-                bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
+        // Issues to be fixed:
+        // 1. Window is not rendered correctly.
+        // 2. It seems that right side of chin render more 1 line pixels. Maybe it's test data only
+        //    now, if we can read the correct window data, it might be fixed.
 
-                if self.lcd.is_window_enabled()
-                    && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
-                        .contains(&(self.work_state.map_x as u16 + 7))
-                    && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
-                        .contains(&(self.work_state.map_y as u16))
-                {
-                    let index =
-                        self.get_bgw_tile_index(self.work_state.map_x, self.work_state.map_y, true);
+        if self.lcd.is_bgw_enabled() {
+            let map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
+            let map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
+            let mut index = self.get_bg_tile_index(map_x, map_y);
+            let mut ty = map_y % 8;
+            let mut tx = map_x % 8;
 
-                    bgw_tile_builder.replace(BackgroundTileDataBuilder::new(index));
+            // FIXME: It seems that window reading is not correct.
+            //
+            if self.lcd.is_window_enabled()
+                && self.lcd.wx <= 166
+                && self.lcd.wy <= 143
+                && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
+                    .contains(&(self.work_state.scanline_x as u16 + 7))
+                && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
+                    .contains(&(self.lcd.ly as u16))
+            {
+                let y = self.work_state.window_line;
+                let x = (self.work_state.scanline_x as u16 + 7 - self.lcd.wx as u16) as u8;
+
+                index = self.get_win_tile_index(x, y);
+                index = 1; // FIXME: for test only
+                ty = y % 8;
+                tx = x % 8;
+            }
+
+            let tile_data = self.read_tile_data(index, false);
+            let tile_data = TileData { colors: mix_colors_16(&tile_data), object: None };
+
+            color_id = tile_data.get_color_id(tx, ty);
+            color_palette = (self.bgp >> (color_id * 2)) & 0b11;
+        }
+
+        if self.lcd.is_obj_enabled() {
+            let obj_size = self.lcd.object_size();
+            let objects = self
+                .work_state
+                .scanline_objects
+                .iter()
+                .filter(|object| {
+                    // overlap
+                    let sx = self.work_state.scanline_x + 8;
+                    sx >= object.x && sx < object.x + 8
+                })
+                .map(|object| {
+                    let object = *object;
+
+                    let mut ty = (self.lcd.ly + 16) - object.y;
+                    let tx = (self.work_state.scanline_x + 8) - object.x;
+
+                    if obj_size == 16 && object.attrs.y_flip() {
+                        ty = 15 - ty;
+                    }
+
+                    let index = if obj_size == 16 {
+                        if ty >= 8 {
+                            // bottom tile
+                            object.tile_index | 0x01
+                        } else {
+                            // top tile
+                            object.tile_index & 0xFE
+                        }
+                    } else {
+                        object.tile_index
+                    };
+
+                    ty %= 8;
+
+                    let tile_data = self.read_tile_data(index, true);
+
+                    let mut colors = mix_colors_16(&tile_data);
+                    apply_attrs(&mut colors, &object.attrs);
+                    let tile_data = TileData { colors, object: Some(object) };
+                    let color_id = tile_data.get_color_id(tx, ty);
+
+                    (color_id, object)
+                })
+                .collect::<Vec<_>>();
+            let opaque_object = objects.into_iter().find(|(obj_color_id, _)| obj_color_id != &0);
+            if let Some((obj_color_id, object)) = opaque_object {
+                // Priority definition(the object below is opaque)
+                // 1. If BGW' color ID is 0, then render the object.
+                // 2. If LCDC.0 is 0, then render the object.
+                // 3. If OAM attributes.7 is 0, then render the object.
+                // 4. Otherwise, render the BGW.
+                if color_id == 0 || !object.attrs.bgw_over_object() {
+                    let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
+                    let offset = obj_color_id * 2;
+                    color_palette = (obp >> offset) & 0b11;
                 }
             }
-
-            if self.lcd.is_obj_enabled() {
-                let builder = self
-                    .work_state
-                    .scanline_objects
-                    .iter()
-                    .find(|object| {
-                        let sx = self.work_state.scanline_x + 8;
-                        sx >= object.x && sx < object.x + 8
-                    })
-                    .map(|object| ObjectTileDataBuilder::new(*object, self.lcd.object_size()));
-
-                object_tile_builder = builder;
-            }
         }
 
-        {
-            if let Some(mut builder) = bgw_tile_builder.take() {
-                builder.low(self.read_tile_data(builder.index, false, false));
-                bgw_tile_builder.replace(builder);
-            }
-
-            if let Some(mut builder) = object_tile_builder.take() {
-                builder.low(self.read_tile_data(builder.tile_index(), true, false));
-                object_tile_builder.replace(builder);
-            }
-        }
-
-        {
-            if let Some(mut builder) = bgw_tile_builder.take() {
-                builder.high(self.read_tile_data(builder.index, false, true));
-                bgw_tile_builder.replace(builder);
-            }
-
-            if let Some(mut builder) = object_tile_builder.take() {
-                builder.high(self.read_tile_data(builder.tile_index(), true, true));
-                object_tile_builder = Some(builder);
-            }
-        }
-
-        {
-            let bgw_tile = bgw_tile_builder.take().map(|builder| builder.build());
-            let object_tile = object_tile_builder.take().map(|builder| builder.build());
-
-            let palette = self.select_palette(&bgw_tile, &object_tile);
-            let viewport_x = self.work_state.scanline_x as usize;
-            let viewport_y = self.lcd.ly as usize;
-            self.video_buffer[viewport_y][viewport_x] = palette;
-
-            self.work_state.scanline_x += 1;
-        }
+        let viewport_x = self.work_state.scanline_x as usize;
+        let viewport_y = self.lcd.ly as usize;
+        self.video_buffer[viewport_y][viewport_x] = color_palette;
+        self.work_state.scanline_x += 1;
 
         // Pixels in current scanline are all rendered.
         if self.work_state.scanline_x >= RESOLUTION_X as u8 {
@@ -403,6 +425,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
             if self.lcd.ly >= SCANLINES_PER_FRAME {
                 self.lcd.ly = 0;
+                self.work_state.window_line = 0;
                 self.set_lcd_mode(LCDMode::OamScan);
             }
         }
@@ -484,6 +507,7 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
 use gb_shared::InterruptType;
 #[cfg(test)]
 use mockall::mock;
+use tile::{apply_attrs, mix_colors_16};
 
 #[cfg(test)]
 mock! {

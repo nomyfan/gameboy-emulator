@@ -1,5 +1,4 @@
 use crate::object::{Object, ObjectAttrs};
-use gb_shared::pick_bits;
 
 #[derive(Debug, Default)]
 pub(crate) struct TileData {
@@ -39,18 +38,18 @@ impl BackgroundTileDataBuilder {
     }
 }
 
-pub(crate) fn mix_colors(low: [u8; 8], high: [u8; 8]) -> [u16; 8] {
+pub(crate) fn mix_colors(low: &[u8; 8], high: &[u8; 8]) -> [u16; 8] {
     let mut colors: [u16; 8] = Default::default();
 
-    let mut mix = |data: [u8; 8], offset: usize| {
+    let mut mix = |data: &[u8; 8], offset: usize| {
         for i in (0..data.len()).step_by(2) {
             let lsbs = data[i];
             let msbs = data[i + 1];
 
             let mut color = 0u16;
             for bit in 0..8 {
-                let lsb = (lsbs & (1 << bit)) as u16 >> bit;
-                let msb = (msbs & (1 << bit)) as u16 >> bit;
+                let lsb = ((lsbs >> bit) & 1) as u16;
+                let msb = ((msbs >> bit) & 1) as u16;
 
                 let lsb = lsb << (bit * 2);
                 let msb = msb << (bit * 2 + 1);
@@ -67,7 +66,11 @@ pub(crate) fn mix_colors(low: [u8; 8], high: [u8; 8]) -> [u16; 8] {
     colors
 }
 
-fn apply_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
+pub(crate) fn mix_colors_16(data: &[u8; 16]) -> [u16; 8] {
+    mix_colors(data[0..8].try_into().unwrap(), data[8..16].try_into().unwrap())
+}
+
+pub(crate) fn apply_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
     if attrs.y_flip() {
         for i in 0..4 {
             data.swap(i, 7 - i);
@@ -99,7 +102,7 @@ impl TileDataBuilder for BackgroundTileDataBuilder {
         let Some(low) = self.low else { panic!("low data is not set") };
         let Some(high) = self.high else { panic!("high data is not set") };
 
-        let colors = mix_colors(low, high);
+        let colors = mix_colors(&low, &high);
         TileData { colors, object: None }
     }
 }
@@ -140,7 +143,7 @@ impl TileDataBuilder for ObjectTileDataBuilder {
         let Some(low) = self.low else { panic!("low data is not set") };
         let Some(high) = self.high else { panic!("high data is not set") };
 
-        let mut colors = mix_colors(low, high);
+        let mut colors = mix_colors(&low, &high);
         apply_attrs(&mut colors, &self.object.attrs);
         TileData { colors, object: Some(self.object) }
     }
