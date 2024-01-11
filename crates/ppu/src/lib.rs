@@ -118,21 +118,16 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.lcd.stat = stat;
     }
 
-    fn get_tile_map(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
-        let bit = if is_window { 6 } else { 3 };
-        let vram_addr: u16 = if is_bit_set!(self.lcd.lcdc, bit) { 0x9C00 } else { 0x9800 };
-        let vram_addr = vram_addr + ((map_y as u16 / 8) * 32 + (map_x as u16) / 8);
+    fn get_tile_map_value(&self, x: u8, y: u8, is_window: bool) -> u8 {
+        let vram_addr = if is_window {
+            self.lcd.window_tile_map_area()
+        } else {
+            self.lcd.background_tile_map_area()
+        };
+        let vram_addr = vram_addr + ((y as u16 / 8) * 32 + (x as u16) / 8);
 
         let vram_offset = vram_addr - 0x8000;
         self.vram[vram_offset as usize]
-    }
-
-    fn get_bg_tile_index(&self, map_x: u8, map_y: u8) -> u8 {
-        self.get_tile_map(map_x, map_y, false)
-    }
-
-    fn get_win_tile_index(&self, x: u8, y: u8) -> u8 {
-        self.get_tile_map(x, y, true)
     }
 
     fn read_tile_data(&self, index: u8, for_object: bool) -> [u8; 16] {
@@ -352,7 +347,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         if self.lcd.is_bgw_enabled() {
             let map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
             let map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
-            let mut index = self.get_bg_tile_index(map_x, map_y);
+            let mut index = self.get_tile_map_value(map_x, map_y, false);
             let mut ty = map_y % 8;
             let mut tx = map_x % 8;
 
@@ -366,7 +361,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                 let y = self.work_state.window_line;
                 let x = self.work_state.scanline_x + 7 - self.lcd.wx;
 
-                index = self.get_win_tile_index(x, y);
+                index = self.get_tile_map_value(x, y, true);
                 ty = y % 8;
                 tx = x % 8;
             }
@@ -378,7 +373,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             color_palette = (self.bgp >> (color_id * 2)) & 0b11;
         }
 
-        if self.lcd.is_obj_enabled() {
+        if self.lcd.is_object_enabled() {
             let obj_size = self.lcd.object_size();
             let objects = self
                 .work_state
