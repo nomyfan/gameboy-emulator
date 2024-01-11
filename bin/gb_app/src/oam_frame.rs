@@ -3,7 +3,7 @@
 use left_right::{Absorb, ReadGuard, ReadHandle, WriteHandle};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
-    dpi::LogicalSize,
+    dpi::{LogicalSize, Position},
     event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
@@ -74,13 +74,17 @@ pub fn new() -> (OamFrameWriter, OamFrameReader) {
     (writer, reader)
 }
 
-pub fn new_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
+pub fn new_window(
+    event_loop: &EventLoop<()>,
+    position: Position,
+) -> anyhow::Result<(Window, Pixels)> {
     let window = {
         let size = LogicalSize::new(128., 192.);
         WindowBuilder::new()
-            .with_title("GameBoy Debug")
+            .with_title("OAM")
             .with_inner_size(size)
             .with_min_inner_size(size)
+            .with_position(position)
             .build(event_loop)
             .unwrap()
     };

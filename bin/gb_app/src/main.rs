@@ -14,7 +14,7 @@ use log::error;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::mpsc;
 use std::thread;
-use winit::dpi::LogicalSize;
+use winit::dpi::{LogicalPosition, LogicalSize, Position};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::keyboard::KeyCode;
@@ -62,7 +62,11 @@ fn main() -> anyhow::Result<()> {
             (None, None, None)
         } else {
             let (writer, reader) = tile_map_frame::new();
-            let (window, pixels) = tile_map_frame::new_window("Map 0x9800", &event_loop)?;
+            let (window, pixels) = tile_map_frame::new_window(
+                "Map 0x9800",
+                &event_loop,
+                Position::Logical(LogicalPosition::new(100.0, 100.0)),
+            )?;
             let window_id = window.id();
 
             (Some(writer), Some((reader, pixels, window_id)), Some(window))
@@ -75,7 +79,11 @@ fn main() -> anyhow::Result<()> {
             (None, None, None)
         } else {
             let (writer, reader) = tile_map_frame::new();
-            let (window, pixels) = tile_map_frame::new_window("Map 0x9C00", &event_loop)?;
+            let (window, pixels) = tile_map_frame::new_window(
+                "Map 0x9C00",
+                &event_loop,
+                Position::Logical(LogicalPosition::new(100.0, 406.0)),
+            )?;
             let window_id = window.id();
 
             (Some(writer), Some((reader, pixels, window_id)), Some(window))
@@ -88,7 +96,10 @@ fn main() -> anyhow::Result<()> {
             (None, None, None)
         } else {
             let (writer, reader) = oam_frame::new();
-            let (window, pixels) = oam_frame::new_window(&event_loop)?;
+            let (window, pixels) = oam_frame::new_window(
+                &event_loop,
+                Position::Logical(LogicalPosition::new(376.0, 100.0)),
+            )?;
             let window_id = window.id();
 
             (Some(writer), Some((reader, pixels, window_id)), Some(window))
