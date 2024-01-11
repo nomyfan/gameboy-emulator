@@ -38,7 +38,7 @@ impl ObjectAttrs {
     }
 
     pub(crate) fn dmg_palette(&self) -> u8 {
-        (self.0 >> 4) & 0b1
+        is_bit_set!(self.0, 4) as u8
     }
 }
 

@@ -272,13 +272,8 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             if is_bit_set!(self.lcd.stat, 5) {
                 self.bus.request_lcd_stat();
             }
-
             let obj_size = self.lcd.object_size();
             for object_index in 0..40usize {
-                // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
-                if self.work_state.scanline_objects.len() >= 10 {
-                    break;
-                }
                 let object = unsafe {
                     let base_addr = object_index * 4;
                     std::mem::transmute_copy::<[u8; 4], Object>(
@@ -290,10 +285,12 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                 if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
                     self.work_state.scanline_objects.push(object);
                 }
+                // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
+                if self.work_state.scanline_objects.len() >= 10 {
+                    break;
+                }
             }
-        }
-
-        if self.work_state.scanline_dots == 80 {
+        } else if self.work_state.scanline_dots == 80 {
             // https://gbdev.io/pandocs/OAM.html#drawing-priority
             //
             // For Non-CGB, the smaller X, the higher priority.
