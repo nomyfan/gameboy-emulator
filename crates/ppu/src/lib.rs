@@ -327,11 +327,16 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         let mut color_palette = self.bgp & 0b11;
 
         if self.lcd.is_bgw_enabled() {
-            let map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
-            let map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
-            let mut index = self.get_tile_map_value(map_x, map_y, false);
-            let mut ty = map_y % 8;
-            let mut tx = map_x % 8;
+            let (mut index, mut ty, mut tx) = {
+                let map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
+                let map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
+
+                let index = self.get_tile_map_value(map_x, map_y, false);
+                let ty = map_y % 8;
+                let tx = map_x % 8;
+
+                (index, ty, tx)
+            };
 
             if self.is_window_visible()
                 && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
