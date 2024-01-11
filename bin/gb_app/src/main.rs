@@ -53,7 +53,9 @@ fn main() -> anyhow::Result<()> {
     event_loop.set_control_flow(ControlFlow::Poll);
     let mut input = WinitInputHelper::new();
 
+    #[cfg(debug_assertions)]
     let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
+    #[cfg(debug_assertions)]
     let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
 
     #[cfg(debug_assertions)]
