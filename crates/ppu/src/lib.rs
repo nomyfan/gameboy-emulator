@@ -6,7 +6,6 @@ mod tile;
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
-use crate::tile::TileData;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
 use gb_shared::event::{Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
@@ -26,16 +25,6 @@ pub(crate) struct PPUWorkState {
     /// Appended in mode 2(OAM scan).
     /// Reset when moving to next scanline.
     scanline_objects: Vec<Object>,
-    /// X coordination of current pixel.
-    /// scx + scanline_x
-    /// Updated in mode 3(render a pixel).
-    map_x: u8,
-    /// Y coordination of current pixel.
-    /// scy + ly
-    /// Updated in mode3(render a pixel).
-    map_y: u8,
-    /// https://gbdev.io/pandocs/Scrolling.html#window:~:text=checked%20at%20the%20start%20of%20mode%202%20only
-    wy_condition: bool,
     /// Window line counter.
     /// It gets increased alongside with LY when window is visible.
     window_line: u8,
@@ -174,18 +163,11 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
             #[cfg(debug_assertions)]
             {
-                use crate::tile::mix_colors;
-
                 // log::info!("write to vram {:#X} = {:#X}", addr, value);
                 let data = self
                     .vram
                     .chunks(16)
-                    .map(|chunk| {
-                        mix_colors(
-                            chunk[0..8].try_into().unwrap(),
-                            chunk[8..16].try_into().unwrap(),
-                        )
-                    })
+                    .map(|chunk| tile::mix_colors_16(chunk.try_into().unwrap()))
                     .map(|ti| {
                         let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
                         for (y, yd) in ti.into_iter().enumerate() {
@@ -216,7 +198,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                             let tile: [u8; 16] =
                                 self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
 
-                            let data = mix_colors_16(&tile);
+                            let data = tile::mix_colors_16(&tile);
 
                             let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
                             for (y, yd) in data.into_iter().enumerate() {
@@ -367,9 +349,9 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             }
 
             let tile_data = self.read_tile_data(index, false);
-            let tile_data = TileData { colors: mix_colors_16(&tile_data), object: None };
+            let tile_data = tile::mix_colors_16(&tile_data);
 
-            color_id = tile_data.get_color_id(tx, ty);
+            color_id = tile::get_color_id(&tile_data, tx, ty);
             color_palette = (self.bgp >> (color_id * 2)) & 0b11;
         }
 
@@ -409,11 +391,9 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                     ty %= 8;
 
                     let tile_data = self.read_tile_data(index, true);
-
-                    let mut colors = mix_colors_16(&tile_data);
-                    apply_attrs(&mut colors, &object.attrs);
-                    let tile_data = TileData { colors, object: Some(object) };
-                    let color_id = tile_data.get_color_id(tx, ty);
+                    let mut tile_data = tile::mix_colors_16(&tile_data);
+                    tile::apply_object_attrs(&mut tile_data, &object.attrs);
+                    let color_id = tile::get_color_id(&tile_data, tx, ty);
 
                     (color_id, object)
                 })
@@ -550,7 +530,6 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
 use gb_shared::InterruptType;
 #[cfg(test)]
 use mockall::mock;
-use tile::{apply_attrs, mix_colors_16};
 
 #[cfg(test)]
 mock! {

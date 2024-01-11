@@ -1,22 +1,14 @@
-use crate::object::{Object, ObjectAttrs};
+use crate::object::ObjectAttrs;
 
-#[derive(Debug, Default)]
-pub(crate) struct TileData {
-    pub(crate) colors: [u16; 8],
-    pub(crate) object: Option<Object>,
-}
+/// Return color ID in range of 0..4.
+pub(crate) fn get_color_id(data: &[u16; 8], x: u8, y: u8) -> u8 {
+    assert!(x < 8 && y < 8);
 
-impl TileData {
-    /// Return color ID in range of 0..4.
-    pub(crate) fn get_color_id(&self, x: u8, y: u8) -> u8 {
-        assert!(x < 8 && y < 8);
+    let colors = data[y as usize];
+    let offset = (7 - x) as usize * 2;
+    let color_id = (colors >> offset) & 0b11;
 
-        let colors = self.colors[y as usize];
-        let offset = (7 - x) as usize * 2;
-        let color_id = (colors >> offset) & 0b11;
-
-        color_id as u8
-    }
+    color_id as u8
 }
 
 pub(crate) fn mix_colors(low: &[u8; 8], high: &[u8; 8]) -> [u16; 8] {
@@ -51,7 +43,7 @@ pub(crate) fn mix_colors_16(data: &[u8; 16]) -> [u16; 8] {
     mix_colors(data[0..8].try_into().unwrap(), data[8..16].try_into().unwrap())
 }
 
-pub(crate) fn apply_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
+pub(crate) fn apply_object_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
     if attrs.y_flip() {
         for i in 0..4 {
             data.swap(i, 7 - i);
@@ -70,7 +62,7 @@ pub(crate) fn apply_attrs(data: &mut [u16; 8], attrs: &ObjectAttrs) {
 
 #[cfg(test)]
 mod tests {
-    use super::{apply_attrs, mix_colors, TileData};
+    use super::{apply_object_attrs, get_color_id, mix_colors};
     use crate::object::ObjectAttrs;
 
     #[test]
@@ -114,8 +106,7 @@ mod tests {
 
     #[test]
     fn pick_color() {
-        let mut tile = TileData::default();
-        tile.colors = [
+        let colors = [
             0b00_10_11_11_11_11_10_00,
             0b00_11_00_00_00_00_11_00,
             0b00_11_00_00_00_00_11_00,
@@ -126,10 +117,10 @@ mod tests {
             0b00_10_11_11_11_10_00_00,
         ];
 
-        assert_eq!(tile.get_color_id(1, 0), 0b10);
-        assert_eq!(tile.get_color_id(3, 4), 0b11);
-        assert_eq!(tile.get_color_id(2, 1), 0b00);
-        assert_eq!(tile.get_color_id(3, 5), 0b01);
+        assert_eq!(get_color_id(&colors, 1, 0), 0b10);
+        assert_eq!(get_color_id(&colors, 3, 4), 0b11);
+        assert_eq!(get_color_id(&colors, 2, 1), 0b00);
+        assert_eq!(get_color_id(&colors, 3, 5), 0b01);
     }
 
     #[test]
@@ -144,7 +135,7 @@ mod tests {
             0b00_00_00_00_00_00_00_00,
             0b00_00_00_00_00_00_00_00,
         ];
-        apply_attrs(&mut data, &ObjectAttrs(0b0010_0000));
+        apply_object_attrs(&mut data, &ObjectAttrs(0b0010_0000));
 
         let expected = [
             0b11_01_10_00_11_01_10_00,
@@ -172,7 +163,7 @@ mod tests {
             0b00_00_00_00_00_00_00_00,
             0b00_00_00_00_00_00_00_00,
         ];
-        apply_attrs(&mut data, &ObjectAttrs(0b0100_0000));
+        apply_object_attrs(&mut data, &ObjectAttrs(0b0100_0000));
 
         let expected = [
             0b00_00_00_00_00_00_00_00,
