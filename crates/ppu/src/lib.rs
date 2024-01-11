@@ -235,12 +235,8 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
     fn power(&mut self, on: bool) {
         if on {
             log::debug!("ppu power on");
-            self.work_state.scanline_dots = 0;
-            self.work_state.scanline_x = 0;
-            self.work_state.scanline_objects.clear();
+            self.work_state = Default::default();
             self.lcd.ly = 0;
-            self.work_state.window_used = false;
-            self.work_state.window_line = 0;
             self.set_lcd_mode(LCDMode::OamScan);
         } else {
             log::debug!("ppu power off");
