@@ -1,8 +1,10 @@
 mod config;
-#[cfg(debug_assertions)]
-mod debug_frame;
 mod frame;
 mod logger;
+#[cfg(debug_assertions)]
+mod oam_frame;
+#[cfg(debug_assertions)]
+mod tile_map_frame;
 
 use crate::config::{HEIGHT, WIDTH};
 use gb::GameBoy;
@@ -71,8 +73,38 @@ fn main() -> anyhow::Result<()> {
     let mut input = WinitInputHelper::new();
 
     #[cfg(debug_assertions)]
-    let ((mut debug_writer, debug_reader), (debug_window, mut debug_pixels), debug_window_id) = {
-        let dbg_frame = debug_frame::new();
+    let (
+        (mut map1_dbg_writer, map1_dbg_reader),
+        (map1_dbg_window, mut map1_dbg_pixels),
+        map1_dbg_window_id,
+    ) = {
+        let dbg_frame = tile_map_frame::new();
+        let dbg_window = tile_map_frame::new_tile_map_window("Map 0x9800", &event_loop)?;
+        let dbg_window_id = dbg_window.0.id();
+
+        (dbg_frame, dbg_window, dbg_window_id)
+    };
+
+    #[cfg(debug_assertions)]
+    let (
+        (mut map2_dbg_writer, map2_dbg_reader),
+        (map2_dbg_window, mut map2_dbg_pixels),
+        map2_dbg_window_id,
+    ) = {
+        let dbg_frame = tile_map_frame::new();
+        let dbg_window = tile_map_frame::new_tile_map_window("Map 0x9C00", &event_loop)?;
+        let dbg_window_id = dbg_window.0.id();
+
+        (dbg_frame, dbg_window, dbg_window_id)
+    };
+
+    #[cfg(debug_assertions)]
+    let (
+        (mut oam_dbg_writer, oam_dbg_reader),
+        (oam_dbg_window, mut oam_dbg_pixels),
+        oam_dbg_window_id,
+    ) = {
+        let dbg_frame = oam_frame::new();
         let dbg_window = debug_window(&event_loop)?;
         let dbg_window_id = dbg_window.0.id();
 
@@ -96,9 +128,17 @@ fn main() -> anyhow::Result<()> {
                     writer.flush();
                 }
                 #[cfg(debug_assertions)]
-                GameBoyEvent::OnDebugFrame(buffer) => {
-                    debug_writer.write(buffer);
-                    debug_writer.flush();
+                GameBoyEvent::OnDebugFrame(id, buffer) => {
+                    if id == 0 {
+                        oam_dbg_writer.write(buffer);
+                        oam_dbg_writer.flush();
+                    } else if id == 1 {
+                        map1_dbg_writer.write(buffer);
+                        map1_dbg_writer.flush();
+                    } else if id == 2 {
+                        map2_dbg_writer.write(buffer);
+                        map2_dbg_writer.flush();
+                    }
                 }
             },
             Err(err) => {
@@ -120,11 +160,29 @@ fn main() -> anyhow::Result<()> {
                     }
                 } else {
                     #[cfg(debug_assertions)]
-                    if window_id == &debug_window_id {
-                        if let Some(guard) = debug_reader.read() {
-                            let frame = guard.as_ref();
-                            frame.draw(debug_pixels.frame_mut());
-                            debug_pixels.render();
+                    {
+                        if window_id == &oam_dbg_window_id {
+                            if let Some(guard) = oam_dbg_reader.read() {
+                                let frame = guard.as_ref();
+                                frame.draw(oam_dbg_pixels.frame_mut());
+                                oam_dbg_pixels.render();
+                            }
+                        }
+
+                        if window_id == &map1_dbg_window_id {
+                            if let Some(guard) = map1_dbg_reader.read() {
+                                let frame = guard.as_ref();
+                                frame.draw(map1_dbg_pixels.frame_mut());
+                                map1_dbg_pixels.render();
+                            }
+                        }
+
+                        if window_id == &map2_dbg_window_id {
+                            if let Some(guard) = map2_dbg_reader.read() {
+                                let frame = guard.as_ref();
+                                frame.draw(map2_dbg_pixels.frame_mut());
+                                map2_dbg_pixels.render();
+                            }
                         }
                     }
                 }
@@ -133,7 +191,11 @@ fn main() -> anyhow::Result<()> {
         }
 
         #[cfg(debug_assertions)]
-        debug_window.request_redraw();
+        {
+            oam_dbg_window.request_redraw();
+            map1_dbg_window.request_redraw();
+            map2_dbg_window.request_redraw();
+        }
         main_window.request_redraw();
 
         // Handle input events

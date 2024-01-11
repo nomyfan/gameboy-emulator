@@ -39,8 +39,9 @@ pub(crate) struct PPUWorkState {
     /// Window line counter.
     /// It gets increased alongside with LY when window is visible.
     window_line: u8,
-    // TODO:
-    is_window_visible: bool,
+    /// Whether window is used in current scanline.
+    /// Used for incrementing window_line.
+    window_used: bool,
 }
 
 pub struct PPU<BUS: Memory> {
@@ -118,8 +119,8 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
     }
 
     fn get_tile_map(&self, map_x: u8, map_y: u8, is_window: bool) -> u8 {
-        let vram_addr: u16 =
-            if is_bit_set!(self.lcd.lcdc, if is_window { 6 } else { 3 }) { 0x9C00 } else { 0x9800 };
+        let bit = if is_window { 6 } else { 3 };
+        let vram_addr: u16 = if is_bit_set!(self.lcd.lcdc, bit) { 0x9C00 } else { 0x9800 };
         let vram_addr = vram_addr + ((map_y as u16 / 8) * 32 + (map_x as u16) / 8);
 
         let vram_offset = vram_addr - 0x8000;
@@ -151,10 +152,10 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.work_state.scanline_objects.clear();
         self.lcd.ly += 1;
 
-        if self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166 {
+        if self.work_state.window_used {
             self.work_state.window_line += 1;
         }
-        // self.work_state.is_window_visible = false;
+        self.work_state.window_used = false;
 
         if self.lcd.ly == self.lcd.lyc {
             self.lcd.stat = set_bits!(self.lcd.stat, 2);
@@ -166,6 +167,10 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         } else {
             self.lcd.stat = unset_bits!(self.lcd.stat, 2);
         }
+    }
+
+    fn is_window_visible(&self) -> bool {
+        self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166
     }
 
     pub fn step(&mut self) {
@@ -180,31 +185,10 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
-        if self.work_state.scanline_dots == 80 {
-            // https://gbdev.io/pandocs/OAM.html#drawing-priority
-            //
-            // For Non-CGB, the smaller X, the higher priority.
-            // If the X is same, object located first has higher priority.
-            //
-            // For CGB, the priority is determined by the location in OAM.
-            // The earlier the object, the higher its priority.
-            //
-            // It's notable that `sort_by` is stable.
-            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
-            self.set_lcd_mode(LCDMode::RenderPixel);
-            return;
-        }
-
-        if self.work_state.scanline_dots % 8 == 1 {
+        if self.work_state.scanline_dots == 1 {
             // Mode 2(OAM scan) stat interrupt
-            if self.work_state.scanline_dots == 1 {
-                if is_bit_set!(self.lcd.stat, 5) {
-                    self.bus.request_lcd_stat();
-                }
-
-                // self.work_state.wy_condition = self.lcd.wy == self.lcd.ly;
-                self.work_state.is_window_visible =
-                    self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166;
+            if is_bit_set!(self.lcd.stat, 5) {
+                self.bus.request_lcd_stat();
             }
 
             let obj_size = self.lcd.object_size();
@@ -226,6 +210,20 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                 }
             }
         }
+
+        if self.work_state.scanline_dots == 80 {
+            // https://gbdev.io/pandocs/OAM.html#drawing-priority
+            //
+            // For Non-CGB, the smaller X, the higher priority.
+            // If the X is same, object located first has higher priority.
+            //
+            // For CGB, the priority is determined by the location in OAM.
+            // The earlier the object, the higher its priority.
+            //
+            // It's notable that `sort_by` is stable.
+            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
+            self.set_lcd_mode(LCDMode::RenderPixel);
+        }
     }
 
     /// 持续172-289dots，加载Win/BG的tile，和object做像素合成。
@@ -244,11 +242,6 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         let mut color_id = 0;
         let mut color_palette = self.bgp & 0b11;
 
-        // Issues to be fixed:
-        // 1. Window is not rendered correctly.
-        // 2. It seems that right side of chin render more 1 line pixels. Maybe it's test data only
-        //    now, if we can read the correct window data, it might be fixed.
-
         if self.lcd.is_bgw_enabled() {
             let map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
             let map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
@@ -256,21 +249,17 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             let mut ty = map_y % 8;
             let mut tx = map_x % 8;
 
-            // FIXME: It seems that window reading is not correct.
-            //
-            if self.lcd.is_window_enabled()
-                && self.lcd.wx <= 166
-                && self.lcd.wy <= 143
-                && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
-                    .contains(&(self.work_state.scanline_x as u16 + 7))
+            if self.is_window_visible()
                 && ((self.lcd.wy as u16)..(self.lcd.wy as u16 + RESOLUTION_Y as u16))
                     .contains(&(self.lcd.ly as u16))
+                && ((self.lcd.wx as u16)..(self.lcd.wx as u16 + RESOLUTION_X as u16))
+                    .contains(&(self.work_state.scanline_x as u16 + 7))
             {
+                self.work_state.window_used = true;
                 let y = self.work_state.window_line;
-                let x = (self.work_state.scanline_x as u16 + 7 - self.lcd.wx as u16) as u8;
+                let x = self.work_state.scanline_x + 7 - self.lcd.wx;
 
                 index = self.get_win_tile_index(x, y);
-                index = 1; // FIXME: for test only
                 ty = y % 8;
                 tx = x % 8;
             }
@@ -409,8 +398,52 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                         .collect::<Vec<_>>();
 
                     if let Some(sender) = self.event_sender.as_ref() {
-                        sender.send(Event::OnDebugFrame(data)).unwrap();
+                        sender.send(Event::OnDebugFrame(0, data)).unwrap();
                     }
+                }
+
+                // Two tile map frames.
+                #[cfg(debug_assertions)]
+                {
+                    let get_map = |indexes: &[u8], index_fn: fn(u8) -> u8| {
+                        let mut map_data = Vec::with_capacity(32 * 32);
+                        for index in indexes {
+                            let index = index_fn(*index) as usize;
+
+                            let tile = {
+                                let tile: [u8; 16] =
+                                    self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
+
+                                let data = mix_colors_16(&tile);
+
+                                let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
+                                for (y, yd) in data.into_iter().enumerate() {
+                                    for x in (0..16u8).step_by(2) {
+                                        let offset = 14 - x;
+                                        let value = (yd >> offset) & 0b11;
+                                        matrix_8_by_8[y][x as usize / 2] = value as u8;
+                                    }
+                                }
+                                matrix_8_by_8
+                            };
+
+                            map_data.push(tile);
+                        }
+
+                        map_data
+                    };
+                    let index_fn = if is_bit_set!(self.lcd.lcdc, 4) {
+                        |index: u8| index
+                    } else {
+                        |index: u8| (index as i8 as i16 + 256) as u8
+                    };
+                    let map1 = get_map(&self.vram[0x1800..(0x1800 + 1024)], index_fn);
+                    let map2 = get_map(&self.vram[0x1C00..(0x1C00 + 1024)], index_fn);
+                    debug_assert_eq!(map1.len(), 1024);
+                    debug_assert_eq!(map2.len(), 1024);
+
+                    event_sender.send(Event::OnDebugFrame(1, map1)).unwrap();
+                    event_sender.send(Event::OnDebugFrame(2, map2)).unwrap();
                 }
             }
         } else {
