@@ -87,4 +87,8 @@ impl LCD {
     pub(crate) fn is_window_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 5)
     }
+
+    pub(crate) fn is_lcd_enabled(&self) -> bool {
+        is_bit_set!(self.lcdc, 7)
+    }
 }

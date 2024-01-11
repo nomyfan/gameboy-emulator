@@ -173,7 +173,114 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166
     }
 
+    fn push_frame(&mut self) {
+        if let Some(event_sender) = self.event_sender.as_ref() {
+            event_sender.send(Event::OnFrame(self.video_buffer.clone())).unwrap();
+
+            #[cfg(debug_assertions)]
+            {
+                use crate::tile::mix_colors;
+
+                // log::info!("write to vram {:#X} = {:#X}", addr, value);
+                let data = self
+                    .vram
+                    .chunks(16)
+                    .map(|chunk| {
+                        mix_colors(
+                            chunk[0..8].try_into().unwrap(),
+                            chunk[8..16].try_into().unwrap(),
+                        )
+                    })
+                    .map(|ti| {
+                        let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
+                        for (y, yd) in ti.into_iter().enumerate() {
+                            for x in (0..16u8).step_by(2) {
+                                let offset = 14 - x;
+                                let value = (yd >> offset) & 0b11;
+                                matrix_8_by_8[y][x as usize / 2] = value as u8;
+                            }
+                        }
+                        matrix_8_by_8
+                    })
+                    .collect::<Vec<_>>();
+
+                if let Some(sender) = self.event_sender.as_ref() {
+                    sender.send(Event::OnDebugFrame(0, data)).unwrap();
+                }
+            }
+
+            // Two tile map frames.
+            #[cfg(debug_assertions)]
+            {
+                let get_map = |indexes: &[u8], index_fn: fn(u8) -> u8| {
+                    let mut map_data = Vec::with_capacity(32 * 32);
+                    for index in indexes {
+                        let index = index_fn(*index) as usize;
+
+                        let tile = {
+                            let tile: [u8; 16] =
+                                self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
+
+                            let data = mix_colors_16(&tile);
+
+                            let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
+                            for (y, yd) in data.into_iter().enumerate() {
+                                for x in (0..16u8).step_by(2) {
+                                    let offset = 14 - x;
+                                    let value = (yd >> offset) & 0b11;
+                                    matrix_8_by_8[y][x as usize / 2] = value as u8;
+                                }
+                            }
+                            matrix_8_by_8
+                        };
+
+                        map_data.push(tile);
+                    }
+
+                    map_data
+                };
+                let index_fn = if is_bit_set!(self.lcd.lcdc, 4) {
+                    |index: u8| index
+                } else {
+                    |index: u8| (index as i8 as i16 + 256) as u8
+                };
+                let map1 = get_map(&self.vram[0x1800..(0x1800 + 1024)], index_fn);
+                let map2 = get_map(&self.vram[0x1C00..(0x1C00 + 1024)], index_fn);
+                debug_assert_eq!(map1.len(), 1024);
+                debug_assert_eq!(map2.len(), 1024);
+
+                event_sender.send(Event::OnDebugFrame(1, map1)).unwrap();
+                event_sender.send(Event::OnDebugFrame(2, map2)).unwrap();
+            }
+        }
+    }
+
+    fn power(&mut self, on: bool) {
+        if on {
+            log::debug!("ppu power on");
+            self.work_state.scanline_dots = 0;
+            self.work_state.scanline_x = 0;
+            self.work_state.scanline_objects.clear();
+            self.lcd.ly = 0;
+            self.work_state.window_used = false;
+            self.work_state.window_line = 0;
+            self.set_lcd_mode(LCDMode::OamScan);
+        } else {
+            log::debug!("ppu power off");
+            self.video_buffer.iter_mut().for_each(|row| {
+                row.iter_mut().for_each(|color_palette| {
+                    *color_palette = 0;
+                })
+            });
+            self.push_frame();
+        }
+    }
+
     pub fn step(&mut self) {
+        if !self.lcd.is_lcd_enabled() {
+            return;
+        }
+
         self.work_state.scanline_dots += 1;
         match self.lcd_mode() {
             LCDMode::OamScan => self.step_oam_scan(),
@@ -367,85 +474,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             }
 
             // Notify that a frame is rendered.
-            if let Some(event_sender) = self.event_sender.as_ref() {
-                event_sender.send(Event::OnFrame(self.video_buffer.clone())).unwrap();
-
-                #[cfg(debug_assertions)]
-                {
-                    use crate::tile::mix_colors;
-
-                    // log::info!("write to vram {:#X} = {:#X}", addr, value);
-                    let data = self
-                        .vram
-                        .chunks(16)
-                        .map(|chunk| {
-                            mix_colors(
-                                chunk[0..8].try_into().unwrap(),
-                                chunk[8..16].try_into().unwrap(),
-                            )
-                        })
-                        .map(|ti| {
-                            let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                            for (y, yd) in ti.into_iter().enumerate() {
-                                for x in (0..16u8).step_by(2) {
-                                    let offset = 14 - x;
-                                    let value = (yd >> offset) & 0b11;
-                                    matrix_8_by_8[y][x as usize / 2] = value as u8;
-                                }
-                            }
-                            matrix_8_by_8
-                        })
-                        .collect::<Vec<_>>();
-
-                    if let Some(sender) = self.event_sender.as_ref() {
-                        sender.send(Event::OnDebugFrame(0, data)).unwrap();
-                    }
-                }
-
-                // Two tile map frames.
-                #[cfg(debug_assertions)]
-                {
-                    let get_map = |indexes: &[u8], index_fn: fn(u8) -> u8| {
-                        let mut map_data = Vec::with_capacity(32 * 32);
-                        for index in indexes {
-                            let index = index_fn(*index) as usize;
-
-                            let tile = {
-                                let tile: [u8; 16] =
-                                    self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
-
-                                let data = mix_colors_16(&tile);
-
-                                let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                                for (y, yd) in data.into_iter().enumerate() {
-                                    for x in (0..16u8).step_by(2) {
-                                        let offset = 14 - x;
-                                        let value = (yd >> offset) & 0b11;
-                                        matrix_8_by_8[y][x as usize / 2] = value as u8;
-                                    }
-                                }
-                                matrix_8_by_8
-                            };
-
-                            map_data.push(tile);
-                        }
-
-                        map_data
-                    };
-                    let index_fn = if is_bit_set!(self.lcd.lcdc, 4) {
-                        |index: u8| index
-                    } else {
-                        |index: u8| (index as i8 as i16 + 256) as u8
-                    };
-                    let map1 = get_map(&self.vram[0x1800..(0x1800 + 1024)], index_fn);
-                    let map2 = get_map(&self.vram[0x1C00..(0x1C00 + 1024)], index_fn);
-                    debug_assert_eq!(map1.len(), 1024);
-                    debug_assert_eq!(map2.len(), 1024);
-
-                    event_sender.send(Event::OnDebugFrame(1, map1)).unwrap();
-                    event_sender.send(Event::OnDebugFrame(2, map2)).unwrap();
-                }
-            }
+            self.push_frame();
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
         }
@@ -465,32 +494,22 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
     }
 }
 
-impl<BUS: Memory + InterruptRequest> PPU<BUS> {
-    /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
-    fn block_vram(&self, addr: u16) -> bool {
-        (0x8000..=0x9FFF).contains(&addr) && self.lcd_mode() == LCDMode::RenderPixel
-    }
-
-    /// https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#accessing-vram-and-oam
-    fn block_oam(&self, addr: u16) -> bool {
-        let lcd_mode = self.lcd_mode();
-        (0xFE00..=0xFE9F).contains(&addr)
-            && (lcd_mode == LCDMode::OamScan || lcd_mode == LCDMode::RenderPixel)
-    }
-}
-
 impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
     fn write(&mut self, addr: u16, value: u8) {
-        // if self.block_vram(addr) || self.block_oam(addr) {
-        //     return;
-        // }
-
         match addr {
             0x8000..=0x9FFF => {
                 self.vram[addr as usize - 0x8000] = value;
             }
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
-            0xFF40 => self.lcd.lcdc = value,
+            0xFF40 => {
+                let old_enabled = self.lcd.is_lcd_enabled();
+                self.lcd.lcdc = value;
+                let new_enabled = self.lcd.is_lcd_enabled();
+
+                if old_enabled != new_enabled {
+                    self.power(new_enabled);
+                }
+            }
             0xFF41 => {
                 // https://gbdev.io/pandocs/Interrupt_Sources.html#int-48--stat-interrupt
                 // https://gbdev.io/pandocs/STAT.html#ff41--stat-lcd-status
@@ -513,10 +532,6 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        // if self.block_oam(addr) || self.block_vram(addr) {
-        //     return 0xFF;
-        // }
-
         match addr {
             0x8000..=0x9FFF => self.vram[addr as usize - 0x8000],
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00],
