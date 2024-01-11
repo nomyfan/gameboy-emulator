@@ -66,9 +66,9 @@ impl GameBoy {
                 self.cpu.step();
             };
 
-            // std::thread::sleep(std::time::Duration::from_nanos(
-            //     (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64) as u64,
-            // ));
+            std::thread::sleep(std::time::Duration::from_nanos(
+                (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64) as u64,
+            ));
 
             debug!("{:?}", &self.cpu);
 
