@@ -7,7 +7,7 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::event::{Event, EventSender};
+use gb_shared::event::{self, Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
 
 #[derive(Debug, Default)]
@@ -163,45 +163,18 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
             #[cfg(debug_assertions)]
             {
-                // log::info!("write to vram {:#X} = {:#X}", addr, value);
-                let data = self
-                    .vram
-                    .chunks(16)
-                    .map(|chunk| tile::mix_colors_16(chunk.try_into().unwrap()))
-                    .map(|ti| {
-                        let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                        for (y, yd) in ti.into_iter().enumerate() {
-                            for x in (0..16u8).step_by(2) {
-                                let offset = 14 - x;
-                                let value = (yd >> offset) & 0b11;
-                                matrix_8_by_8[y][x as usize / 2] = value as u8;
-                            }
-                        }
-                        matrix_8_by_8
-                    })
-                    .collect::<Vec<_>>();
+                let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
+                let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
 
-                if let Some(sender) = self.event_sender.as_ref() {
-                    sender.send(Event::OnDebugFrame(0, data)).unwrap();
-                }
-            }
-
-            // Two tile map frames.
-            #[cfg(debug_assertions)]
-            {
-                let get_map = |indexes: &[u8], index_fn: fn(u8) -> u8| {
-                    let mut map_data = Vec::with_capacity(32 * 32);
-                    for index in indexes {
-                        let index = index_fn(*index) as usize;
-
-                        let tile = {
-                            let tile: [u8; 16] =
-                                self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
-
-                            let data = tile::mix_colors_16(&tile);
-
+                // OAM frame.
+                if dbg_windows_flag.contains(&"oam") {
+                    let data = self
+                        .vram
+                        .chunks(16)
+                        .map(|chunk| tile::mix_colors_16(chunk.try_into().unwrap()))
+                        .map(|ti| {
                             let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                            for (y, yd) in data.into_iter().enumerate() {
+                            for (y, yd) in ti.into_iter().enumerate() {
                                 for x in (0..16u8).step_by(2) {
                                     let offset = 14 - x;
                                     let value = (yd >> offset) & 0b11;
@@ -209,25 +182,54 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                                 }
                             }
                             matrix_8_by_8
-                        };
+                        })
+                        .collect::<Vec<_>>();
 
-                        map_data.push(tile);
-                    }
+                    event_sender.send(Event::OnDebugFrame(0, data)).unwrap();
+                }
 
-                    map_data
-                };
-                let index_fn = if is_bit_set!(self.lcd.lcdc, 4) {
-                    |index: u8| index
-                } else {
-                    |index: u8| (index as i8 as i16 + 256) as u8
-                };
-                let map1 = get_map(&self.vram[0x1800..(0x1800 + 1024)], index_fn);
-                let map2 = get_map(&self.vram[0x1C00..(0x1C00 + 1024)], index_fn);
-                debug_assert_eq!(map1.len(), 1024);
-                debug_assert_eq!(map2.len(), 1024);
+                // Two tile map frames.
+                if dbg_windows_flag.contains(&"map") {
+                    let get_map = |indexes: &[u8], index_fn: fn(u8) -> u8| {
+                        let mut map_data = Vec::with_capacity(32 * 32);
+                        for index in indexes {
+                            let index = index_fn(*index) as usize;
 
-                event_sender.send(Event::OnDebugFrame(1, map1)).unwrap();
-                event_sender.send(Event::OnDebugFrame(2, map2)).unwrap();
+                            let tile = {
+                                let tile: [u8; 16] =
+                                    self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
+
+                                let data = tile::mix_colors_16(&tile);
+
+                                let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
+                                for (y, yd) in data.into_iter().enumerate() {
+                                    for x in (0..16u8).step_by(2) {
+                                        let offset = 14 - x;
+                                        let value = (yd >> offset) & 0b11;
+                                        matrix_8_by_8[y][x as usize / 2] = value as u8;
+                                    }
+                                }
+                                matrix_8_by_8
+                            };
+
+                            map_data.push(tile);
+                        }
+
+                        map_data
+                    };
+                    let index_fn = if is_bit_set!(self.lcd.lcdc, 4) {
+                        |index: u8| index
+                    } else {
+                        |index: u8| (index as i8 as i16 + 256) as u8
+                    };
+                    let map1 = get_map(&self.vram[0x1800..(0x1800 + 1024)], index_fn);
+                    let map2 = get_map(&self.vram[0x1C00..(0x1C00 + 1024)], index_fn);
+                    debug_assert_eq!(map1.len(), 1024);
+                    debug_assert_eq!(map2.len(), 1024);
+
+                    event_sender.send(Event::OnDebugFrame(1, map1)).unwrap();
+                    event_sender.send(Event::OnDebugFrame(2, map2)).unwrap();
+                }
             }
         }
     }

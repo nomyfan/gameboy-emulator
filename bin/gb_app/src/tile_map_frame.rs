@@ -80,10 +80,7 @@ use winit::window::{Window, WindowBuilder};
 const WIDTH: u32 = 256;
 const HEIGHT: u32 = 256;
 
-pub fn new_tile_map_window(
-    name: &str,
-    event_loop: &EventLoop<()>,
-) -> anyhow::Result<(Window, Pixels)> {
+pub fn new_window(name: &str, event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         WindowBuilder::new()

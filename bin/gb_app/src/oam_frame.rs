@@ -1,6 +1,12 @@
 #![cfg(debug_assertions)]
 
 use left_right::{Absorb, ReadGuard, ReadHandle, WriteHandle};
+use pixels::{Pixels, SurfaceTexture};
+use winit::{
+    dpi::LogicalSize,
+    event_loop::EventLoop,
+    window::{Window, WindowBuilder},
+};
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
@@ -66,4 +72,23 @@ pub fn new() -> (OamFrameWriter, OamFrameReader) {
     let writer = OamFrameWriter(write_handle);
     let reader = OamFrameReader(read_handle);
     (writer, reader)
+}
+
+pub fn new_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
+    let window = {
+        let size = LogicalSize::new(128., 192.);
+        WindowBuilder::new()
+            .with_title("GameBoy Debug")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(event_loop)
+            .unwrap()
+    };
+    let pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(128, 192, surface_texture)?
+    };
+
+    Ok((window, pixels))
 }
