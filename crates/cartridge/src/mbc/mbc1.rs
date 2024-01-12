@@ -78,7 +78,7 @@ impl super::Mbc for Mbc1 {
                     // 5 bits
                     self.banking_num & 0x1F
                 }
-                .if_then(|bank_num| bank_num == &0, |_| 1); // Bank 0 is the fixed ROM.
+                .if_then_fn(|bank_num| bank_num == &0, |_| 1); // Bank 0 is the fixed ROM.
                 let rom_offset = rom_bank_num * kib(16) + (addr - 0x4000) as usize;
                 rom[rom_offset]
             }

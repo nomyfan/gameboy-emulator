@@ -8,15 +8,26 @@ pub trait ImBuilder {
         transform(self)
     }
 
-    fn if_then(
+    fn if_then_fn(
         self,
-        predict: impl FnOnce(&Self) -> bool,
+        condition: impl FnOnce(&Self) -> bool,
         transform: impl FnOnce(Self) -> Self,
     ) -> Self
     where
         Self: Sized,
     {
-        if predict(&self) {
+        if condition(&self) {
+            transform(self)
+        } else {
+            self
+        }
+    }
+
+    fn if_then(self, condition: bool, transform: impl FnOnce(Self) -> Self) -> Self
+    where
+        Self: Sized,
+    {
+        if condition {
             transform(self)
         } else {
             self
@@ -32,14 +43,14 @@ mod tests {
 
     #[test]
     fn if_then() {
-        let value = 1.if_then(|v| v == &1, |v| v + 1).if_then(|v| v % 2 != 0, |v| v * 2);
+        let value = 1.if_then_fn(|v| v == &1, |v| v + 1).if_then_fn(|v| v % 2 != 0, |v| v * 2);
 
         assert_eq!(value, 2);
     }
 
     #[test]
     fn map() {
-        let value = 1.if_then(|_| true, |v| v + 100).map(|v| v.to_string());
+        let value = 1.if_then(true, |v| v + 100).map(|v| v.to_string());
 
         assert_eq!(value, "101");
     }
