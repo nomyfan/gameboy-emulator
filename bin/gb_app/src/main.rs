@@ -6,7 +6,7 @@ mod oam_frame;
 #[cfg(debug_assertions)]
 mod tile_map_frame;
 
-use crate::config::{HEIGHT, WIDTH};
+use crate::config::{HEIGHT, SCALE, WIDTH};
 use gb::GameBoy;
 use gb_shared::event::Event as GameBoyEvent;
 use gb_shared::Run;
@@ -23,7 +23,7 @@ use winit_input_helper::WinitInputHelper;
 
 fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(WIDTH as f64 * SCALE, HEIGHT as f64 * SCALE);
         WindowBuilder::new()
             .with_title("GameBoy")
             .with_inner_size(size)
@@ -67,7 +67,7 @@ fn main() -> anyhow::Result<()> {
             let (window, pixels) = tile_map_frame::new_window(
                 "Map 0x9800",
                 &event_loop,
-                Position::Logical(LogicalPosition::new(100.0, 100.0)),
+                Position::Logical(LogicalPosition::new(50.0, 100.0)),
             )?;
             let window_id = window.id();
 
@@ -84,7 +84,7 @@ fn main() -> anyhow::Result<()> {
             let (window, pixels) = tile_map_frame::new_window(
                 "Map 0x9C00",
                 &event_loop,
-                Position::Logical(LogicalPosition::new(100.0, 406.0)),
+                Position::Logical(LogicalPosition::new(50.0, 525.0)),
             )?;
             let window_id = window.id();
 
@@ -100,7 +100,7 @@ fn main() -> anyhow::Result<()> {
             let (writer, reader) = oam_frame::new();
             let (window, pixels) = oam_frame::new_window(
                 &event_loop,
-                Position::Logical(LogicalPosition::new(376.0, 100.0)),
+                Position::Logical(LogicalPosition::new(450.0, 100.0)),
             )?;
             let window_id = window.id();
 

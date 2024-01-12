@@ -1,6 +1,11 @@
 #![cfg(debug_assertions)]
 
+use crate::config::SCALE;
 use left_right::{Absorb, ReadGuard, ReadHandle, WriteHandle};
+use pixels::{Pixels, SurfaceTexture};
+use winit::dpi::{LogicalSize, Position};
+use winit::event_loop::EventLoop;
+use winit::window::{Window, WindowBuilder};
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
@@ -72,21 +77,13 @@ pub fn new() -> (TileMapFrameWriter, TileMapFrameReader) {
     (writer, reader)
 }
 
-use pixels::{Pixels, SurfaceTexture};
-use winit::dpi::{LogicalSize, Position};
-use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
-
-const WIDTH: u32 = 256;
-const HEIGHT: u32 = 256;
-
 pub fn new_window(
     name: &str,
     event_loop: &EventLoop<()>,
     position: Position,
 ) -> anyhow::Result<(Window, Pixels)> {
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(256.0 * SCALE, 256.0 * SCALE);
         WindowBuilder::new()
             .with_title(name)
             .with_inner_size(size)
@@ -98,7 +95,7 @@ pub fn new_window(
     let pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(256, 256, surface_texture)?
     };
 
     Ok((window, pixels))

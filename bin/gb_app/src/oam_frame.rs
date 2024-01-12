@@ -8,6 +8,8 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
+use crate::config::SCALE;
+
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
 type Buffer = Vec<[[u8; 8]; 8]>;
@@ -79,7 +81,7 @@ pub fn new_window(
     position: Position,
 ) -> anyhow::Result<(Window, Pixels)> {
     let window = {
-        let size = LogicalSize::new(128., 192.);
+        let size = LogicalSize::new(128.0 * SCALE, 192.0 * SCALE);
         WindowBuilder::new()
             .with_title("OAM")
             .with_inner_size(size)
