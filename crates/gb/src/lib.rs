@@ -82,6 +82,13 @@ impl GameBoy {
             if self.cpu.ime {
                 self.cpu.handle_interrupts();
                 self.cpu.enabling_ime = false;
+
+                let cycles = self.cpu.finish_cycles();
+                if cycles != 0 {
+                    std::thread::sleep(std::time::Duration::from_nanos(
+                        (CPU_PERIOD_NANOS * cycles as f64) as u64,
+                    ));
+                }
             }
 
             if self.cpu.enabling_ime {
