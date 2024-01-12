@@ -12,6 +12,7 @@ pub(crate) enum Register8 {
     L,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Register16 {
     AF,

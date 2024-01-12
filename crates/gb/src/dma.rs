@@ -1,5 +1,6 @@
 use gb_shared::Memory;
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 pub(crate) struct DMA {
     value: u8,

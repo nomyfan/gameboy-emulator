@@ -7,7 +7,7 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::event::{self, Event, EventSender};
+use gb_shared::event::{Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
 
 #[derive(Debug, Default)]

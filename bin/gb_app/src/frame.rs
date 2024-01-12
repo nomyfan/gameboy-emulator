@@ -41,8 +41,8 @@ impl FrameReader {
 impl Frame {
     pub(crate) fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % WIDTH as usize) as usize;
-            let y = (i / WIDTH as usize) as usize;
+            let x = i % WIDTH;
+            let y = i / WIDTH;
 
             let palette = self.buffer[y][x];
             let color = COLOR_PALETTES[palette as usize];

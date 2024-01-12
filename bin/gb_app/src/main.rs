@@ -9,15 +9,18 @@ mod tile_map_frame;
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use gb::GameBoy;
 use gb_shared::event::Event as GameBoyEvent;
+#[cfg(debug_assertions)]
 use gb_shared::Run;
 use log::error;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::mpsc;
 use std::thread;
-use winit::dpi::{LogicalPosition, LogicalSize, Position};
+use winit::dpi::LogicalSize;
+#[cfg(debug_assertions)]
+use winit::dpi::{LogicalPosition, Position};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::keyboard::KeyCode;
+
 use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
@@ -51,7 +54,7 @@ fn main() -> anyhow::Result<()> {
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
-    let mut input = WinitInputHelper::new();
+    let _input = WinitInputHelper::new();
 
     #[cfg(debug_assertions)]
     let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
@@ -151,7 +154,7 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    event_loop.run(move |event, target| {
+    event_loop.run(move |event, _target| {
         // Draw the current frame
         if let Event::WindowEvent { event, window_id } = &event {
             if let WindowEvent::RedrawRequested = event {

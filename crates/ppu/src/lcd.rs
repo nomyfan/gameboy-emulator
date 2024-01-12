@@ -19,6 +19,7 @@ impl From<u8> for LCDMode {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub(crate) struct LCD {
     /// LCD control, at 0xFF40.
     /// - Bit 0: BG and Window enable/priority, 0=off, 1=on.

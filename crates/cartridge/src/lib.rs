@@ -390,7 +390,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
 
         log::debug!("{}", &header);
 
-        let rom_size = kib(32) * 1usize << header.rom_size;
+        let rom_size = kib(32) << header.rom_size;
         let ram_size = match header.ram_size {
             0x02 => kib(8),
             0x03 => kib(32),
