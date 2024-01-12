@@ -252,10 +252,8 @@ impl Bus {
     }
 
     pub(crate) fn handle_command(&mut self, command: Command) {
-        match command {
-            Command::Joypad(joypad_command) => {
-                self.inner_mut().joypad.handle_command(joypad_command)
-            }
+        if let Command::Joypad(joypad_command) = command {
+            self.inner_mut().joypad.handle_command(joypad_command)
         }
     }
 }

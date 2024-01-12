@@ -14,6 +14,7 @@ use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_cpu_sm83::CPU_PERIOD_NANOS;
 use gb_ppu::PPU;
+use gb_shared::command::Command;
 use gb_shared::command::CommandReceiver;
 use gb_shared::event::EventSender;
 use gb_shared::Component;
@@ -62,7 +63,6 @@ impl GameBoy {
         self.ppu.set_event_sender(event_sender);
         self.command_receiver = Some(command_receiver);
 
-        // TODO: loop and accept signals to stop
         loop {
             if self.cpu.halted {
                 if self.bus.read(0xFF0F) != 0 {
@@ -97,6 +97,9 @@ impl GameBoy {
 
             // Safety: we set the command_receiver at the start of `play` function.
             if let Some(command) = self.command_receiver.as_ref().unwrap().try_recv().ok() {
+                if let Command::Exit = command {
+                    return Ok(());
+                }
                 self.bus.handle_command(command);
             }
         }

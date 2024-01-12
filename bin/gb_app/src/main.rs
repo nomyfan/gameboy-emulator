@@ -168,50 +168,62 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    event_loop.run(move |event, _target| {
+    event_loop.run(move |event, target| {
         // Draw the current frame
         if let Event::WindowEvent { event, window_id } = &event {
-            if let WindowEvent::RedrawRequested = event {
-                if window_id == &main_window_id {
-                    if let Some(guard) = reader.read() {
-                        let frame = guard.as_ref();
-                        frame.draw(pixels.frame_mut());
-                        pixels.render().unwrap();
-                    }
-                } else {
-                    #[cfg(debug_assertions)]
-                    {
-                        if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = oam_rpw.as_mut() {
-                            if window_id == dbg_window_id {
-                                if let Some(guard) = dbg_reader.read() {
-                                    let frame = guard.as_ref();
-                                    frame.draw(dbg_pixels.frame_mut());
-                                    dbg_pixels.render().unwrap();
+            match event {
+                WindowEvent::CloseRequested => {
+                    // Once GB instance exits, the GB event handling event thread will exit due to closed channel,
+                    // then the whole application will exit.
+                    command_sender.send(Command::Exit).unwrap();
+                    target.exit();
+                }
+                WindowEvent::RedrawRequested => {
+                    if window_id == &main_window_id {
+                        if let Some(guard) = reader.read() {
+                            let frame = guard.as_ref();
+                            frame.draw(pixels.frame_mut());
+                            pixels.render().unwrap();
+                        }
+                    } else {
+                        #[cfg(debug_assertions)]
+                        {
+                            if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = oam_rpw.as_mut()
+                            {
+                                if window_id == dbg_window_id {
+                                    if let Some(guard) = dbg_reader.read() {
+                                        let frame = guard.as_ref();
+                                        frame.draw(dbg_pixels.frame_mut());
+                                        dbg_pixels.render().unwrap();
+                                    }
                                 }
                             }
-                        }
 
-                        if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map1_rpw.as_mut() {
-                            if window_id == dbg_window_id {
-                                if let Some(guard) = dbg_reader.read() {
-                                    let frame = guard.as_ref();
-                                    frame.draw(dbg_pixels.frame_mut());
-                                    dbg_pixels.render().unwrap();
+                            if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map1_rpw.as_mut()
+                            {
+                                if window_id == dbg_window_id {
+                                    if let Some(guard) = dbg_reader.read() {
+                                        let frame = guard.as_ref();
+                                        frame.draw(dbg_pixels.frame_mut());
+                                        dbg_pixels.render().unwrap();
+                                    }
                                 }
                             }
-                        }
 
-                        if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map2_rpw.as_mut() {
-                            if window_id == dbg_window_id {
-                                if let Some(guard) = dbg_reader.read() {
-                                    let frame = guard.as_ref();
-                                    frame.draw(dbg_pixels.frame_mut());
-                                    dbg_pixels.render().unwrap();
+                            if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map2_rpw.as_mut()
+                            {
+                                if window_id == dbg_window_id {
+                                    if let Some(guard) = dbg_reader.read() {
+                                        let frame = guard.as_ref();
+                                        frame.draw(dbg_pixels.frame_mut());
+                                        dbg_pixels.render().unwrap();
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                _ => {}
             }
         }
 
