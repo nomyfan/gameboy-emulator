@@ -1,17 +1,20 @@
 mod config;
-#[cfg(debug_assertions)]
-mod debug_frame;
 mod frame;
 mod logger;
+#[cfg(debug_assertions)]
+mod oam_frame;
+#[cfg(debug_assertions)]
+mod tile_map_frame;
 
-use crate::config::{HEIGHT, WIDTH};
+use crate::config::{HEIGHT, SCALE, WIDTH};
 use gb::GameBoy;
 use gb_shared::event::Event as GameBoyEvent;
+use gb_shared::Run;
 use log::error;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::mpsc;
 use std::thread;
-use winit::dpi::LogicalSize;
+use winit::dpi::{LogicalPosition, LogicalSize, Position};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::keyboard::KeyCode;
@@ -20,7 +23,7 @@ use winit_input_helper::WinitInputHelper;
 
 fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(WIDTH as f64 * SCALE, HEIGHT as f64 * SCALE);
         WindowBuilder::new()
             .with_title("GameBoy")
             .with_inner_size(size)
@@ -33,26 +36,6 @@ fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
-    };
-
-    Ok((window, pixels))
-}
-
-#[cfg(debug_assertions)]
-fn debug_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
-    let window = {
-        let size = LogicalSize::new(128., 192.);
-        WindowBuilder::new()
-            .with_title("GameBoy Debug")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(event_loop)
-            .unwrap()
-    };
-    let pixels = {
-        let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(128, 192, surface_texture)?
     };
 
     Ok((window, pixels))
@@ -71,12 +54,58 @@ fn main() -> anyhow::Result<()> {
     let mut input = WinitInputHelper::new();
 
     #[cfg(debug_assertions)]
-    let ((mut debug_writer, debug_reader), (debug_window, mut debug_pixels), debug_window_id) = {
-        let dbg_frame = debug_frame::new();
-        let dbg_window = debug_window(&event_loop)?;
-        let dbg_window_id = dbg_window.0.id();
+    let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
+    #[cfg(debug_assertions)]
+    let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
 
-        (dbg_frame, dbg_window, dbg_window_id)
+    #[cfg(debug_assertions)]
+    let (mut map1_dbg_writer, mut map1_rpw, map1_dbg_window) = {
+        if !dbg_windows_flag.contains(&"map") {
+            (None, None, None)
+        } else {
+            let (writer, reader) = tile_map_frame::new();
+            let (window, pixels) = tile_map_frame::new_window(
+                "Map 0x9800",
+                &event_loop,
+                Position::Logical(LogicalPosition::new(50.0, 100.0)),
+            )?;
+            let window_id = window.id();
+
+            (Some(writer), Some((reader, pixels, window_id)), Some(window))
+        }
+    };
+
+    #[cfg(debug_assertions)]
+    let (mut map2_dbg_writer, mut map2_rpw, map2_dbg_window) = {
+        if !dbg_windows_flag.contains(&"map") {
+            (None, None, None)
+        } else {
+            let (writer, reader) = tile_map_frame::new();
+            let (window, pixels) = tile_map_frame::new_window(
+                "Map 0x9C00",
+                &event_loop,
+                Position::Logical(LogicalPosition::new(50.0, 525.0)),
+            )?;
+            let window_id = window.id();
+
+            (Some(writer), Some((reader, pixels, window_id)), Some(window))
+        }
+    };
+
+    #[cfg(debug_assertions)]
+    let (mut oam_dbg_writer, mut oam_rpw, oam_dbg_window) = {
+        if !dbg_windows_flag.contains(&"oam") {
+            (None, None, None)
+        } else {
+            let (writer, reader) = oam_frame::new();
+            let (window, pixels) = oam_frame::new_window(
+                &event_loop,
+                Position::Logical(LogicalPosition::new(450.0, 100.0)),
+            )?;
+            let window_id = window.id();
+
+            (Some(writer), Some((reader, pixels, window_id)), Some(window))
+        }
     };
 
     let (main_window, mut pixels) = main_window(&event_loop)?;
@@ -96,9 +125,23 @@ fn main() -> anyhow::Result<()> {
                     writer.flush();
                 }
                 #[cfg(debug_assertions)]
-                GameBoyEvent::OnDebugFrame(buffer) => {
-                    debug_writer.write(buffer);
-                    debug_writer.flush();
+                GameBoyEvent::OnDebugFrame(id, buffer) => {
+                    if id == 0 {
+                        oam_dbg_writer.run_mut(|writer| {
+                            writer.write(buffer);
+                            writer.flush();
+                        });
+                    } else if id == 1 {
+                        map1_dbg_writer.run_mut(|writer| {
+                            writer.write(buffer);
+                            writer.flush();
+                        });
+                    } else if id == 2 {
+                        map2_dbg_writer.run_mut(|writer| {
+                            writer.write(buffer);
+                            writer.flush();
+                        });
+                    }
                 }
             },
             Err(err) => {
@@ -116,42 +159,75 @@ fn main() -> anyhow::Result<()> {
                     if let Some(guard) = reader.read() {
                         let frame = guard.as_ref();
                         frame.draw(pixels.frame_mut());
-                        pixels.render();
+                        pixels.render().unwrap();
                     }
                 } else {
                     #[cfg(debug_assertions)]
-                    if window_id == &debug_window_id {
-                        if let Some(guard) = debug_reader.read() {
-                            let frame = guard.as_ref();
-                            frame.draw(debug_pixels.frame_mut());
-                            debug_pixels.render();
+                    {
+                        if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = oam_rpw.as_mut() {
+                            if window_id == dbg_window_id {
+                                if let Some(guard) = dbg_reader.read() {
+                                    let frame = guard.as_ref();
+                                    frame.draw(dbg_pixels.frame_mut());
+                                    dbg_pixels.render().unwrap();
+                                }
+                            }
+                        }
+
+                        if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map1_rpw.as_mut() {
+                            if window_id == dbg_window_id {
+                                if let Some(guard) = dbg_reader.read() {
+                                    let frame = guard.as_ref();
+                                    frame.draw(dbg_pixels.frame_mut());
+                                    dbg_pixels.render().unwrap();
+                                }
+                            }
+                        }
+
+                        if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map2_rpw.as_mut() {
+                            if window_id == dbg_window_id {
+                                if let Some(guard) = dbg_reader.read() {
+                                    let frame = guard.as_ref();
+                                    frame.draw(dbg_pixels.frame_mut());
+                                    dbg_pixels.render().unwrap();
+                                }
+                            }
                         }
                     }
                 }
             }
+            return;
         }
+
+        #[cfg(debug_assertions)]
+        {
+            oam_dbg_window.run(|window| window.request_redraw());
+            map1_dbg_window.run(|window| window.request_redraw());
+            map2_dbg_window.run(|window| window.request_redraw());
+        }
+        main_window.request_redraw();
 
         // Handle input events
-        if input.update(&event) {
-            // Close events
-            if input.key_pressed(KeyCode::Escape) || input.close_requested() {
-                // TODO: stop GameBoy instance
-                target.exit();
-                return;
-            }
+        // if input.update(&event) {
+        //     // Close events
+        //     if input.key_pressed(KeyCode::Escape) || input.close_requested() {
+        //         // TODO: stop GameBoy instance
+        //         target.exit();
+        //         return;
+        //     }
 
-            // Resize the window
-            if let Some(size) = input.window_resized() {
-                if let Err(_err) = pixels.resize_surface(size.width, size.height) {
-                    target.exit();
-                    return;
-                }
-            }
+        //     // Resize the window
+        //     if let Some(size) = input.window_resized() {
+        //         if let Err(_err) = pixels.resize_surface(size.width, size.height) {
+        //             target.exit();
+        //             return;
+        //         }
+        //     }
 
-            #[cfg(debug_assertions)]
-            debug_window.request_redraw();
-            main_window.request_redraw();
-        }
+        //     #[cfg(debug_assertions)]
+        //     debug_window.request_redraw();
+        //     main_window.request_redraw();
+        // }
     })?;
 
     let _ = gameboy_handle.join().unwrap();

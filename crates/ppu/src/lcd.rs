@@ -67,7 +67,14 @@ impl Default for LCD {
 }
 
 impl LCD {
-    #[inline]
+    pub(crate) fn is_bgw_enabled(&self) -> bool {
+        is_bit_set!(self.lcdc, 0)
+    }
+
+    pub(crate) fn is_object_enabled(&self) -> bool {
+        is_bit_set!(self.lcdc, 1)
+    }
+
     pub(crate) fn object_size(&self) -> u8 {
         if is_bit_set!(self.lcdc, 2) {
             16
@@ -76,15 +83,27 @@ impl LCD {
         }
     }
 
-    pub(crate) fn is_bgw_enabled(&self) -> bool {
-        is_bit_set!(self.lcdc, 0)
-    }
-
-    pub(crate) fn is_obj_enabled(&self) -> bool {
-        is_bit_set!(self.lcdc, 1)
+    pub(crate) fn background_tile_map_area(&self) -> u16 {
+        if is_bit_set!(self.lcdc, 3) {
+            0x9C00
+        } else {
+            0x9800
+        }
     }
 
     pub(crate) fn is_window_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 5)
+    }
+
+    pub(crate) fn window_tile_map_area(&self) -> u16 {
+        if is_bit_set!(self.lcdc, 6) {
+            0x9C00
+        } else {
+            0x9800
+        }
+    }
+
+    pub(crate) fn is_lcd_enabled(&self) -> bool {
+        is_bit_set!(self.lcdc, 7)
     }
 }

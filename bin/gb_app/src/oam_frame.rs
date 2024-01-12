@@ -1,17 +1,25 @@
 #![cfg(debug_assertions)]
 
 use left_right::{Absorb, ReadGuard, ReadHandle, WriteHandle};
+use pixels::{Pixels, SurfaceTexture};
+use winit::{
+    dpi::{LogicalSize, Position},
+    event_loop::EventLoop,
+    window::{Window, WindowBuilder},
+};
+
+use crate::config::SCALE;
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
 type Buffer = Vec<[[u8; 8]; 8]>;
 
 #[derive(Debug, Default)]
-pub(crate) struct DebugFrame {
+pub(crate) struct OamFrame {
     buffer: Buffer,
 }
 
-impl Absorb<Buffer> for DebugFrame {
+impl Absorb<Buffer> for OamFrame {
     fn absorb_first(&mut self, operation: &mut Buffer, _other: &Self) {
         self.buffer = operation.clone();
     }
@@ -21,8 +29,8 @@ impl Absorb<Buffer> for DebugFrame {
     }
 }
 
-pub struct DebugFrameWriter(WriteHandle<DebugFrame, Buffer>);
-impl DebugFrameWriter {
+pub struct OamFrameWriter(WriteHandle<OamFrame, Buffer>);
+impl OamFrameWriter {
     pub fn write(&mut self, buffer: Buffer) {
         self.0.append(buffer);
     }
@@ -32,15 +40,15 @@ impl DebugFrameWriter {
     }
 }
 
-pub struct DebugFrameReader(ReadHandle<DebugFrame>);
+pub struct OamFrameReader(ReadHandle<OamFrame>);
 
-impl DebugFrameReader {
-    pub fn read(&self) -> Option<ReadGuard<'_, DebugFrame>> {
+impl OamFrameReader {
+    pub fn read(&self) -> Option<ReadGuard<'_, OamFrame>> {
         self.0.enter()
     }
 }
 
-impl DebugFrame {
+impl OamFrame {
     pub(crate) fn draw(&self, frame: &mut [u8]) {
         if self.buffer.is_empty() {
             return;
@@ -61,9 +69,32 @@ impl DebugFrame {
     }
 }
 
-pub fn new() -> (DebugFrameWriter, DebugFrameReader) {
+pub fn new() -> (OamFrameWriter, OamFrameReader) {
     let (write_handle, read_handle) = left_right::new();
-    let writer = DebugFrameWriter(write_handle);
-    let reader = DebugFrameReader(read_handle);
+    let writer = OamFrameWriter(write_handle);
+    let reader = OamFrameReader(read_handle);
     (writer, reader)
+}
+
+pub fn new_window(
+    event_loop: &EventLoop<()>,
+    position: Position,
+) -> anyhow::Result<(Window, Pixels)> {
+    let window = {
+        let size = LogicalSize::new(128.0 * SCALE, 192.0 * SCALE);
+        WindowBuilder::new()
+            .with_title("OAM")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .with_position(position)
+            .build(event_loop)
+            .unwrap()
+    };
+    let pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(128, 192, surface_texture)?
+    };
+
+    Ok((window, pixels))
 }

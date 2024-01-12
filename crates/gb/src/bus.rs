@@ -254,15 +254,17 @@ impl Bus {
 
 impl gb_shared::Component for Bus {
     fn step(&mut self, cycles: u8) {
-        let cycles = cycles / 4;
-        debug_assert!(cycles > 0);
+        let m_cycles = cycles / 4;
+        debug_assert!(m_cycles > 0);
 
-        for _ in 0..cycles {
+        for _ in 0..m_cycles {
             for _ in 0..4 {
                 self.inner_mut().ppu_mut().step();
                 self.step_timer();
             }
 
+            // It costs 160 machine cycles to transfer 160 bytes of data.
+            // https://gbdev.io/pandocs/OAM_DMA_Transfer.html#ff46--dma-oam-dma-source-address--start:~:text=the%20transfer%20takes%20160%20machine%20cycles
             self.step_dma();
         }
     }
