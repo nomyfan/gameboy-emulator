@@ -1,6 +1,7 @@
 pub mod bitwise;
 pub mod boxed;
 pub mod builder;
+pub mod command;
 pub mod event;
 
 pub fn boxed_array<T: Copy, const SIZE: usize>(val: T) -> Box<[T; SIZE]> {

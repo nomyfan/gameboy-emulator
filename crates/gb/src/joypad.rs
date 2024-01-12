@@ -1,4 +1,8 @@
-use gb_shared::{builder::ImBuilder, set_bits, unset_bits, Memory};
+use gb_shared::{
+    builder::ImBuilder,
+    command::{JoypadCommand, JoypadKey},
+    set_bits, unset_bits, Memory,
+};
 
 /// The state is true when the value is zero.
 #[derive(Debug, Default)]
@@ -46,6 +50,28 @@ impl Memory for Joypad {
 impl Joypad {
     pub(crate) fn new() -> Self {
         Default::default()
+    }
+
+    pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
+        let mut mutate_key_state = |key: JoypadKey, pressed: bool| match key {
+            JoypadKey::A => self.a = pressed,
+            JoypadKey::B => self.b = pressed,
+            JoypadKey::Start => self.start = pressed,
+            JoypadKey::Select => self.select = pressed,
+            JoypadKey::Up => self.up = pressed,
+            JoypadKey::Down => self.down = pressed,
+            JoypadKey::Left => self.left = pressed,
+            JoypadKey::Right => self.right = pressed,
+        };
+
+        match command {
+            JoypadCommand::PressKey(key) => {
+                mutate_key_state(key, true);
+            }
+            JoypadCommand::ReleaseKey(key) => {
+                mutate_key_state(key, false);
+            }
+        }
     }
 }
 

@@ -8,6 +8,7 @@ mod tile_map_frame;
 
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use gb::GameBoy;
+use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use gb_shared::event::Event as GameBoyEvent;
 #[cfg(debug_assertions)]
 use gb_shared::Run;
@@ -20,9 +21,21 @@ use winit::dpi::LogicalSize;
 use winit::dpi::{LogicalPosition, Position};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
+use winit::keyboard::KeyCode;
 
 use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
+
+const KEY_CODE_JOYPAD_KEY_PAIRS: [(KeyCode, JoypadKey); 8] = [
+    (KeyCode::ArrowUp, JoypadKey::Up),
+    (KeyCode::ArrowDown, JoypadKey::Down),
+    (KeyCode::ArrowLeft, JoypadKey::Left),
+    (KeyCode::ArrowRight, JoypadKey::Right),
+    (KeyCode::KeyA, JoypadKey::A),
+    (KeyCode::KeyS, JoypadKey::B),
+    (KeyCode::KeyZ, JoypadKey::Start),
+    (KeyCode::KeyX, JoypadKey::Select),
+];
 
 fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
     let window = {
@@ -50,11 +63,12 @@ fn main() -> anyhow::Result<()> {
     let rom_path = std::path::PathBuf::from(std::env::args().nth(1).unwrap());
 
     let (event_sender, event_receiver) = mpsc::channel();
+    let (command_sender, command_receiver) = mpsc::channel();
     let (mut writer, reader) = frame::new();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
-    let _input = WinitInputHelper::new();
+    let mut input = WinitInputHelper::new();
 
     #[cfg(debug_assertions)]
     let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
@@ -116,7 +130,7 @@ fn main() -> anyhow::Result<()> {
 
     let gameboy_handle = thread::spawn(move || -> anyhow::Result<()> {
         let gb = GameBoy::try_from_path(rom_path)?;
-        gb.play(event_sender)?;
+        gb.play(event_sender, command_receiver)?;
         Ok(())
     });
 
@@ -199,7 +213,6 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
             }
-            return;
         }
 
         #[cfg(debug_assertions)]
@@ -211,26 +224,20 @@ fn main() -> anyhow::Result<()> {
         main_window.request_redraw();
 
         // Handle input events
-        // if input.update(&event) {
-        //     // Close events
-        //     if input.key_pressed(KeyCode::Escape) || input.close_requested() {
-        //         // TODO: stop GameBoy instance
-        //         target.exit();
-        //         return;
-        //     }
-
-        //     // Resize the window
-        //     if let Some(size) = input.window_resized() {
-        //         if let Err(_err) = pixels.resize_surface(size.width, size.height) {
-        //             target.exit();
-        //             return;
-        //         }
-        //     }
-
-        //     #[cfg(debug_assertions)]
-        //     debug_window.request_redraw();
-        //     main_window.request_redraw();
-        // }
+        if input.update(&event) {
+            for (keycode, joypad_key) in KEY_CODE_JOYPAD_KEY_PAIRS {
+                if input.key_pressed(keycode) {
+                    command_sender
+                        .send(Command::Joypad(JoypadCommand::PressKey(joypad_key)))
+                        .unwrap();
+                }
+                if input.key_released(keycode) {
+                    command_sender
+                        .send(Command::Joypad(JoypadCommand::ReleaseKey(joypad_key)))
+                        .unwrap();
+                }
+            }
+        }
     })?;
 
     let _ = gameboy_handle.join().unwrap();

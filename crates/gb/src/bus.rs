@@ -1,6 +1,6 @@
 use gb_cartridge::Cartridge;
 use gb_ppu::PPU;
-use gb_shared::{InterruptRequest, Memory};
+use gb_shared::{command::Command, InterruptRequest, Memory};
 use log::debug;
 
 use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
@@ -249,6 +249,14 @@ impl Bus {
 
     pub(crate) fn step_timer(&mut self) {
         self.inner_mut().timer_mut().step();
+    }
+
+    pub(crate) fn handle_command(&mut self, command: Command) {
+        match command {
+            Command::Joypad(joypad_command) => {
+                self.inner_mut().joypad.handle_command(joypad_command)
+            }
+        }
     }
 }
 

@@ -14,6 +14,7 @@ use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_cpu_sm83::CPU_PERIOD_NANOS;
 use gb_ppu::PPU;
+use gb_shared::command::CommandReceiver;
 use gb_shared::event::EventSender;
 use gb_shared::Component;
 use gb_shared::Memory;
@@ -26,6 +27,7 @@ pub struct GameBoy {
     bus: Box<Bus>,
     // We need to hold it to make it live as long as the GameBoy.
     _timer: Box<Timer<Bus>>,
+    command_receiver: Option<CommandReceiver>,
 }
 
 impl GameBoy {
@@ -39,7 +41,7 @@ impl GameBoy {
         let timer = Box::new(Timer::new(bus.clone()));
         bus.set_timer(timer.as_ref());
 
-        Self { cpu, ppu, bus: Box::new(bus), _timer: timer }
+        Self { cpu, ppu, bus: Box::new(bus), _timer: timer, command_receiver: None }
     }
 
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
@@ -52,8 +54,13 @@ impl GameBoy {
         Ok(Self::from_cartridge(cart))
     }
 
-    pub fn play(mut self, event_sender: EventSender) -> anyhow::Result<()> {
-        self.ppu.event_sender.replace(event_sender);
+    pub fn play(
+        mut self,
+        event_sender: EventSender,
+        command_receiver: CommandReceiver,
+    ) -> anyhow::Result<()> {
+        self.ppu.set_event_sender(event_sender);
+        self.command_receiver = Some(command_receiver);
 
         // TODO: loop and accept signals to stop
         loop {
@@ -79,6 +86,11 @@ impl GameBoy {
 
             if self.cpu.enabling_ime {
                 self.cpu.ime = true;
+            }
+
+            // Safety: we set the command_receiver at the start of `play` function.
+            if let Some(command) = self.command_receiver.as_ref().unwrap().try_recv().ok() {
+                self.bus.handle_command(command);
             }
         }
     }

@@ -75,7 +75,7 @@ pub struct PPU<BUS: Memory> {
     video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
 
     bus: BUS,
-    pub event_sender: Option<EventSender>,
+    event_sender: Option<EventSender>,
 }
 
 impl<BUS: Memory + InterruptRequest> PPU<BUS> {
@@ -92,6 +92,10 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             bus,
             event_sender: None,
         }
+    }
+
+    pub fn set_event_sender(&mut self, event_sender: EventSender) {
+        self.event_sender.replace(event_sender);
     }
 
     fn lcd_mode(&self) -> LCDMode {
