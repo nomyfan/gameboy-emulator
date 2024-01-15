@@ -33,8 +33,8 @@ const KEY_CODE_JOYPAD_KEY_PAIRS: [(KeyCode, JoypadKey); 8] = [
     (KeyCode::ArrowRight, JoypadKey::Right),
     (KeyCode::KeyA, JoypadKey::A),
     (KeyCode::KeyS, JoypadKey::B),
-    (KeyCode::KeyZ, JoypadKey::Start),
-    (KeyCode::KeyX, JoypadKey::Select),
+    (KeyCode::Space, JoypadKey::Start),
+    (KeyCode::Enter, JoypadKey::Select),
 ];
 
 fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
@@ -140,6 +140,7 @@ fn main() -> anyhow::Result<()> {
                 GameBoyEvent::OnFrame(buffer) => {
                     writer.write(buffer);
                     writer.flush();
+                    main_window.request_redraw();
                 }
                 #[cfg(debug_assertions)]
                 GameBoyEvent::OnDebugFrame(id, buffer) => {
@@ -148,16 +149,19 @@ fn main() -> anyhow::Result<()> {
                             writer.write(buffer);
                             writer.flush();
                         });
+                        oam_dbg_window.run(|window| window.request_redraw());
                     } else if id == 1 {
                         map1_dbg_writer.run_mut(|writer| {
                             writer.write(buffer);
                             writer.flush();
                         });
+                        map1_dbg_window.run(|window| window.request_redraw());
                     } else if id == 2 {
                         map2_dbg_writer.run_mut(|writer| {
                             writer.write(buffer);
                             writer.flush();
                         });
+                        map2_dbg_window.run(|window| window.request_redraw());
                     }
                 }
             },
@@ -226,14 +230,6 @@ fn main() -> anyhow::Result<()> {
                 _ => {}
             }
         }
-
-        #[cfg(debug_assertions)]
-        {
-            oam_dbg_window.run(|window| window.request_redraw());
-            map1_dbg_window.run(|window| window.request_redraw());
-            map2_dbg_window.run(|window| window.request_redraw());
-        }
-        main_window.request_redraw();
 
         // Handle input events
         if input.update(&event) {

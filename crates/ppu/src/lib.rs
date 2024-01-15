@@ -24,7 +24,7 @@ pub(crate) struct PPUWorkState {
     /// Up to 10 objects per scanline.
     /// Appended in mode 2(OAM scan).
     /// Reset when moving to next scanline.
-    scanline_objects: Vec<Object>,
+    scanline_objects: Vec<ObjectSnapshot>,
     /// Window line counter.
     /// It gets increased alongside with LY when window is visible.
     window_line: u8,
@@ -271,30 +271,29 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
 
     /// 持续80dots，结束后进入Drawing状态。
     fn step_oam_scan(&mut self) {
-        if self.work_state.scanline_dots == 1 {
+        if self.work_state.scanline_dots == 1 && is_bit_set!(self.lcd.stat, 5) {
             // Mode 2(OAM scan) stat interrupt
-            if is_bit_set!(self.lcd.stat, 5) {
-                self.bus.request_lcd_stat();
-            }
+            self.bus.request_lcd_stat();
+        }
+
+        // https://gbdev.io/pandocs/OAM.html#:~:text=up%20to%2010%20objects%20to%20be%20drawn%20on%20that%20line
+        if self.work_state.scanline_dots % 2 != 0 && self.work_state.scanline_objects.len() < 10 {
             let obj_size = self.lcd.object_size();
-            for object_index in 0..40usize {
-                let object = unsafe {
-                    let base_addr = object_index * 4;
-                    std::mem::transmute_copy::<[u8; 4], Object>(
-                        &self.oam[base_addr..(base_addr + 4)].try_into().unwrap(),
-                    )
-                };
-                // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
-                // The object intersects with current line.
-                if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
-                    self.work_state.scanline_objects.push(object);
-                }
-                // https://gbdev.io/pandocs/OAM.html?highlight=10#selection-priority
-                if self.work_state.scanline_objects.len() >= 10 {
-                    break;
-                }
+            let object_index = (self.work_state.scanline_dots as usize - 1) / 2;
+            let object = unsafe {
+                let base_addr = object_index * 4;
+                std::mem::transmute_copy::<[u8; 4], Object>(
+                    &self.oam[base_addr..(base_addr + 4)].try_into().unwrap(),
+                )
+            };
+            // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
+            // The object intersects with current line.
+            if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
+                self.work_state.scanline_objects.push(ObjectSnapshot { object, size: obj_size });
             }
-        } else if self.work_state.scanline_dots == 80 {
+        }
+
+        if self.work_state.scanline_dots == 80 {
             // https://gbdev.io/pandocs/OAM.html#drawing-priority
             //
             // For Non-CGB, the smaller X, the higher priority.
@@ -304,7 +303,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             // The earlier the object, the higher its priority.
             //
             // It's notable that `sort_by` is stable.
-            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
+            self.work_state.scanline_objects.sort_by(|a, b| a.object.x.cmp(&b.object.x));
             self.set_lcd_mode(LCDMode::RenderPixel);
         }
     }
@@ -360,7 +359,7 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
         }
 
         if self.lcd.is_object_enabled() {
-            let obj_size = self.lcd.object_size();
+            // let obj_size = self.lcd.object_size();
             let objects = self
                 .work_state
                 .scanline_objects
@@ -368,10 +367,11 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                 .filter(|object| {
                     // overlap
                     let sx = self.work_state.scanline_x + 8;
-                    sx >= object.x && sx < object.x + 8
+                    sx >= object.object.x && sx < object.object.x + 8
                 })
-                .map(|object| {
-                    let object = *object;
+                .map(|snapshot| {
+                    let object = snapshot.object;
+                    let obj_size = snapshot.size;
 
                     let mut ty = (self.lcd.ly + 16) - object.y;
                     let tx = (self.work_state.scanline_x + 8) - object.x;
@@ -399,16 +399,27 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                     tile::apply_object_attrs(&mut tile_data, &object.attrs);
                     let color_id = tile::get_color_id(&tile_data, tx, ty);
 
-                    (color_id, object)
+                    (color_id, snapshot)
                 })
                 .collect::<Vec<_>>();
             let opaque_object = objects.into_iter().find(|(obj_color_id, _)| obj_color_id != &0);
-            if let Some((obj_color_id, object)) = opaque_object {
+            if let Some((obj_color_id, snapshot)) = opaque_object {
+                let object = snapshot.object;
+                let obj_size = snapshot.size;
                 // Priority definition(the object below is opaque)
                 // 1. If BGW' color ID is 0, then render the object.
                 // 2. If LCDC.0 is 0, then render the object.
                 // 3. If OAM attributes.7 is 0, then render the object.
                 // 4. Otherwise, render the BGW.
+                if self.lcd.ly >= 88 && self.lcd.ly < 114 {
+                    log::debug!(
+                        "Render object at ({}, {}), object len {}, object size {}",
+                        self.work_state.scanline_x,
+                        self.lcd.ly,
+                        self.work_state.scanline_objects.len(),
+                        obj_size,
+                    );
+                }
                 if color_id == 0 || !object.attrs.bgw_over_object() {
                     let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = obj_color_id * 2;
@@ -451,9 +462,6 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
             if is_bit_set!(self.lcd.stat, 4) {
                 self.bus.request_lcd_stat();
             }
-
-            // Notify that a frame is rendered.
-            self.push_frame();
         } else {
             self.set_lcd_mode(LCDMode::OamScan);
         }
@@ -468,6 +476,11 @@ impl<BUS: Memory + InterruptRequest> PPU<BUS> {
                 self.lcd.ly = 0;
                 self.work_state.window_line = 0;
                 self.set_lcd_mode(LCDMode::OamScan);
+
+                // https://gbdev.io/pandocs/Rendering.html#obj-penalty-algorithm:~:text=one%20frame%20takes%20~-,16.74,-ms%20instead%20of
+                // (456 * 154) * (1/(2**22)) * 1000 = 16.74ms
+                // Notify that a frame is rendered.
+                self.push_frame();
             }
         }
     }
@@ -482,11 +495,26 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => {
                 let old_enabled = self.lcd.is_lcd_enabled();
+                let old_object_size = self.lcd.object_size();
                 self.lcd.lcdc = value;
                 let new_enabled = self.lcd.is_lcd_enabled();
+                let new_object_size = self.lcd.object_size();
 
                 if old_enabled != new_enabled {
+                    // https://gbdev.io/pandocs/LCDC.html#lcdc7--lcd-enable:~:text=be%20performed%0Aduring-,vblank%20only%2C,-disabling%20the%20display
+                    assert_eq!(self.lcd_mode(), LCDMode::VBlank);
                     self.power(new_enabled);
+                }
+
+                if old_object_size != new_object_size && self.work_state.scanline_objects.len() < 10
+                {
+                    log::debug!(
+                        "Object size changes from {} to {} at scanline dots {}, ly {}. Scanned object count {}",
+                        old_object_size, new_object_size,
+                        self.work_state.scanline_dots,
+                        self.lcd.ly,
+                        self.work_state.scanline_objects.len()
+                    );
                 }
             }
             0xFF41 => {
@@ -534,6 +562,7 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
 use gb_shared::InterruptType;
 #[cfg(test)]
 use mockall::mock;
+use object::ObjectSnapshot;
 
 #[cfg(test)]
 mock! {

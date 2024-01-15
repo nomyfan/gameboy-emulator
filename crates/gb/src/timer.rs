@@ -50,6 +50,11 @@ impl<INT: InterruptRequest> Memory for Timer<INT> {
         } else if addr == 0xFF06 {
             self.tma = value;
         } else if addr == 0xFF07 {
+            if (self.tac & 0b11) != (value & 0b11) {
+                // Clock select changes
+                self.div = 0;
+                self.tima = self.tma;
+            }
             self.tac = value;
         } else {
             unreachable!()
@@ -77,14 +82,13 @@ impl<INT: InterruptRequest> Timer<INT> {
     }
 
     pub fn step(&mut self) {
-        let old_div = self.div;
         self.div = self.div.wrapping_add(1);
 
         let inc_tima = match CounterIncCycles::from(self.tac) {
-            CounterIncCycles::Cycles1024 => self.div / 1024 != old_div / 1024,
-            CounterIncCycles::Cycles16 => self.div / 16 != old_div / 16,
-            CounterIncCycles::Cycles64 => self.div / 64 != old_div / 64,
-            CounterIncCycles::Cycles256 => self.div / 256 != old_div / 256,
+            CounterIncCycles::Cycles1024 => (self.div & 1023) == 0,
+            CounterIncCycles::Cycles16 => (self.div & 15) == 0,
+            CounterIncCycles::Cycles64 => (self.div & 63) == 0,
+            CounterIncCycles::Cycles256 => (self.div & 255) == 0,
         };
 
         if is_bit_set!(self.tac, 2) && inc_tima {
@@ -249,9 +253,10 @@ mod tests {
         mock_int_req.expect_request().with(eq(InterruptType::Timer)).once().return_const(());
 
         let mut timer = Timer::new(mock_int_req);
+        write_tac(&mut timer, 0b111);
+
         write_tma(&mut timer, 0xFE);
         write_tima(&mut timer, 0xFF);
-        write_tac(&mut timer, 0b111);
 
         for _ in 0..255 {
             timer.step();
@@ -277,5 +282,22 @@ mod tests {
         timer.step();
         assert_eq!(timer.div, 0);
         assert_eq!(timer.div, 0);
+    }
+
+    #[test]
+    fn reset_on_timer_freq_change() {
+        let mut timer = Timer::new(MockInterruptRequest::new());
+        write_tac(&mut timer, 0b101);
+
+        for _ in 0..16 {
+            timer.step();
+        }
+        assert_eq!(timer.div, 16);
+        assert_eq!(timer.tima, 1);
+
+        write_tac(&mut timer, 0b110);
+
+        assert_eq!(timer.div, 0);
+        assert_eq!(timer.tima, 0);
     }
 }

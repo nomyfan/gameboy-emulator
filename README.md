@@ -6,7 +6,7 @@ Game Boy emulator written in Rust.
 
 - [pandocs](https://gbdev.io/pandocs)
 
-- [Gameboy CPU (LR35902) instruction set](https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html)
+- [Game Boy CPU (SM83) instruction set](https://gbdev.io/gb-opcodes/optables/)
 
 - [MBC(Memory Bank Controller)](https://gbdev.gg8.se/wiki/articles/Memory_Bank_Controllers)
 

@@ -243,7 +243,7 @@ impl Bus {
     fn step_dma(&mut self) {
         if let Some((src, dst)) = self.inner_mut().dma.next_addr() {
             let value = self.read(src);
-            self.write(dst, value);
+            self.inner_mut().ppu_mut().write(dst, value)
         }
     }
 

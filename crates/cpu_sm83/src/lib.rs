@@ -186,6 +186,12 @@ where
     pub cycles: u8,
 
     bus: BUS,
+    /// [Fetch and stuff](https://gist.github.com/SonoSooS/c0055300670d678b5ae8433e20bea595#fetch-and-stuff)
+    ///
+    /// `ir`(Instruction Register) stores the opcode of the current
+    /// instruction being executed. Fetching opcode is the last part
+    /// of a instruction.
+    ir: u8,
     // TODO
 }
 
@@ -244,6 +250,7 @@ where
             halted: false,
             stopped: false,
             cycles: 0,
+            ir: 0,
             bus,
         }
     }
@@ -363,29 +370,68 @@ where
         self.set_hl(self.hl().wrapping_sub(1));
     }
 
+    /// Ref:
+    /// https://gist.github.com/SonoSooS/c0055300670d678b5ae8433e20bea595#isr-and-nmi
+    ///
     /// Push current PC to stack, and jump to corresponding
     /// interrupt handler address.
-    pub fn handle_interrupts(&mut self) {
-        let interrupt_flag = self.bus_read(0xFF0F);
-        let interrupt_enable = self.bus_read(0xFFFF);
+    pub fn handle_interrupts(&mut self) -> Option<u8> {
+        let interrupt_flag = self.bus.read(0xFF0F) & 0x1F;
+        let interrupt_enable = self.bus.read(0xFFFF) & 0x1F;
 
         if let Some(interrupt_source) = INTERRUPTS
             .iter()
             .find(|it| (interrupt_flag & it.flag) != 0 && (interrupt_enable & it.flag) != 0)
         {
-            self.stack_push_pc();
+            self.pc -= 1; // M0
+            self.adv_cycles(4);
+            self.stack_push_pc(); // M1,M2
             self.jp(interrupt_source.handler_address);
-            self.bus_write(0xFF0F, interrupt_flag & (!interrupt_source.flag));
-            self.set_halt(false);
+            self.adv_cycles(4); // M3
+            self.bus.write(0xFF0F, interrupt_flag & (!interrupt_source.flag));
+            self.halted = false;
             // Interrupt handler can let CPU continue to handle
             // interrupts via RETI instruction.
-            self.set_ime(false);
+            self.ime = false;
+
+            // fetch the interrupt handler opcode
+            return Some(self.read_pc()); // M4
         }
+
+        None
     }
 
     pub fn step(&mut self) {
-        let opcode = self.read_pc();
+        if self.halted {
+            let interrupt_flag = self.bus.read(0xFF0F) & 0x1F;
+            let interrupt_enable = self.bus.read(0xFFFF) & 0x1F;
 
+            if (interrupt_flag & interrupt_enable) != 0 {
+                self.halted = false;
+            }
+            self.adv_cycles(4);
+            return;
+        }
+
+        if self.ime {
+            self.enabling_ime = false;
+            if let Some(handler_opcode) = self.handle_interrupts() {
+                self.ir = handler_opcode;
+                return;
+            }
+        }
+        if self.enabling_ime {
+            self.ime = true;
+            self.enabling_ime = false;
+        }
+
+        let opcode = self.ir;
+        self.execute_instruction(opcode);
+
+        self.ir = self.read_pc();
+    }
+
+    fn execute_instruction(&mut self, opcode: u8) {
         match opcode {
             0x00 => {
                 // NOP

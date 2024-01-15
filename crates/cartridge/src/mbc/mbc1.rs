@@ -70,7 +70,7 @@ impl super::Mbc for Mbc1 {
             0x4000..=0x7FFF => {
                 // https://gbdev.io/pandocs/MBC1.html#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only:~:text=no%20observable%20effect
                 let rom_bank_num = if self.banking_mode == 1
-                    && (self.rom_size > kib(512) || self.ram_size > kib(32))
+                    && (self.rom_size > kib(512) || self.ram_size > kib(8))
                 {
                     // 7 bits
                     self.banking_num & 0x7F
@@ -78,7 +78,7 @@ impl super::Mbc for Mbc1 {
                     // 5 bits
                     self.banking_num & 0x1F
                 }
-                .if_then_fn(|bank_num| bank_num == &0, |_| 1); // Bank 0 is the fixed ROM.
+                .if_then_fn_value(|bank_num| bank_num == &0, 1); // Bank 0 is the fixed ROM.
                 let rom_offset = rom_bank_num * kib(16) + (addr - 0x4000) as usize;
                 rom[rom_offset]
             }

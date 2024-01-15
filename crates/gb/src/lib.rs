@@ -17,9 +17,6 @@ use gb_ppu::PPU;
 use gb_shared::command::Command;
 use gb_shared::command::CommandReceiver;
 use gb_shared::event::EventSender;
-use gb_shared::Component;
-use gb_shared::Memory;
-use log::debug;
 use timer::Timer;
 
 pub struct GameBoy {
@@ -64,35 +61,12 @@ impl GameBoy {
         self.command_receiver = Some(command_receiver);
 
         loop {
-            if self.cpu.halted {
-                if self.bus.read(0xFF0F) != 0 {
-                    self.cpu.halted = false;
-                }
-                self.bus.step(4);
-            } else {
-                self.cpu.step();
-            };
+            self.cpu.step();
 
-            std::thread::sleep(std::time::Duration::from_nanos(
-                (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64) as u64,
-            ));
-
-            debug!("{:?}", &self.cpu);
-
-            if self.cpu.ime {
-                self.cpu.handle_interrupts();
-                self.cpu.enabling_ime = false;
-
-                let cycles = self.cpu.finish_cycles();
-                if cycles != 0 {
-                    std::thread::sleep(std::time::Duration::from_nanos(
-                        (CPU_PERIOD_NANOS * cycles as f64) as u64,
-                    ));
-                }
-            }
-
-            if self.cpu.enabling_ime {
-                self.cpu.ime = true;
+            let now = std::time::Instant::now();
+            let spin_period = (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64).round() as u128;
+            while now.elapsed().as_nanos() < spin_period {
+                std::hint::spin_loop();
             }
 
             // Safety: we set the command_receiver at the start of `play` function.
