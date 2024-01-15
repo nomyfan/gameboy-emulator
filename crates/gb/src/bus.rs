@@ -1,11 +1,11 @@
+use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
 use gb_cartridge::Cartridge;
 use gb_ppu::PPU;
 use gb_shared::{command::Command, InterruptRequest, Memory};
 use log::debug;
+use std::ops::{Deref, DerefMut};
 
-use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
-
-struct BusInner {
+pub(crate) struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
     /// interrupt is enabled. Lower bits have higher
     /// priorities.
@@ -48,7 +48,7 @@ impl BusInner {
     }
 
     #[inline]
-    fn ppu(&self) -> &PPU<Bus> {
+    fn ppu_ref(&self) -> &PPU<Bus> {
         unsafe { &*self.ppu_ptr }
     }
 
@@ -58,7 +58,7 @@ impl BusInner {
     }
 
     #[inline]
-    fn timer(&self) -> &Timer<Bus> {
+    fn timer_ref(&self) -> &Timer<Bus> {
         unsafe { &*self.timer_ptr }
     }
 }
@@ -137,7 +137,7 @@ impl Memory for BusInner {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu().read(addr)
+                self.ppu_ref().read(addr)
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -157,7 +157,7 @@ impl Memory for BusInner {
                 }
 
                 // OAM
-                self.ppu().read(addr)
+                self.ppu_ref().read(addr)
             }
             0xFEA0..=0xFEFF => {
                 debug!("Unusable memory [0xFEA0, 0xFEFF]");
@@ -167,7 +167,7 @@ impl Memory for BusInner {
                 match addr {
                     0xFF00 => self.joypad.read(addr),
                     0xFF01..=0xFF02 => self.serial.read(addr),
-                    0xFF04..=0xFF07 => self.timer().read(addr),
+                    0xFF04..=0xFF07 => self.timer_ref().read(addr),
                     0xFF0F => {
                         // IF
                         self.interrupt_flag
@@ -177,7 +177,7 @@ impl Memory for BusInner {
                         0
                     }
                     0xFF46 => self.dma.read(addr),
-                    0xFF40..=0xFF4B => self.ppu().read(addr),
+                    0xFF40..=0xFF4B => self.ppu_ref().read(addr),
                     _ => {
                         debug!("Unsupported");
                         0
@@ -204,12 +204,21 @@ pub(crate) struct Bus {
     ptr: *mut BusInner,
 }
 
-impl Bus {
-    #[inline]
-    fn inner_mut(&mut self) -> &mut BusInner {
-        unsafe { self.ptr.as_mut().expect("TODO:") }
-    }
+impl Deref for Bus {
+    type Target = BusInner;
 
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.ptr.as_ref().unwrap() }
+    }
+}
+
+impl DerefMut for Bus {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.ptr.as_mut().unwrap() }
+    }
+}
+
+impl Bus {
     pub(crate) fn new(cart: Cartridge) -> Self {
         Self {
             ptr: Box::into_raw(Box::new(BusInner {
@@ -241,19 +250,19 @@ impl Bus {
     }
 
     fn step_dma(&mut self) {
-        if let Some((src, dst)) = self.inner_mut().dma.next_addr() {
+        if let Some((src, dst)) = self.dma.next_addr() {
             let value = self.read(src);
-            self.inner_mut().ppu_mut().write(dst, value)
+            self.ppu_mut().write(dst, value)
         }
     }
 
     pub(crate) fn step_timer(&mut self) {
-        self.inner_mut().timer_mut().step();
+        self.timer_mut().step();
     }
 
     pub(crate) fn handle_command(&mut self, command: Command) {
         if let Command::Joypad(joypad_command) = command {
-            self.inner_mut().joypad.handle_command(joypad_command)
+            self.joypad.handle_command(joypad_command)
         }
     }
 }
@@ -265,7 +274,7 @@ impl gb_shared::Component for Bus {
 
         for _ in 0..m_cycles {
             for _ in 0..4 {
-                self.inner_mut().ppu_mut().step();
+                self.ppu_mut().step();
                 self.step_timer();
             }
 
