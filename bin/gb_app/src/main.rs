@@ -26,6 +26,8 @@ use winit::keyboard::KeyCode;
 use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 const KEY_CODE_JOYPAD_KEY_PAIRS: [(KeyCode, JoypadKey); 8] = [
     (KeyCode::ArrowUp, JoypadKey::Up),
     (KeyCode::ArrowDown, JoypadKey::Down),
@@ -41,7 +43,7 @@ fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
     let window = {
         let size = LogicalSize::new(WIDTH as f64 * SCALE, HEIGHT as f64 * SCALE);
         WindowBuilder::new()
-            .with_title("GameBoy")
+            .with_title(format!("GameBoy - {}", VERSION))
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(event_loop)
