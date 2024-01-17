@@ -192,6 +192,9 @@ where
     /// instruction being executed. Fetching opcode is the last part
     /// of a instruction.
     ir: u8,
+    /// Get set in HALT instruction only.
+    /// Get read in HALT mode only.
+    handle_itr: bool,
     // TODO
 }
 
@@ -251,6 +254,7 @@ where
             stopped: false,
             cycles: 0,
             ir: 0,
+            handle_itr: true,
             bus,
         }
     }
@@ -370,6 +374,10 @@ where
         self.set_hl(self.hl().wrapping_sub(1));
     }
 
+    fn itr_pending(&self) -> bool {
+        (self.bus.read(0xFF0F) & self.bus.read(0xFFFF) & 0x1F) != 0
+    }
+
     /// Ref:
     /// https://gist.github.com/SonoSooS/c0055300670d678b5ae8433e20bea595#isr-and-nmi
     ///
@@ -403,13 +411,21 @@ where
 
     pub fn step(&mut self) {
         if self.halted {
-            let interrupt_flag = self.bus.read(0xFF0F) & 0x1F;
-            let interrupt_enable = self.bus.read(0xFFFF) & 0x1F;
-
-            if (interrupt_flag & interrupt_enable) != 0 {
+            if self.itr_pending() {
                 self.halted = false;
             }
             self.adv_cycles(4);
+
+            let handle_itr = self.handle_itr;
+            self.handle_itr = true;
+
+            if self.ime && handle_itr {
+                if let Some(handler_opcode) = self.handle_interrupts() {
+                    self.ir = handler_opcode;
+                    return;
+                }
+            }
+
             return;
         }
 
@@ -420,18 +436,18 @@ where
                 return;
             }
         }
+
         if self.enabling_ime {
             self.ime = true;
             self.enabling_ime = false;
         }
 
-        let opcode = self.ir;
-        self.execute_instruction(opcode);
-
-        self.ir = self.read_pc();
+        self.execute_instruction();
     }
 
-    fn execute_instruction(&mut self, opcode: u8) {
+    fn execute_instruction(&mut self) {
+        let opcode = self.ir;
+        let mut halt_bug = false;
         match opcode {
             0x00 => {
                 // NOP
@@ -808,7 +824,20 @@ where
             }
             0x76 => {
                 // HALT
-                self.set_halt(true);
+                if self.ime {
+                    self.halted = true;
+                    self.handle_itr = true;
+                } else {
+                    if (self.bus.read(0xFF0F) & self.bus.read(0xFFFF) & 0x1F) == 0 {
+                        self.handle_itr = false;
+                        self.halted = true;
+                    } else {
+                        // HALT mode is not entered, and HALT bug occurs.
+                        self.handle_itr = true;
+                        self.halted = false;
+                        halt_bug = true;
+                    }
+                }
             }
             0x70..=0x77 => {
                 // LD (HL),B..LD (HL),A
@@ -1199,6 +1228,13 @@ where
             _ => {
                 panic!("No such instruction, opcode:{:#02X}", opcode);
             }
+        }
+
+        if halt_bug {
+            self.ir = self.bus.read(self.pc);
+            self.adv_cycles(4);
+        } else {
+            self.ir = self.read_pc();
         }
     }
 }
