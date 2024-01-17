@@ -100,7 +100,7 @@ impl Memory for BusInner {
                     0xFF04..=0xFF07 => self.timer_mut().write(addr, value),
                     0xFF0F => {
                         // IF
-                        self.interrupt_flag = value
+                        self.interrupt_flag = 0xE0 | value
                     }
                     0xFF10..=0xFF3F => {
                         // TODO: Sound
@@ -226,7 +226,7 @@ impl Bus {
                 wram: WorkRam::new(),
                 hram: HighRam::new(),
                 interrupt_enable: 0,
-                interrupt_flag: 0,
+                interrupt_flag: 0xE0,
                 dma: DMA::new(),
                 serial: Serial::new(),
                 joypad: Joypad::new(),

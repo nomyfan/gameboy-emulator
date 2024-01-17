@@ -50,6 +50,7 @@ impl<INT: InterruptRequest> Memory for Timer<INT> {
         } else if addr == 0xFF06 {
             self.tma = value;
         } else if addr == 0xFF07 {
+            let value = value | 0xF8;
             if (self.tac & 0b11) != (value & 0b11) {
                 // Clock select changes
                 self.div = 0;
@@ -78,6 +79,7 @@ impl<INT: InterruptRequest> Memory for Timer<INT> {
 
 impl<INT: InterruptRequest> Timer<INT> {
     pub fn new(interrupt_request: INT) -> Self {
+        // FIXME: DIV init value is 0xAB00
         Self { div: 0, tima: 0, tma: 0, tac: 0, interrupt_request }
     }
 
@@ -130,7 +132,7 @@ mod tests {
     }
 
     fn write_tac(timer: &mut Timer<MockInterruptRequest>, value: u8) {
-        timer.write(0xFF07, value);
+        timer.write(0xFF07, value | 0xF8);
     }
 
     #[test]

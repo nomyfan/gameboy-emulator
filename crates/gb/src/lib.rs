@@ -30,10 +30,15 @@ pub struct GameBoy {
 
 impl GameBoy {
     pub fn from_cartridge(cart: Cartridge) -> Self {
+        let cart_header_checksum = cart.header.checksum;
         let mut bus = Bus::new(cart);
 
-        let cpu = Cpu::new(bus.clone());
-
+        let mut cpu = Cpu::new(bus.clone());
+        if cart_header_checksum == 0 {
+            // https://gbdev.io/pandocs/Power_Up_Sequence.html#dmg_c
+            // Unset H and C if the cartridge header checksum is 0.
+            cpu.reg_f = 0x80;
+        }
         let ppu = Box::new(PPU::new(bus.clone()));
         bus.set_ppu(ppu.as_ref());
         let timer = Box::new(Timer::new(bus.clone()));

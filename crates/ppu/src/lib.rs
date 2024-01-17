@@ -521,7 +521,7 @@ impl<BUS: Memory + InterruptRequest> Memory for PPU<BUS> {
                 // https://gbdev.io/pandocs/Interrupt_Sources.html#int-48--stat-interrupt
                 // https://gbdev.io/pandocs/STAT.html#ff41--stat-lcd-status
                 // Since bit 0..=2 is readonly, writes on them are ignored.
-                self.lcd.stat = (value & !(0b111)) | (self.lcd.stat & 0b111);
+                self.lcd.stat = 0x80 | (value & !(0b111)) | (self.lcd.stat & 0b111);
             }
             0xFF42 => self.lcd.scy = value,
             0xFF43 => self.lcd.scx = value,

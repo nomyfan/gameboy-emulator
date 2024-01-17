@@ -1,7 +1,7 @@
 use gb_shared::{
     builder::ImBuilder,
     command::{JoypadCommand, JoypadKey},
-    set_bits, unset_bits, Memory,
+    is_bit_set, set_bits, unset_bits, Memory,
 };
 
 /// The state is true when the value is zero.
@@ -23,8 +23,8 @@ pub(crate) struct Joypad {
 
 impl Memory for Joypad {
     fn write(&mut self, _0xff00: u16, value: u8) {
-        self.select_buttons = (value & set_bits!(0, 5)) == 0;
-        self.select_d_pad = (value & set_bits!(1, 4)) == 0;
+        self.select_buttons = !is_bit_set!(value, 5);
+        self.select_d_pad = !is_bit_set!(value, 4);
     }
 
     fn read(&self, _0xff00: u16) -> u8 {
@@ -38,7 +38,7 @@ impl Memory for Joypad {
             (false, false, false, false)
         };
 
-        0x3F.if_then(self.select_buttons, |v| unset_bits!(v, 5))
+        0xFF.if_then(self.select_buttons, |v| unset_bits!(v, 5))
             .if_then(self.select_d_pad, |v| unset_bits!(v, 4))
             .if_then(b3, |v| unset_bits!(v, 3))
             .if_then(b2, |v| unset_bits!(v, 2))
@@ -49,7 +49,11 @@ impl Memory for Joypad {
 
 impl Joypad {
     pub(crate) fn new() -> Self {
-        Default::default()
+        let mut v = Self::default();
+        v.select_buttons = true;
+        v.select_d_pad = true;
+
+        v
     }
 
     pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
@@ -80,6 +84,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn initial_value() {
+        let joypad = Joypad::new();
+
+        assert_eq!(joypad.read(0xFF00), 0xCF);
+    }
+
+    #[test]
+    fn always_1_on_unused_bits() {
+        let mut joypad = Joypad::new();
+        joypad.write(0xFF00, 0x00);
+
+        assert_eq!(joypad.read(0xFF00), 0xCF);
+    }
+
+    #[test]
     fn read_select_buttons() {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 4));
@@ -88,7 +107,7 @@ mod tests {
         joypad.b = true;
 
         let value = joypad.read(0xFF00);
-        assert_eq!(0b0001_0101, value);
+        assert_eq!(0b1101_0101, value);
     }
 
     #[test]
@@ -100,7 +119,7 @@ mod tests {
         joypad.right = true;
 
         let value = joypad.read(0xFF00);
-        assert_eq!(0b0010_1010, value);
+        assert_eq!(0b1110_1010, value);
     }
 
     #[test]
@@ -112,6 +131,6 @@ mod tests {
         joypad.up = true;
 
         let value = joypad.read(0xFF00);
-        assert_eq!(0x3F, value);
+        assert_eq!(0xFF, value);
     }
 }

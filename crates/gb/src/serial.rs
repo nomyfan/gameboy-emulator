@@ -10,7 +10,7 @@ impl Memory for Serial {
         if addr == 0xFF01 {
             self.serial_transfer_data = value;
         } else if addr == 0xFF02 {
-            self.serial_transfer_control = value;
+            self.serial_transfer_control = value | 0x7C;
         } else {
             unreachable!()
         }
@@ -29,6 +29,6 @@ impl Memory for Serial {
 
 impl Serial {
     pub(crate) fn new() -> Self {
-        Self { serial_transfer_data: 0, serial_transfer_control: 0 }
+        Self { serial_transfer_data: 0, serial_transfer_control: 0x7C }
     }
 }

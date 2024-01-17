@@ -376,8 +376,8 @@ where
     /// Push current PC to stack, and jump to corresponding
     /// interrupt handler address.
     pub fn handle_interrupts(&mut self) -> Option<u8> {
-        let interrupt_flag = self.bus.read(0xFF0F) & 0x1F;
-        let interrupt_enable = self.bus.read(0xFFFF) & 0x1F;
+        let interrupt_flag = self.bus.read(0xFF0F);
+        let interrupt_enable = self.bus.read(0xFFFF);
 
         if let Some(interrupt_source) = INTERRUPTS
             .iter()
