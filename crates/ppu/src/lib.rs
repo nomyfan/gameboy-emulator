@@ -7,6 +7,7 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
+use gb_shared::builder::ImBuilder;
 use gb_shared::event::{Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
 
@@ -372,31 +373,21 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                 .map(|object| {
                     let object = *object;
 
-                    let mut ty = (self.lcd.ly + 16) - object.y;
+                    let ty = (self.lcd.ly + 16) - object.y;
                     let tx = (self.work_state.scanline_x + 8) - object.x;
 
-                    if obj_size == 16 && object.attrs.y_flip() {
-                        ty = 15 - ty;
-                    }
-
                     let index = if obj_size == 16 {
-                        if ty >= 8 {
-                            // bottom tile
-                            object.tile_index | 0x01
-                        } else {
-                            // top tile
-                            object.tile_index & 0xFE
-                        }
+                        (object.tile_index & 0xFE, object.tile_index | 0x01)
+                            .if_then(object.attrs.y_flip(), |(top, bottom)| (bottom, top))
+                            .map_as(|(top, bottom)| if ty < 8 { top } else { bottom })
                     } else {
                         object.tile_index
                     };
 
-                    ty %= 8;
-
                     let tile_data = self.read_tile_data(index, true);
                     let mut tile_data = tile::mix_colors_16(&tile_data);
                     tile::apply_object_attrs(&mut tile_data, &object.attrs);
-                    let color_id = tile::get_color_id(&tile_data, tx, ty);
+                    let color_id = tile::get_color_id(&tile_data, tx, ty % 8);
 
                     (color_id, object)
                 })
