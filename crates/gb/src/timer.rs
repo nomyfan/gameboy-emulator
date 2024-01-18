@@ -19,7 +19,7 @@ impl From<u8> for CounterIncCycles {
     }
 }
 
-pub(crate) struct Timer<INT: InterruptRequest> {
+pub(crate) struct Timer<IRQ: InterruptRequest> {
     /// Divider
     /// It's increased at a rate of 16384 Hz.
     /// While CPU is working on a frequency of 4194304 Hz(256 times of 16384).
@@ -37,10 +37,10 @@ pub(crate) struct Timer<INT: InterruptRequest> {
     ///     - 10: 65536 Hz(increased by 1 every 64 cycles)
     ///     - 11: 16384 Hz(increased by 1 every 256 cycles)
     tac: u8,
-    interrupt_request: INT,
+    irq: IRQ,
 }
 
-impl<INT: InterruptRequest> Memory for Timer<INT> {
+impl<IRQ: InterruptRequest> Memory for Timer<IRQ> {
     fn write(&mut self, addr: u16, value: u8) {
         if addr == 0xFF04 {
             // Write any value to it will reset it to zero.
@@ -77,10 +77,10 @@ impl<INT: InterruptRequest> Memory for Timer<INT> {
     }
 }
 
-impl<INT: InterruptRequest> Timer<INT> {
-    pub fn new(interrupt_request: INT) -> Self {
+impl<IRQ: InterruptRequest> Timer<IRQ> {
+    pub fn new(irq: IRQ) -> Self {
         // FIXME: DIV init value is 0xAB00
-        Self { div: 0, tima: 0, tma: 0, tac: 0, interrupt_request }
+        Self { div: 0, tima: 0, tma: 0, tac: 0, irq }
     }
 
     pub fn step(&mut self) {
@@ -97,7 +97,7 @@ impl<INT: InterruptRequest> Timer<INT> {
             self.tima = self.tima.wrapping_add(1);
             if self.tima == 0 {
                 self.tima = self.tma;
-                self.interrupt_request.request_timer();
+                self.irq.request_timer();
             }
         }
     }
