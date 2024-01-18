@@ -1,4 +1,4 @@
-pub(crate) fn alu_rrca(value: u8) -> (u8, bool) {
+pub(crate) fn alu_rrc(value: u8) -> (u8, bool) {
     let mlb = value & 1;
 
     // Move the LSB to MSB.
@@ -13,7 +13,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rrca() {
+    fn rrc() {
         let cases = [
             //
             ((0b0001_0001), (0b1000_1000, true)),
@@ -21,7 +21,7 @@ mod tests {
         ];
 
         for (in_a, output) in cases.into_iter() {
-            assert_eq!(alu_rrca(in_a), output);
+            assert_eq!(alu_rrc(in_a), output);
         }
     }
 }

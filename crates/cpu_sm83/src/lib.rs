@@ -485,7 +485,7 @@ where
             }
             0x07 => {
                 // RLCA
-                let (value, c) = alu::rlca::alu_rlca(self.reg_a);
+                let (value, c) = alu::rlc::alu_rlc(self.reg_a);
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -530,7 +530,7 @@ where
             }
             0x0F => {
                 // RRCA
-                let (value, c) = alu::rrca::alu_rrca(self.reg_a);
+                let (value, c) = alu::rrc::alu_rrc(self.reg_a);
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -570,7 +570,7 @@ where
             }
             0x17 => {
                 // RLA
-                let (value, c) = alu::rla::alu_rla(self.reg_a, self.flag_c());
+                let (value, c) = alu::rl::alu_rl(self.reg_a, self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -614,7 +614,7 @@ where
             }
             0x1F => {
                 // RRA
-                let (value, c) = alu::rra::alu_rra(self.reg_a, self.flag_c());
+                let (value, c) = alu::rr::alu_rr(self.reg_a, self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }

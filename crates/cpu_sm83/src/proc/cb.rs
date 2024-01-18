@@ -1,9 +1,9 @@
 use crate::alu::bit::alu_bit;
 use crate::alu::res::alu_res;
-use crate::alu::rla::alu_rla;
-use crate::alu::rlca::alu_rlca;
-use crate::alu::rra::alu_rra;
-use crate::alu::rrca::alu_rrca;
+use crate::alu::rl::alu_rl;
+use crate::alu::rlc::alu_rlc;
+use crate::alu::rr::alu_rr;
+use crate::alu::rrc::alu_rrc;
 use crate::alu::set::alu_set;
 use crate::alu::sla::alu_sla;
 use crate::alu::sra::alu_sra;
@@ -89,25 +89,25 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) {
 
     match decode_inst(cb_opcode) {
         CbInstruction::RLC => {
-            let (new_value, c) = alu_rlca(value);
+            let (new_value, c) = alu_rlc(value);
 
             write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RRC => {
-            let (new_value, c) = alu_rrca(value);
+            let (new_value, c) = alu_rrc(value);
 
             write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RL => {
-            let (new_value, c) = alu_rla(value, cpu.flags().3);
+            let (new_value, c) = alu_rl(value, cpu.flags().3);
 
             write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RR => {
-            let (new_value, c) = alu_rra(value, cpu.flags().3);
+            let (new_value, c) = alu_rr(value, cpu.flags().3);
 
             write_data(cpu, reg, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
@@ -138,7 +138,7 @@ pub(crate) fn proc_cb(cpu: &mut impl Cpu16) {
         }
         CbInstruction::BIT => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            cpu.set_flags(Some(alu_bit(value, bit)), Some(false), Some(true), None);
+            cpu.set_flags(Some(!alu_bit(value, bit)), Some(false), Some(true), None);
         }
         CbInstruction::RES => {
             let bit = (cb_opcode & 0b111000) >> 3;
