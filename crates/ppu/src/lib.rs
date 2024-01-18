@@ -24,7 +24,7 @@ pub(crate) struct PPUWorkState {
     /// Up to 10 objects per scanline.
     /// Appended in mode 2(OAM scan).
     /// Reset when moving to next scanline.
-    scanline_objects: Vec<ObjectSnapshot>,
+    scanline_objects: Vec<Object>,
     /// Window line counter.
     /// It gets increased alongside with LY when window is visible.
     window_line: u8,
@@ -277,7 +277,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
         }
 
         // https://gbdev.io/pandocs/OAM.html#:~:text=up%20to%2010%20objects%20to%20be%20drawn%20on%20that%20line
-        if self.work_state.scanline_dots % 2 != 0 && self.work_state.scanline_objects.len() < 10 {
+        if self.work_state.scanline_dots % 2 == 0 && self.work_state.scanline_objects.len() < 10 {
             let obj_size = self.lcd.object_size();
             let object_index = (self.work_state.scanline_dots as usize - 1) / 2;
             let object = unsafe {
@@ -289,7 +289,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
             // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
             // The object intersects with current line.
             if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
-                self.work_state.scanline_objects.push(ObjectSnapshot { object, size: obj_size });
+                self.work_state.scanline_objects.push(object);
             }
         }
 
@@ -303,7 +303,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
             // The earlier the object, the higher its priority.
             //
             // It's notable that `sort_by` is stable.
-            self.work_state.scanline_objects.sort_by(|a, b| a.object.x.cmp(&b.object.x));
+            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
             self.set_lcd_mode(LCDMode::RenderPixel);
         }
     }
@@ -359,7 +359,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
         }
 
         if self.lcd.is_object_enabled() {
-            // let obj_size = self.lcd.object_size();
+            let obj_size = self.lcd.object_size();
             let objects = self
                 .work_state
                 .scanline_objects
@@ -367,11 +367,10 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                 .filter(|object| {
                     // overlap
                     let sx = self.work_state.scanline_x + 8;
-                    sx >= object.object.x && sx < object.object.x + 8
+                    sx >= object.x && sx < object.x + 8
                 })
-                .map(|snapshot| {
-                    let object = snapshot.object;
-                    let obj_size = snapshot.size;
+                .map(|object| {
+                    let object = *object;
 
                     let mut ty = (self.lcd.ly + 16) - object.y;
                     let tx = (self.work_state.scanline_x + 8) - object.x;
@@ -399,13 +398,11 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                     tile::apply_object_attrs(&mut tile_data, &object.attrs);
                     let color_id = tile::get_color_id(&tile_data, tx, ty);
 
-                    (color_id, snapshot)
+                    (color_id, object)
                 })
                 .collect::<Vec<_>>();
             let opaque_object = objects.into_iter().find(|(obj_color_id, _)| obj_color_id != &0);
-            if let Some((obj_color_id, snapshot)) = opaque_object {
-                let object = snapshot.object;
-                let obj_size = snapshot.size;
+            if let Some((obj_color_id, object)) = opaque_object {
                 // Priority definition(the object below is opaque)
                 // 1. If BGW' color ID is 0, then render the object.
                 // 2. If LCDC.0 is 0, then render the object.
@@ -562,7 +559,6 @@ impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
 use gb_shared::InterruptType;
 #[cfg(test)]
 use mockall::mock;
-use object::ObjectSnapshot;
 
 #[cfg(test)]
 mock! {

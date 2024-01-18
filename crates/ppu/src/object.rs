@@ -19,12 +19,6 @@ pub(crate) struct Object {
     pub(crate) attrs: ObjectAttrs,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct ObjectSnapshot {
-    pub(crate) object: Object,
-    pub(crate) size: u8,
-}
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ObjectAttrs(pub(crate) u8);
