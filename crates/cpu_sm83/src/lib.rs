@@ -827,16 +827,14 @@ where
                 if self.ime {
                     self.halted = true;
                     self.handle_itr = true;
+                } else if (self.bus.read(0xFF0F) & self.bus.read(0xFFFF) & 0x1F) == 0 {
+                    self.handle_itr = false;
+                    self.halted = true;
                 } else {
-                    if (self.bus.read(0xFF0F) & self.bus.read(0xFFFF) & 0x1F) == 0 {
-                        self.handle_itr = false;
-                        self.halted = true;
-                    } else {
-                        // HALT mode is not entered, and HALT bug occurs.
-                        self.handle_itr = true;
-                        self.halted = false;
-                        halt_bug = true;
-                    }
+                    // HALT mode is not entered, and HALT bug occurs.
+                    self.handle_itr = true;
+                    self.halted = false;
+                    halt_bug = true;
                 }
             }
             0x70..=0x77 => {

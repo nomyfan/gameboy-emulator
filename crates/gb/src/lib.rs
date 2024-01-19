@@ -9,7 +9,6 @@ mod wram;
 use std::path::Path;
 
 use crate::bus::Bus;
-use anyhow::Ok;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_cpu_sm83::CPU_PERIOD_NANOS;
@@ -75,7 +74,7 @@ impl GameBoy {
             }
 
             // Safety: we set the command_receiver at the start of `play` function.
-            if let Some(command) = self.command_receiver.as_ref().unwrap().try_recv().ok() {
+            if let Ok(command) = self.command_receiver.as_ref().unwrap().try_recv() {
                 if let Command::Exit = command {
                     return Ok(());
                 }

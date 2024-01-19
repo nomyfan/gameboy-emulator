@@ -45,11 +45,7 @@ impl Memory for Joypad {
 
 impl Joypad {
     pub(crate) fn new() -> Self {
-        let mut v = Self::default();
-        v.select_buttons = true;
-        v.select_d_pad = true;
-
-        v
+        Self { select_buttons: true, select_d_pad: true, ..Self::default() }
     }
 
     pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
