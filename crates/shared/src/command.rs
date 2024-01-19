@@ -14,14 +14,14 @@ pub enum JoypadCommand {
 
 #[derive(Debug, Clone, Copy)]
 pub enum JoypadKey {
-    A,
-    B,
-    Start,
-    Select,
-    Up,
-    Down,
-    Left,
-    Right,
+    Start = 7,
+    Select = 6,
+    B = 5,
+    A = 4,
+    Down = 3,
+    Up = 2,
+    Left = 1,
+    Right = 0,
 }
 
 pub type CommandReceiver = Receiver<Command>;
