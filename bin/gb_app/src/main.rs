@@ -35,8 +35,8 @@ const KEY_CODE_JOYPAD_KEY_PAIRS: [(KeyCode, JoypadKey); 8] = [
     (KeyCode::ArrowRight, JoypadKey::Right),
     (KeyCode::KeyA, JoypadKey::A),
     (KeyCode::KeyS, JoypadKey::B),
-    (KeyCode::Space, JoypadKey::Start),
-    (KeyCode::Enter, JoypadKey::Select),
+    (KeyCode::Enter, JoypadKey::Start),
+    (KeyCode::Space, JoypadKey::Select),
 ];
 
 fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {

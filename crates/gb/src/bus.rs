@@ -33,7 +33,7 @@ pub(crate) struct BusInner {
     dma: DMA,
     /// Serial transfer
     serial: Serial,
-    joypad: Joypad,
+    joypad_ptr: *const Joypad<Bus>,
 
     ppu_ptr: *const PPU<Bus>,
     timer_ptr: *const Timer<Bus>,
@@ -60,6 +60,16 @@ impl BusInner {
     #[inline]
     fn timer_ref(&self) -> &Timer<Bus> {
         unsafe { &*self.timer_ptr }
+    }
+
+    #[inline]
+    fn joypad_mut(&mut self) -> &mut Joypad<Bus> {
+        unsafe { &mut *(self.joypad_ptr as *mut Joypad<Bus>) }
+    }
+
+    #[inline]
+    fn joypad_ref(&self) -> &Joypad<Bus> {
+        unsafe { &*self.joypad_ptr }
     }
 }
 
@@ -95,7 +105,7 @@ impl Memory for BusInner {
             0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF00..=0xFF7F => {
                 match addr {
-                    0xFF00 => self.joypad.write(addr, value),
+                    0xFF00 => self.joypad_mut().write(addr, value),
                     0xFF01..=0xFF02 => self.serial.write(addr, value),
                     0xFF04..=0xFF07 => self.timer_mut().write(addr, value),
                     0xFF0F => {
@@ -165,7 +175,7 @@ impl Memory for BusInner {
             }
             0xFF00..=0xFF7F => {
                 match addr {
-                    0xFF00 => self.joypad.read(addr),
+                    0xFF00 => self.joypad_ref().read(addr),
                     0xFF01..=0xFF02 => self.serial.read(addr),
                     0xFF04..=0xFF07 => self.timer_ref().read(addr),
                     0xFF0F => {
@@ -229,7 +239,7 @@ impl Bus {
                 interrupt_flag: 0xE0,
                 dma: DMA::new(),
                 serial: Serial::new(),
-                joypad: Joypad::new(),
+                joypad_ptr: std::ptr::null(),
                 ppu_ptr: std::ptr::null(),
                 timer_ptr: std::ptr::null(),
                 ref_count: 1,
@@ -249,6 +259,12 @@ impl Bus {
         }
     }
 
+    pub(crate) fn set_joypad(&mut self, joypad: *const Joypad<Bus>) {
+        unsafe {
+            (*self.ptr).joypad_ptr = joypad;
+        }
+    }
+
     fn step_dma(&mut self) {
         if let Some((src, dst)) = self.dma.next_addr() {
             let value = self.read(src);
@@ -262,7 +278,7 @@ impl Bus {
 
     pub(crate) fn handle_command(&mut self, command: Command) {
         if let Command::Joypad(joypad_command) = command {
-            self.joypad.handle_command(joypad_command)
+            self.joypad_mut().handle_command(joypad_command)
         }
     }
 }

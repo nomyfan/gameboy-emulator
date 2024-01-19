@@ -16,6 +16,7 @@ use gb_ppu::PPU;
 use gb_shared::command::Command;
 use gb_shared::command::CommandReceiver;
 use gb_shared::event::EventSender;
+use joypad::Joypad;
 use timer::Timer;
 
 pub struct GameBoy {
@@ -24,6 +25,7 @@ pub struct GameBoy {
     bus: Box<Bus>,
     // We need to hold it to make it live as long as the GameBoy.
     _timer: Box<Timer<Bus>>,
+    _joypad: Box<Joypad<Bus>>,
     command_receiver: Option<CommandReceiver>,
 }
 
@@ -42,8 +44,17 @@ impl GameBoy {
         bus.set_ppu(ppu.as_ref());
         let timer = Box::new(Timer::new(bus.clone()));
         bus.set_timer(timer.as_ref());
+        let joypad = Box::new(Joypad::new(bus.clone()));
+        bus.set_joypad(joypad.as_ref());
 
-        Self { cpu, ppu, bus: Box::new(bus), _timer: timer, command_receiver: None }
+        Self {
+            cpu,
+            ppu,
+            bus: Box::new(bus),
+            _timer: timer,
+            _joypad: joypad,
+            command_receiver: None,
+        }
     }
 
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
