@@ -1,7 +1,6 @@
 use gb_shared::{
-    builder::ImBuilder,
     command::{JoypadCommand, JoypadKey},
-    is_bit_set, set_bits, unset_bits, Memory,
+    is_bit_set, Memory,
 };
 
 /// The state is true when the value is zero.
@@ -38,12 +37,9 @@ impl Memory for Joypad {
             (false, false, false, false)
         };
 
-        0xFF.if_then(self.select_buttons, |v| unset_bits!(v, 5))
-            .if_then(self.select_d_pad, |v| unset_bits!(v, 4))
-            .if_then(b3, |v| unset_bits!(v, 3))
-            .if_then(b2, |v| unset_bits!(v, 2))
-            .if_then(b1, |v| unset_bits!(v, 1))
-            .if_then(b0, |v| unset_bits!(v, 0))
+        let b3210 = ((b3 as u8) << 3) | ((b2 as u8) << 2) | ((b1 as u8) << 1) | (b0 as u8);
+
+        !(((self.select_buttons as u8) << 5) | ((self.select_d_pad as u8) << 4) | b3210)
     }
 }
 
@@ -82,6 +78,7 @@ impl Joypad {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gb_shared::set_bits;
 
     #[test]
     fn initial_value() {

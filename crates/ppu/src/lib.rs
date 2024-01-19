@@ -7,7 +7,6 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::builder::ImBuilder;
 use gb_shared::event::{Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
 
@@ -377,9 +376,18 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                     let tx = (self.work_state.scanline_x + 8) - object.x;
 
                     let index = if obj_size == 16 {
-                        (object.tile_index & 0xFE, object.tile_index | 0x01)
-                            .if_then(object.attrs.y_flip(), |(top, bottom)| (bottom, top))
-                            .map_as(|(top, bottom)| if ty < 8 { top } else { bottom })
+                        let mut top = object.tile_index & 0xFE;
+                        let mut bottom = object.tile_index | 0x01;
+
+                        if object.attrs.y_flip() {
+                            std::mem::swap(&mut top, &mut bottom);
+                        }
+
+                        if ty < 8 {
+                            top
+                        } else {
+                            bottom
+                        }
                     } else {
                         object.tile_index
                     };
