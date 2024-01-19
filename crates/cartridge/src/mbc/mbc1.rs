@@ -12,20 +12,15 @@ pub(crate) struct Mbc1 {
     banking_num: usize,
     /// Initialized with max size, 32KiB.
     ram_banks: Box<[RamBank; 4]>,
-    // Cartridge header attributes
-    rom_size: usize,
-    ram_size: usize,
 }
 
 impl Mbc1 {
-    pub(crate) fn new(rom_size: usize, ram_size: usize) -> Self {
+    pub(crate) fn new() -> Self {
         Mbc1 {
             banking_mode: 0,
             ram_enabled: false,
             banking_num: 0,
             ram_banks: boxed_array_fn(|_| [0u8; 0x2000]),
-            rom_size,
-            ram_size,
         }
     }
 }
@@ -68,10 +63,7 @@ impl super::Mbc for Mbc1 {
             0x0000..=0x3FFF => rom[addr as usize],
             // ROM bank
             0x4000..=0x7FFF => {
-                // https://gbdev.io/pandocs/MBC1.html#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only:~:text=no%20observable%20effect
-                let mut rom_bank_num = if self.banking_mode == 1
-                    && (self.rom_size > kib(512) || self.ram_size > kib(8))
-                {
+                let mut rom_bank_num = if self.banking_mode == 1 {
                     // 7 bits
                     self.banking_num & 0x7F
                 } else {
