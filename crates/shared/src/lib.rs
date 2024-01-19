@@ -26,6 +26,7 @@ pub trait Memory {
     fn read(&self, addr: u16) -> u8;
 }
 
+// TODO: rename `step` to `sync`
 pub trait Component {
     fn step(&mut self, cycles: u8);
 }

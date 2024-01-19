@@ -34,7 +34,6 @@ pub(crate) struct BusInner {
     /// Serial transfer
     serial: Serial,
     joypad_ptr: *const Joypad<Bus>,
-
     ppu_ptr: *const PPU<Bus>,
     timer_ptr: *const Timer<Bus>,
 
@@ -43,7 +42,7 @@ pub(crate) struct BusInner {
 
 impl BusInner {
     #[inline]
-    fn ppu_mut(&mut self) -> &mut PPU<Bus> {
+    pub(crate) fn ppu_mut(&mut self) -> &mut PPU<Bus> {
         unsafe { &mut *(self.ppu_ptr as *mut PPU<Bus>) }
     }
 

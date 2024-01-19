@@ -408,15 +408,6 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                 // 2. If LCDC.0 is 0, then render the object.
                 // 3. If OAM attributes.7 is 0, then render the object.
                 // 4. Otherwise, render the BGW.
-                if self.lcd.ly >= 88 && self.lcd.ly < 114 {
-                    log::debug!(
-                        "Render object at ({}, {}), object len {}, object size {}",
-                        self.work_state.scanline_x,
-                        self.lcd.ly,
-                        self.work_state.scanline_objects.len(),
-                        obj_size,
-                    );
-                }
                 if color_id == 0 || !object.attrs.bgw_over_object() {
                     let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = obj_color_id * 2;
@@ -492,10 +483,8 @@ impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => {
                 let old_enabled = self.lcd.is_lcd_enabled();
-                let old_object_size = self.lcd.object_size();
                 self.lcd.lcdc = value;
                 let new_enabled = self.lcd.is_lcd_enabled();
-                let new_object_size = self.lcd.object_size();
 
                 if old_enabled != new_enabled {
                     // https://gbdev.io/pandocs/LCDC.html#lcdc7--lcd-enable:~:text=be%20performed%0Aduring-,vblank%20only%2C,-disabling%20the%20display
@@ -503,17 +492,6 @@ impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
                         assert_eq!(self.lcd_mode(), LCDMode::VBlank);
                     }
                     self.power(new_enabled);
-                }
-
-                if old_object_size != new_object_size && self.work_state.scanline_objects.len() < 10
-                {
-                    log::debug!(
-                        "Object size changes from {} to {} at scanline dots {}, ly {}. Scanned object count {}",
-                        old_object_size, new_object_size,
-                        self.work_state.scanline_dots,
-                        self.lcd.ly,
-                        self.work_state.scanline_objects.len()
-                    );
                 }
             }
             0xFF41 => {

@@ -250,8 +250,8 @@ fn main() -> anyhow::Result<()> {
         }
     })?;
 
-    let _ = gameboy_handle.join().unwrap();
-    gameboy_event_handle.join().unwrap();
+    let _ = gameboy_handle.join();
+    let _ = gameboy_event_handle.join();
 
     Ok(())
 }

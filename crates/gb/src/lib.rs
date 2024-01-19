@@ -21,12 +21,12 @@ use timer::Timer;
 
 pub struct GameBoy {
     cpu: Cpu<Bus>,
-    ppu: Box<PPU<Bus>>,
-    bus: Box<Bus>,
     // We need to hold it to make it live as long as the GameBoy.
+    _ppu: Box<PPU<Bus>>,
     _timer: Box<Timer<Bus>>,
     _joypad: Box<Joypad<Bus>>,
     command_receiver: Option<CommandReceiver>,
+    bus: Box<Bus>,
 }
 
 impl GameBoy {
@@ -49,10 +49,10 @@ impl GameBoy {
 
         Self {
             cpu,
-            ppu,
-            bus: Box::new(bus),
+            _ppu: ppu,
             _timer: timer,
             _joypad: joypad,
+            bus: Box::new(bus),
             command_receiver: None,
         }
     }
@@ -72,7 +72,7 @@ impl GameBoy {
         event_sender: EventSender,
         command_receiver: CommandReceiver,
     ) -> anyhow::Result<()> {
-        self.ppu.set_event_sender(event_sender);
+        self.bus.ppu_mut().set_event_sender(event_sender);
         self.command_receiver = Some(command_receiver);
 
         loop {
