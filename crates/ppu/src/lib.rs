@@ -474,13 +474,31 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
     }
 }
 
+impl<IRQ: InterruptRequest> PPU<IRQ> {
+    fn is_oam_locked(&self) -> bool {
+        // https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#oam-memory-area-at-fe00-fe9f-is-accessible-during-modes-0-1
+        self.lcd_mode() == LCDMode::OamScan || self.lcd_mode() == LCDMode::RenderPixel
+    }
+
+    fn is_vram_locked(&self) -> bool {
+        // https://gbdev.io/pandocs/Accessing_VRAM_and_OAM.html#vram-memory-area-at-8000-9fff-is-accessible-during-modes-0-2
+        self.lcd_mode() == LCDMode::RenderPixel
+    }
+}
+
 impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x8000..=0x9FFF => {
-                self.vram[addr as usize - 0x8000] = value;
+                if !self.is_vram_locked() {
+                    self.vram[addr as usize - 0x8000] = value;
+                }
             }
-            0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
+            0xFE00..=0xFE9F => {
+                if !self.is_oam_locked() {
+                    self.oam[addr as usize - 0xFE00] = value;
+                }
+            }
             0xFF40 => {
                 let old_enabled = self.lcd.is_lcd_enabled();
                 self.lcd.lcdc = value;
@@ -517,8 +535,20 @@ impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0x8000..=0x9FFF => self.vram[addr as usize - 0x8000],
-            0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00],
+            0x8000..=0x9FFF => {
+                if self.is_vram_locked() {
+                    0xFF
+                } else {
+                    self.vram[addr as usize - 0x8000]
+                }
+            }
+            0xFE00..=0xFE9F => {
+                if self.is_oam_locked() {
+                    0xFF
+                } else {
+                    self.oam[addr as usize - 0xFE00]
+                }
+            }
             0xFF40 => self.lcd.lcdc,
             0xFF41 => self.lcd.stat,
             0xFF42 => self.lcd.scy,
