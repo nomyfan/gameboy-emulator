@@ -1,4 +1,5 @@
 mod config;
+mod corruption;
 mod lcd;
 mod object;
 mod tile;
