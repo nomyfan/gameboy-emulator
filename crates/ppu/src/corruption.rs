@@ -76,13 +76,9 @@ pub(crate) fn read_corruption(oam: &mut [u8; 160], current_row: u8) {
     }
 }
 
-#[inline]
-pub(crate) fn write_idu_corruption(oam: &mut [u8; 160], current_row: u8) {
-    write_corruption(oam, current_row);
-}
-
 pub(crate) fn read_idu_corruption(oam: &mut [u8; 160], current_row: u8) {
-    // Is not one of the first four, as well as it's not the last one.
+    debug_assert!(current_row >= 1);
+
     if current_row >= 4 && current_row <= 19 {
         let a = read_word(oam, current_row - 2, Partition::First);
         let b = read_word(oam, current_row - 1, Partition::First);

@@ -487,6 +487,54 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
     }
 }
 
+impl<IRQ: InterruptRequest> PPU<IRQ> {
+    pub fn is_in_oam_scan(&self) -> bool {
+        // dots 1..=80
+        self.lcd_mode() == LCDMode::OamScan
+    }
+
+    pub fn try_write_corruption(&mut self) {
+        if !self.is_in_oam_scan() {
+            return;
+        }
+        let current_row = self.work_state.scanline_dots / 4;
+        if current_row < 1 {
+            return;
+        }
+
+        corruption::write_corruption(self.oam.as_mut(), current_row as u8);
+    }
+
+    pub fn try_read_corruption(&mut self) {
+        if !self.is_in_oam_scan() {
+            return;
+        }
+        let current_row = self.work_state.scanline_dots / 4;
+        if current_row < 1 {
+            return;
+        }
+
+        corruption::read_corruption(self.oam.as_mut(), current_row as u8);
+    }
+
+    pub fn try_write_idu_corruption(&mut self) {
+        self.try_write_corruption();
+    }
+
+    pub fn read_idu_corruption(&mut self) {
+        if !self.is_in_oam_scan() {
+            return;
+        }
+
+        let current_row = self.work_state.scanline_dots / 4;
+        if current_row < 1 {
+            return;
+        }
+
+        corruption::read_idu_corruption(self.oam.as_mut(), current_row as u8);
+    }
+}
+
 impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
