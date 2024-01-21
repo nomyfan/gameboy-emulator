@@ -63,7 +63,7 @@ pub(crate) struct LCD {
 
 impl Default for LCD {
     fn default() -> Self {
-        Self { lcdc: 0b10010001, stat: 0b10, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 }
+        Self { lcdc: 0x91, stat: 0x86, ly: 0, lyc: 0, wy: 0, wx: 0, scy: 0, scx: 0 }
     }
 }
 

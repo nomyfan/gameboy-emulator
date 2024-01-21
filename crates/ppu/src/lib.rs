@@ -84,7 +84,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
             vram: BoxedArray::default(),
             oam: BoxedArray::default(),
             lcd: LCD::default(),
-            bgp: 0,
+            bgp: 0xFC,
             obp0: 0,
             obp1: 0,
             work_state: PPUWorkState::default(),

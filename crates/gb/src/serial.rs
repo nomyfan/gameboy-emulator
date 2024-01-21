@@ -29,6 +29,6 @@ impl Memory for Serial {
 
 impl Serial {
     pub(crate) fn new() -> Self {
-        Self { serial_transfer_data: 0, serial_transfer_control: 0x7C }
+        Self { serial_transfer_data: 0, serial_transfer_control: 0x7E }
     }
 }

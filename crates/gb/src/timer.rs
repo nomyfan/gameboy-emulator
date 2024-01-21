@@ -79,8 +79,7 @@ impl<IRQ: InterruptRequest> Memory for Timer<IRQ> {
 
 impl<IRQ: InterruptRequest> Timer<IRQ> {
     pub fn new(irq: IRQ) -> Self {
-        // FIXME: DIV init value is 0xAB00
-        Self { div: 0, tima: 0, tma: 0, tac: 0, irq }
+        Self { div: 0xAB00, tima: 0, tma: 0, tac: 0xF8, irq }
     }
 
     pub fn step(&mut self) {
@@ -135,10 +134,19 @@ mod tests {
         timer.write(0xFF07, value | 0xF8);
     }
 
+    fn prepare_timer() -> Timer<MockInterruptRequest> {
+        let mut timer = Timer::new(MockInterruptRequest::new());
+        // Reset DIV to zero
+        timer.write(0xFF04, 0b01);
+        timer.write(0xFF04, 0b00);
+
+        timer
+    }
+
     #[test]
     fn div_increased_ignoring_tac() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
-        write_tac(&mut timer, 0);
+        let mut timer = prepare_timer();
+        write_tac(&mut timer, 0b000);
 
         for _ in 0..255 {
             timer.step();
@@ -153,7 +161,7 @@ mod tests {
 
     #[test]
     fn tima_increased_every_1024_cycles() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+        let mut timer = prepare_timer();
         write_tac(&mut timer, 0b100);
 
         for _ in 0..1023 {
@@ -179,7 +187,7 @@ mod tests {
 
     #[test]
     fn tima_increased_every_16_cycles() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+        let mut timer = prepare_timer();
         write_tac(&mut timer, 0b101);
 
         for _ in 0..16 {
@@ -197,7 +205,7 @@ mod tests {
 
     #[test]
     fn tima_increased_every_64_cycles() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+        let mut timer = prepare_timer();
         write_tac(&mut timer, 0b110);
 
         for _ in 0..64 {
@@ -215,7 +223,7 @@ mod tests {
 
     #[test]
     fn tima_increased_every_256_cycles() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+        let mut timer = prepare_timer();
         write_tac(&mut timer, 0b111);
 
         for _ in 0..255 {
@@ -235,7 +243,7 @@ mod tests {
 
     #[test]
     fn tima_not_increased_if_tima_is_disabled() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+        let mut timer = prepare_timer();
         write_tac(&mut timer, 0b001);
 
         for _ in 0..16 {
@@ -288,7 +296,7 @@ mod tests {
 
     #[test]
     fn reset_on_timer_freq_change() {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+        let mut timer = prepare_timer();
         write_tac(&mut timer, 0b101);
 
         for _ in 0..16 {
