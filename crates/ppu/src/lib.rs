@@ -240,12 +240,12 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
 
     fn power(&mut self, on: bool) {
         if on {
-            log::debug!("ppu power on");
-            self.work_state = Default::default();
-            self.lcd.ly = 0;
             self.set_lcd_mode(LCDMode::OamScan);
         } else {
-            log::debug!("ppu power off");
+            // https://www.reddit.com/r/Gameboy/comments/a1c8h0/what_happens_when_a_gameboy_screen_is_disabled/
+            self.work_state = Default::default();
+            self.lcd.ly = 0;
+            self.set_lcd_mode(LCDMode::HBlank);
             self.video_buffer.iter_mut().for_each(|row| {
                 row.iter_mut().for_each(|color_palette| {
                     *color_palette = 0;
@@ -288,7 +288,8 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
             };
             // https://gbdev.io/pandocs/OAM.html#:~:text=since%20the%20gb_ppu::%20only%20checks%20the%20y%20coordinate%20to%20select%20objects
             // The object intersects with current line.
-            if (object.y..(object.y + obj_size)).contains(&(self.lcd.ly + 16)) {
+            let object_y = object.y as u16;
+            if (object_y..(object_y + obj_size as u16)).contains(&(self.lcd.ly as u16 + 16)) {
                 self.work_state.scanline_objects.push(object);
             }
         }
@@ -498,7 +499,9 @@ impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
 
                 if old_enabled != new_enabled {
                     // https://gbdev.io/pandocs/LCDC.html#lcdc7--lcd-enable:~:text=be%20performed%0Aduring-,vblank%20only%2C,-disabling%20the%20display
-                    assert_eq!(self.lcd_mode(), LCDMode::VBlank);
+                    if old_enabled {
+                        assert_eq!(self.lcd_mode(), LCDMode::VBlank);
+                    }
                     self.power(new_enabled);
                 }
 
