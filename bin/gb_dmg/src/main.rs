@@ -14,7 +14,7 @@ use gb_shared::event::Event as GameBoyEvent;
 use gb_shared::Run;
 use log::error;
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 use std::thread;
 use winit::dpi::LogicalSize;
 #[cfg(debug_assertions)]
@@ -25,8 +25,6 @@ use winit::keyboard::KeyCode;
 
 use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const KEY_CODE_JOYPAD_KEY_PAIRS: [(KeyCode, JoypadKey); 8] = [
     (KeyCode::ArrowUp, JoypadKey::Up),
@@ -43,7 +41,7 @@ fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
     let window = {
         let size = LogicalSize::new(WIDTH as f64 * SCALE, HEIGHT as f64 * SCALE);
         WindowBuilder::new()
-            .with_title(format!("GameBoy - {}", VERSION))
+            .with_title("GameBoy")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(event_loop)
@@ -93,6 +91,8 @@ fn main() -> anyhow::Result<()> {
             (Some(writer), Some((reader, pixels, window_id)), Some(window))
         }
     };
+    #[cfg(debug_assertions)]
+    let map1_dbg_window = map1_dbg_window.map(|window| Arc::new(window));
 
     #[cfg(debug_assertions)]
     let (mut map2_dbg_writer, mut map2_rpw, map2_dbg_window) = {
@@ -110,6 +110,8 @@ fn main() -> anyhow::Result<()> {
             (Some(writer), Some((reader, pixels, window_id)), Some(window))
         }
     };
+    #[cfg(debug_assertions)]
+    let map2_dbg_window = map2_dbg_window.map(|window| Arc::new(window));
 
     #[cfg(debug_assertions)]
     let (mut oam_dbg_writer, mut oam_rpw, oam_dbg_window) = {
@@ -126,8 +128,11 @@ fn main() -> anyhow::Result<()> {
             (Some(writer), Some((reader, pixels, window_id)), Some(window))
         }
     };
+    #[cfg(debug_assertions)]
+    let oam_dbg_window = oam_dbg_window.map(|window| Arc::new(window));
 
     let (main_window, mut pixels) = main_window(&event_loop)?;
+    let main_window = Arc::new(main_window);
     let main_window_id = main_window.id();
 
     let gameboy_handle = thread::spawn(move || -> anyhow::Result<()> {
@@ -136,45 +141,55 @@ fn main() -> anyhow::Result<()> {
         Ok(())
     });
 
-    let gameboy_event_handle = thread::spawn(move || loop {
-        match event_receiver.recv() {
-            Ok(event) => match event {
-                GameBoyEvent::OnFrame(buffer) => {
-                    writer.write(buffer);
-                    writer.flush();
-                    main_window.request_redraw();
-                }
-                #[cfg(debug_assertions)]
-                GameBoyEvent::OnDebugFrame(id, buffer) => {
-                    if id == 0 {
-                        oam_dbg_writer.run_mut(|writer| {
-                            writer.write(buffer);
-                            writer.flush();
-                        });
-                        oam_dbg_window.run(|window| window.request_redraw());
-                    } else if id == 1 {
-                        map1_dbg_writer.run_mut(|writer| {
-                            writer.write(buffer);
-                            writer.flush();
-                        });
-                        map1_dbg_window.run(|window| window.request_redraw());
-                    } else if id == 2 {
-                        map2_dbg_writer.run_mut(|writer| {
-                            writer.write(buffer);
-                            writer.flush();
-                        });
-                        map2_dbg_window.run(|window| window.request_redraw());
+    let gameboy_event_handle = thread::spawn({
+        let main_window = main_window.clone();
+        #[cfg(debug_assertions)]
+        let oam_dbg_window = oam_dbg_window.clone();
+        #[cfg(debug_assertions)]
+        let map1_dbg_window = map1_dbg_window.clone();
+        #[cfg(debug_assertions)]
+        let map2_dbg_window = map2_dbg_window.clone();
+
+        move || loop {
+            match event_receiver.recv() {
+                Ok(event) => match event {
+                    GameBoyEvent::OnFrame(buffer) => {
+                        writer.write(buffer);
+                        writer.flush();
+                        main_window.request_redraw();
                     }
+                    #[cfg(debug_assertions)]
+                    GameBoyEvent::OnDebugFrame(id, buffer) => {
+                        if id == 0 {
+                            oam_dbg_writer.run_mut(|writer| {
+                                writer.write(buffer);
+                                writer.flush();
+                            });
+                            oam_dbg_window.run(|window| window.request_redraw());
+                        } else if id == 1 {
+                            map1_dbg_writer.run_mut(|writer| {
+                                writer.write(buffer);
+                                writer.flush();
+                            });
+                            map1_dbg_window.run(|window| window.request_redraw());
+                        } else if id == 2 {
+                            map2_dbg_writer.run_mut(|writer| {
+                                writer.write(buffer);
+                                writer.flush();
+                            });
+                            map2_dbg_window.run(|window| window.request_redraw());
+                        }
+                    }
+                },
+                Err(err) => {
+                    error!("{}", err);
+                    break;
                 }
-            },
-            Err(err) => {
-                error!("{}", err);
-                break;
             }
         }
     });
 
-    event_loop.run(move |event, target| {
+    event_loop.run(move |event, elwt| {
         // Draw the current frame
         if let Event::WindowEvent { event, window_id } = &event {
             match event {
@@ -182,7 +197,7 @@ fn main() -> anyhow::Result<()> {
                     // Once GB instance exits, the GB event handling event thread will exit due to closed channel,
                     // then the whole application will exit.
                     command_sender.send(Command::Exit).unwrap();
-                    target.exit();
+                    elwt.exit();
                 }
                 WindowEvent::RedrawRequested => {
                     if window_id == &main_window_id {
