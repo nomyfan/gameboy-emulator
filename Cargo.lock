@@ -543,22 +543,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gb_app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "env_logger",
- "gb",
- "gb_shared",
- "left-right",
- "log",
- "pixels",
- "winit",
- "winit_input_helper",
-]
-
-[[package]]
 name = "gb_cartridge"
 version = "0.1.0"
 dependencies = [
@@ -576,6 +560,22 @@ dependencies = [
  "mockall",
  "strum",
  "strum_macros",
+]
+
+[[package]]
+name = "gb_dmg"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "env_logger",
+ "gb",
+ "gb_shared",
+ "left-right",
+ "log",
+ "pixels",
+ "winit",
+ "winit_input_helper",
 ]
 
 [[package]]
