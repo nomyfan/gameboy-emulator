@@ -397,6 +397,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
         let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
             0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
             0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(&header)),
+            0x0F..=0x13 => Box::new(mbc::mbc3::Mbc3::new(&header)),
             _ => panic!(
                 "MBC {} is not supported yet",
                 CARRIAGE_TYPE
@@ -421,7 +422,7 @@ impl Cartridge {
 
         let mut cart = Self::try_from(rom)?;
         if sav_file_name.exists() {
-            cart.mbc.load_ram(&sav_file_name)?;
+            cart.mbc.restore(&sav_file_name)?;
         }
         cart.sav = Some(sav_file_name);
 
@@ -442,7 +443,7 @@ impl gb_shared::Memory for Cartridge {
 impl Drop for Cartridge {
     fn drop(&mut self) {
         if let Some(sav) = self.sav.as_ref() {
-            self.mbc.save_ram(sav).unwrap();
+            self.mbc.store(sav).unwrap();
         }
     }
 }
