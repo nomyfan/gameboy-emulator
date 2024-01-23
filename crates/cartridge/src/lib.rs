@@ -1,7 +1,11 @@
 mod mbc;
 
 use anyhow::Result;
-use std::{borrow::Cow, fmt::Display, path::Path};
+use std::{
+    borrow::Cow,
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 const CARRIAGE_TYPE: [(u8, &str); 28] = [
     (0x00, "ROM ONLY"),
@@ -366,6 +370,7 @@ impl Display for CartridgeHeader {
 pub struct Cartridge {
     pub header: CartridgeHeader,
     pub rom: Vec<u8>,
+    pub sav: Option<PathBuf>,
     mbc: Box<dyn mbc::Mbc>,
 }
 
@@ -391,7 +396,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
 
         let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
             0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
-            0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new()),
+            0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(&header)),
             _ => panic!(
                 "MBC {} is not supported yet",
                 CARRIAGE_TYPE
@@ -402,14 +407,25 @@ impl TryFrom<Vec<u8>> for Cartridge {
             ),
         };
 
-        Ok(Cartridge { header, rom, mbc })
+        Ok(Cartridge { header, rom, mbc, sav: None })
     }
 }
 
 impl Cartridge {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let rom = std::fs::read(path.as_ref())?;
-        Self::try_from(rom)
+
+        let mut sav_file_name = PathBuf::new();
+        sav_file_name.push(path.as_ref());
+        sav_file_name.set_extension("sav");
+
+        let mut cart = Self::try_from(rom)?;
+        if sav_file_name.exists() {
+            cart.mbc.load_ram(&sav_file_name)?;
+        }
+        cart.sav = Some(sav_file_name);
+
+        Ok(cart)
     }
 }
 
@@ -420,5 +436,13 @@ impl gb_shared::Memory for Cartridge {
 
     fn read(&self, addr: u16) -> u8 {
         self.mbc.read(addr, &self.rom)
+    }
+}
+
+impl Drop for Cartridge {
+    fn drop(&mut self) {
+        if let Some(sav) = self.sav.as_ref() {
+            self.mbc.save_ram(sav).unwrap();
+        }
     }
 }

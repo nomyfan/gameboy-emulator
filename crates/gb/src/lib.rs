@@ -6,8 +6,6 @@ mod serial;
 mod timer;
 mod wram;
 
-use std::path::Path;
-
 use crate::bus::Bus;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
@@ -17,6 +15,7 @@ use gb_shared::command::Command;
 use gb_shared::command::CommandReceiver;
 use gb_shared::event::EventSender;
 use joypad::Joypad;
+use std::path::Path;
 use timer::Timer;
 
 pub struct GameBoy {
@@ -58,12 +57,7 @@ impl GameBoy {
     }
 
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let rom = std::fs::read(path.as_ref())?;
-        Self::try_from_raw(rom)
-    }
-
-    pub fn try_from_raw(rom: Vec<u8>) -> anyhow::Result<Self> {
-        let cart = rom.try_into()?;
+        let cart = Cartridge::load(path)?;
         Ok(Self::from_cartridge(cart))
     }
 

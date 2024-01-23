@@ -1,5 +1,9 @@
 use super::RamBank;
-use gb_shared::{boxed_array_fn, kib};
+use crate::CartridgeHeader;
+use gb_shared::kib;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;
 
 /// https://gbdev.io/pandocs/MBC1.html
 pub(crate) struct Mbc1 {
@@ -10,17 +14,32 @@ pub(crate) struct Mbc1 {
     ram_enabled: bool,
     /// The lower 2 + 5 bits are used.
     banking_num: usize,
-    /// Initialized with max size, 32KiB.
-    ram_banks: Box<[RamBank; 4]>,
+    /// Max size, 32KiB.
+    ram_banks: Vec<Box<RamBank>>,
+    with_battery: bool,
 }
 
 impl Mbc1 {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(header: &CartridgeHeader) -> Self {
+        let cart_type = header.cart_type;
+        let ram_size = match header.ram_size {
+            0x02 => kib(8),
+            0x03 => kib(32),
+            _ => 0,
+        };
+
+        let ram_bank_size = ram_size / kib(8);
+        let mut ram_banks: Vec<Box<RamBank>> = Vec::with_capacity(ram_bank_size);
+        for _ in 0..ram_bank_size {
+            ram_banks.push(Box::new([0u8; kib(8)]));
+        }
+
         Mbc1 {
             banking_mode: 0,
             ram_enabled: false,
             banking_num: 0,
-            ram_banks: boxed_array_fn(|_| [0u8; 0x2000]),
+            ram_banks,
+            with_battery: cart_type == 0x03,
         }
     }
 }
@@ -87,5 +106,32 @@ impl super::Mbc for Mbc1 {
             }
             _ => unreachable!("Invalid addr {:#02X} for MBC1", addr),
         }
+    }
+
+    fn save_ram(&self, path: &Path) -> anyhow::Result<()> {
+        if self.with_battery {
+            let mut file = File::create(path)?;
+            for bank in &self.ram_banks {
+                file.write_all(bank.as_ref())?;
+            }
+            file.flush()?;
+        }
+
+        Ok(())
+    }
+
+    fn load_ram(&mut self, path: &Path) -> anyhow::Result<()> {
+        if self.with_battery {
+            let mut file = File::open(path)?;
+            if file.metadata()?.len() as usize != self.ram_banks.len() * kib(8) {
+                // Ignore invalid file.
+                return Ok(());
+            }
+            for bank in &mut self.ram_banks {
+                file.read_exact(bank.as_mut())?;
+            }
+        }
+
+        Ok(())
     }
 }
