@@ -3,6 +3,7 @@ use std::path::Path;
 
 pub(crate) mod mbc1;
 pub(crate) mod mbc3;
+pub(crate) mod mbc5;
 pub(crate) mod mbc_none;
 
 /// The size of each RAM bank is 8KiB

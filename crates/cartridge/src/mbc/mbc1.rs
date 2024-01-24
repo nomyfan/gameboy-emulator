@@ -66,7 +66,7 @@ impl super::Mbc for Mbc1 {
                     self.ram_banks[ram_bank_num][(addr - 0xA000) as usize] = value;
                 }
             }
-            _ => unreachable!("Invalid addr {:#02X} for MBC1", addr),
+            _ => unreachable!("Invalid addr {:#04X} for MBC1", addr),
         }
     }
 
@@ -98,7 +98,7 @@ impl super::Mbc for Mbc1 {
                 let ram_bank_num = (self.banking_num >> 5) & 0b11;
                 self.ram_banks[ram_bank_num][(addr - 0xA000) as usize]
             }
-            _ => unreachable!("Invalid addr {:#02X} for MBC1", addr),
+            _ => unreachable!("Invalid addr {:#04X} for MBC1", addr),
         }
     }
 

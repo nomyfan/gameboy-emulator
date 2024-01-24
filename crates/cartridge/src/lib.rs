@@ -10,7 +10,7 @@ use std::{
 const CARRIAGE_TYPE: [(u8, &str); 28] = [
     (0x00, "ROM ONLY"),
     (0x01, "MBC1"),
-    (0x02, "MBC1 + RAM"),
+    (0x02, "MBC1+RAM"),
     (0x03, "MBC1+RAM+BATTERY"),
     (0x05, "MBC2"),
     (0x06, "MBC2+BATTERY"),
@@ -398,6 +398,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
             0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
             0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(&header)),
             0x0F..=0x13 => Box::new(mbc::mbc3::Mbc3::new(&header)),
+            0x19..=0x1E => Box::new(mbc::mbc5::Mbc5::new(&header)),
             _ => panic!(
                 "MBC {} is not supported yet",
                 CARRIAGE_TYPE

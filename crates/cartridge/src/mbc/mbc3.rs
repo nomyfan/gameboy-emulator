@@ -92,7 +92,7 @@ impl Mbc for Mbc3 {
                     _ => unreachable!(),
                 }
             }
-            _ => unreachable!("Invalid addr {:#02X} for MBC3", addr),
+            _ => unreachable!("Invalid addr {:#04X} for MBC3", addr),
         }
     }
 
@@ -124,7 +124,7 @@ impl Mbc for Mbc3 {
                     _ => unreachable!(),
                 }
             }
-            _ => unreachable!("Invalid addr {:#02X} for MBC3", addr),
+            _ => unreachable!("Invalid addr {:#04X} for MBC3", addr),
         }
     }
 
