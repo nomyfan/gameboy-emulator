@@ -1,6 +1,6 @@
-use super::RamBank;
+use super::{real_ram_size, RamBank};
 use crate::CartridgeHeader;
-use gb_shared::kib;
+use gb_shared::{boxed_array, kib};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -22,16 +22,10 @@ pub(crate) struct Mbc1 {
 impl Mbc1 {
     pub(crate) fn new(header: &CartridgeHeader) -> Self {
         let cart_type = header.cart_type;
-        let ram_size = match header.ram_size {
-            0x02 => kib(8),
-            0x03 => kib(32),
-            _ => 0,
-        };
-
-        let ram_bank_size = ram_size / kib(8);
-        let mut ram_banks: Vec<Box<RamBank>> = Vec::with_capacity(ram_bank_size);
-        for _ in 0..ram_bank_size {
-            ram_banks.push(Box::new([0u8; kib(8)]));
+        let ram_banks_len = real_ram_size(header.ram_size) / kib(8);
+        let mut ram_banks: Vec<Box<RamBank>> = Vec::with_capacity(ram_banks_len);
+        for _ in 0..ram_banks_len {
+            ram_banks.push(boxed_array(0));
         }
 
         Mbc1 {
@@ -108,7 +102,7 @@ impl super::Mbc for Mbc1 {
         }
     }
 
-    fn save_ram(&self, path: &Path) -> anyhow::Result<()> {
+    fn store(&self, path: &Path) -> anyhow::Result<()> {
         if self.with_battery {
             let mut file = File::create(path)?;
             for bank in &self.ram_banks {
@@ -120,7 +114,7 @@ impl super::Mbc for Mbc1 {
         Ok(())
     }
 
-    fn load_ram(&mut self, path: &Path) -> anyhow::Result<()> {
+    fn restore(&mut self, path: &Path) -> anyhow::Result<()> {
         if self.with_battery {
             let mut file = File::open(path)?;
             if file.metadata()?.len() as usize != self.ram_banks.len() * kib(8) {
