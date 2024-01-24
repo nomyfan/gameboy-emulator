@@ -59,7 +59,7 @@ impl Mbc for Mbc3 {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
-                self.ram_rtc_enabled = value == 0x0A;
+                self.ram_rtc_enabled = (value & 0x0F) == 0x0A;
             }
             0x2000..=0x3FFF => {
                 self.rom_bank = value & 0x7F;
