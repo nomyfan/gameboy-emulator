@@ -1,5 +1,6 @@
 mod config;
 mod frame;
+mod gamepad;
 mod logger;
 #[cfg(debug_assertions)]
 mod oam_frame;
@@ -92,7 +93,7 @@ fn main() -> anyhow::Result<()> {
         }
     };
     #[cfg(debug_assertions)]
-    let map1_dbg_window = map1_dbg_window.map(|window| Arc::new(window));
+    let map1_dbg_window = map1_dbg_window.map(Arc::new);
 
     #[cfg(debug_assertions)]
     let (mut map2_dbg_writer, mut map2_rpw, map2_dbg_window) = {
@@ -111,7 +112,7 @@ fn main() -> anyhow::Result<()> {
         }
     };
     #[cfg(debug_assertions)]
-    let map2_dbg_window = map2_dbg_window.map(|window| Arc::new(window));
+    let map2_dbg_window = map2_dbg_window.map(Arc::new);
 
     #[cfg(debug_assertions)]
     let (mut oam_dbg_writer, mut oam_rpw, oam_dbg_window) = {
@@ -129,7 +130,7 @@ fn main() -> anyhow::Result<()> {
         }
     };
     #[cfg(debug_assertions)]
-    let oam_dbg_window = oam_dbg_window.map(|window| Arc::new(window));
+    let oam_dbg_window = oam_dbg_window.map(Arc::new);
 
     let (main_window, mut pixels) = main_window(&event_loop)?;
     let main_window = Arc::new(main_window);
@@ -186,6 +187,21 @@ fn main() -> anyhow::Result<()> {
                     break;
                 }
             }
+        }
+    });
+
+    // Optional Gamepad event loop
+    std::thread::spawn({
+        let command_sender = command_sender.clone();
+        move || {
+            gamepad::run_event_loop(|key, is_pressed| {
+                let joypad_cmd = if is_pressed {
+                    JoypadCommand::PressKey(key)
+                } else {
+                    JoypadCommand::ReleaseKey(key)
+                };
+                command_sender.send(Command::Joypad(joypad_cmd)).unwrap();
+            })
         }
     });
 
