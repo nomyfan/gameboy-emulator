@@ -397,6 +397,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
         let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
             0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
             0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(&header)),
+            0x05..=0x06 => Box::new(mbc::mbc2::Mbc2::new(&header)),
             0x0F..=0x13 => Box::new(mbc::mbc3::Mbc3::new(&header)),
             0x19..=0x1E => Box::new(mbc::mbc5::Mbc5::new(&header)),
             _ => panic!(

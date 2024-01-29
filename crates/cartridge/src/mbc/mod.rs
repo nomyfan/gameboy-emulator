@@ -2,6 +2,7 @@ use gb_shared::kib;
 use std::path::Path;
 
 pub(crate) mod mbc1;
+pub(crate) mod mbc2;
 pub(crate) mod mbc3;
 pub(crate) mod mbc5;
 pub(crate) mod mbc_none;
