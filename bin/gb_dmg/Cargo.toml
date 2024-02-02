@@ -20,7 +20,6 @@ winit = { version = "0.29.4", default-features = false, features = [
   "wayland-csd-adwaita",
 ] }
 winit_input_helper = "0.15.1"
-left-right = "0.11.5"
 chrono = "0.4.31"
 # use xinput for fixing no events on Windows
 # https://gitlab.com/gilrs-project/gilrs/-/issues/136

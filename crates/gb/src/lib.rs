@@ -10,10 +10,10 @@ use crate::bus::Bus;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_cpu_sm83::CPU_PERIOD_NANOS;
+use gb_ppu::FrameOutHandle;
 use gb_ppu::PPU;
 use gb_shared::command::Command;
 use gb_shared::command::CommandReceiver;
-use gb_shared::event::EventSender;
 use joypad::Joypad;
 use std::path::Path;
 use timer::Timer;
@@ -63,10 +63,10 @@ impl GameBoy {
 
     pub fn play(
         mut self,
-        event_sender: EventSender,
+        frame_out_handle: Box<FrameOutHandle>,
         command_receiver: CommandReceiver,
     ) -> anyhow::Result<()> {
-        self.ppu.set_event_sender(event_sender);
+        self.ppu.set_frame_out_handle(Some(frame_out_handle));
         self.command_receiver = Some(command_receiver);
 
         loop {

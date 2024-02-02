@@ -65,22 +65,3 @@ pub const fn kib(k: usize) -> usize {
 pub const fn mib(m: usize) -> usize {
     kib(m) * 1024
 }
-
-pub trait Run<T> {
-    fn run(&self, f: impl FnOnce(&T));
-    fn run_mut(&mut self, f: impl FnOnce(&mut T));
-}
-
-impl<T> Run<T> for Option<T> {
-    fn run(&self, f: impl FnOnce(&T)) {
-        if let Some(v) = self {
-            f(v);
-        }
-    }
-
-    fn run_mut(&mut self, f: impl FnOnce(&mut T)) {
-        if let Some(v) = self {
-            f(v)
-        }
-    }
-}

@@ -7,7 +7,6 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::event::{Event, EventSender};
 use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
 
 #[derive(Debug, Default)]
@@ -32,6 +31,11 @@ pub(crate) struct PPUWorkState {
     /// Used for incrementing window_line.
     window_used: bool,
 }
+
+#[cfg(debug_assertions)]
+pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>, Vec<(u32, Vec<[[u8; 8]; 8]>)>);
+#[cfg(not(debug_assertions))]
+pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>);
 
 pub struct PPU<IRQ: InterruptRequest> {
     /// Tile data area(in size of 0x1800).
@@ -75,7 +79,7 @@ pub struct PPU<IRQ: InterruptRequest> {
     video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
 
     irq: IRQ,
-    event_sender: Option<EventSender>,
+    frame_out_handle: Option<Box<FrameOutHandle>>,
 }
 
 impl<IRQ: InterruptRequest> PPU<IRQ> {
@@ -90,12 +94,12 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
             work_state: PPUWorkState::default(),
             video_buffer: BoxedMatrix::default(),
             irq,
-            event_sender: None,
+            frame_out_handle: None,
         }
     }
 
-    pub fn set_event_sender(&mut self, event_sender: EventSender) {
-        self.event_sender.replace(event_sender);
+    pub fn set_frame_out_handle(&mut self, handle: Option<Box<FrameOutHandle>>) {
+        self.frame_out_handle = handle;
     }
 
     fn lcd_mode(&self) -> LCDMode {
@@ -162,13 +166,13 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
     }
 
     fn push_frame(&mut self) {
-        if let Some(event_sender) = self.event_sender.as_ref() {
-            event_sender.send(Event::OnFrame(self.video_buffer.clone())).unwrap();
-
+        if let Some(handle) = self.frame_out_handle.as_mut() {
             #[cfg(debug_assertions)]
-            {
+            let dbg_buffers = {
                 let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
                 let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
+
+                let mut dbg_buffers = vec![];
 
                 // OAM frame.
                 if dbg_windows_flag.contains(&"oam") {
@@ -189,7 +193,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                         })
                         .collect::<Vec<_>>();
 
-                    event_sender.send(Event::OnDebugFrame(0, data)).unwrap();
+                    dbg_buffers.push((0, data));
                 }
 
                 // Two tile map frames.
@@ -231,10 +235,18 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
                     debug_assert_eq!(map1.len(), 1024);
                     debug_assert_eq!(map2.len(), 1024);
 
-                    event_sender.send(Event::OnDebugFrame(1, map1)).unwrap();
-                    event_sender.send(Event::OnDebugFrame(2, map2)).unwrap();
+                    dbg_buffers.push((1, map1));
+                    dbg_buffers.push((2, map2));
                 }
-            }
+
+                dbg_buffers
+            };
+
+            handle(
+                &self.video_buffer,
+                #[cfg(debug_assertions)]
+                dbg_buffers,
+            );
         }
     }
 

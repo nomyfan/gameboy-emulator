@@ -10,12 +10,8 @@ mod tile_map_frame;
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use gb::GameBoy;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
-use gb_shared::event::Event as GameBoyEvent;
-#[cfg(debug_assertions)]
-use gb_shared::Run;
-use log::error;
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use winit::dpi::LogicalSize;
 #[cfg(debug_assertions)]
@@ -63,9 +59,7 @@ fn main() -> anyhow::Result<()> {
 
     let rom_path = std::path::PathBuf::from(std::env::args().nth(1).unwrap());
 
-    let (event_sender, event_receiver) = mpsc::channel();
     let (command_sender, command_receiver) = mpsc::channel();
-    let (mut writer, reader) = frame::new();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
@@ -77,116 +71,100 @@ fn main() -> anyhow::Result<()> {
     let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
 
     #[cfg(debug_assertions)]
-    let (mut map1_dbg_writer, mut map1_rpw, map1_dbg_window) = {
+    let (mut map1_dbg_handle1, mut map1_dbg_handle2) = {
         if !dbg_windows_flag.contains(&"map") {
-            (None, None, None)
+            None
         } else {
-            let (writer, reader) = tile_map_frame::new();
             let (window, pixels) = tile_map_frame::new_window(
                 "Map 0x9800",
                 &event_loop,
                 Position::Logical(LogicalPosition::new(50.0, 100.0)),
             )?;
-            let window_id = window.id();
+            let frame = Arc::new(Mutex::new(tile_map_frame::TileMapFrame::default()));
 
-            (Some(writer), Some((reader, pixels, window_id)), Some(window))
+            Some((frame, pixels, Arc::new(window)))
         }
-    };
-    #[cfg(debug_assertions)]
-    let map1_dbg_window = map1_dbg_window.map(Arc::new);
+    }
+    .map(|x| (Some((x.0.clone(), x.2.clone())), Some(x)))
+    .unwrap_or_default();
 
     #[cfg(debug_assertions)]
-    let (mut map2_dbg_writer, mut map2_rpw, map2_dbg_window) = {
+    let (mut map2_dbg_handle1, mut map2_dbg_handle2) = {
         if !dbg_windows_flag.contains(&"map") {
-            (None, None, None)
+            None
         } else {
-            let (writer, reader) = tile_map_frame::new();
             let (window, pixels) = tile_map_frame::new_window(
                 "Map 0x9C00",
                 &event_loop,
                 Position::Logical(LogicalPosition::new(50.0, 525.0)),
             )?;
-            let window_id = window.id();
+            let frame = Arc::new(Mutex::new(tile_map_frame::TileMapFrame::default()));
 
-            (Some(writer), Some((reader, pixels, window_id)), Some(window))
+            Some((frame, pixels, Arc::new(window)))
         }
-    };
-    #[cfg(debug_assertions)]
-    let map2_dbg_window = map2_dbg_window.map(Arc::new);
+    }
+    .map(|x| (Some((x.0.clone(), x.2.clone())), Some(x)))
+    .unwrap_or_default();
 
     #[cfg(debug_assertions)]
-    let (mut oam_dbg_writer, mut oam_rpw, oam_dbg_window) = {
+    let (mut oam_dbg_handle1, mut oam_dbg_handle2) = {
         if !dbg_windows_flag.contains(&"oam") {
-            (None, None, None)
+            None
         } else {
-            let (writer, reader) = oam_frame::new();
             let (window, pixels) = oam_frame::new_window(
                 &event_loop,
                 Position::Logical(LogicalPosition::new(450.0, 100.0)),
             )?;
-            let window_id = window.id();
+            let frame = Arc::new(Mutex::new(oam_frame::OamFrame::default()));
 
-            (Some(writer), Some((reader, pixels, window_id)), Some(window))
+            Some((frame, pixels, Arc::new(window)))
         }
-    };
-    #[cfg(debug_assertions)]
-    let oam_dbg_window = oam_dbg_window.map(Arc::new);
+    }
+    .map(|x| (Some((x.0.clone(), x.2.clone())), Some(x)))
+    .unwrap_or_default();
 
     let (main_window, mut pixels) = main_window(&event_loop)?;
     let main_window = Arc::new(main_window);
     let main_window_id = main_window.id();
+    let main_frame = Arc::new(Mutex::new(frame::Frame::default()));
 
-    let gameboy_handle = thread::spawn(move || -> anyhow::Result<()> {
-        let gb = GameBoy::try_from_path(rom_path)?;
-        gb.play(event_sender, command_receiver)?;
-        Ok(())
-    });
+    let gameboy_handle = thread::spawn({
+        let window = main_window.clone();
+        let frame = main_frame.clone();
 
-    let gameboy_event_handle = thread::spawn({
-        let main_window = main_window.clone();
-        #[cfg(debug_assertions)]
-        let oam_dbg_window = oam_dbg_window.clone();
-        #[cfg(debug_assertions)]
-        let map1_dbg_window = map1_dbg_window.clone();
-        #[cfg(debug_assertions)]
-        let map2_dbg_window = map2_dbg_window.clone();
-
-        move || loop {
-            match event_receiver.recv() {
-                Ok(event) => match event {
-                    GameBoyEvent::OnFrame(buffer) => {
-                        writer.write(buffer);
-                        writer.flush();
-                        main_window.request_redraw();
-                    }
-                    #[cfg(debug_assertions)]
-                    GameBoyEvent::OnDebugFrame(id, buffer) => {
-                        if id == 0 {
-                            oam_dbg_writer.run_mut(|writer| {
-                                writer.write(buffer);
-                                writer.flush();
-                            });
-                            oam_dbg_window.run(|window| window.request_redraw());
-                        } else if id == 1 {
-                            map1_dbg_writer.run_mut(|writer| {
-                                writer.write(buffer);
-                                writer.flush();
-                            });
-                            map1_dbg_window.run(|window| window.request_redraw());
-                        } else if id == 2 {
-                            map2_dbg_writer.run_mut(|writer| {
-                                writer.write(buffer);
-                                writer.flush();
-                            });
-                            map2_dbg_window.run(|window| window.request_redraw());
+        move || -> anyhow::Result<()> {
+            let gb = GameBoy::try_from_path(rom_path)?;
+            gb.play(
+                {
+                    Box::new(move |buffer, #[cfg(debug_assertions)] dbg_buffers| {
+                        frame.lock().unwrap().update(buffer);
+                        window.request_redraw();
+                        #[cfg(debug_assertions)]
+                        {
+                            for buf in dbg_buffers {
+                                if buf.0 == 1 {
+                                    if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
+                                        frame.lock().unwrap().update(&buf.1);
+                                        window.request_redraw();
+                                    }
+                                } else if buf.0 == 2 {
+                                    if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
+                                        frame.lock().unwrap().update(&buf.1);
+                                        window.request_redraw();
+                                    }
+                                } else if buf.0 == 0 {
+                                    if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
+                                        frame.lock().unwrap().update(&buf.1);
+                                        window.request_redraw();
+                                    }
+                                }
+                            }
                         }
-                    }
+                    })
                 },
-                Err(err) => {
-                    error!("{}", err);
-                    break;
-                }
-            }
+                command_receiver,
+            )?;
+            Ok(())
         }
     });
 
@@ -217,44 +195,27 @@ fn main() -> anyhow::Result<()> {
                 }
                 WindowEvent::RedrawRequested => {
                     if window_id == &main_window_id {
-                        if let Some(guard) = reader.read() {
-                            let frame = guard.as_ref();
-                            frame.draw(pixels.frame_mut());
-                            pixels.render().unwrap();
-                        }
+                        main_frame.lock().unwrap().draw(pixels.frame_mut());
+                        pixels.render().unwrap();
                     } else {
                         #[cfg(debug_assertions)]
                         {
-                            if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = oam_rpw.as_mut()
-                            {
-                                if window_id == dbg_window_id {
-                                    if let Some(guard) = dbg_reader.read() {
-                                        let frame = guard.as_ref();
-                                        frame.draw(dbg_pixels.frame_mut());
-                                        dbg_pixels.render().unwrap();
-                                    }
+                            if let Some((frame, pixels, window)) = oam_dbg_handle2.as_mut() {
+                                if window_id == &window.id() {
+                                    frame.lock().unwrap().draw(pixels.frame_mut());
+                                    pixels.render().unwrap();
                                 }
                             }
-
-                            if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map1_rpw.as_mut()
-                            {
-                                if window_id == dbg_window_id {
-                                    if let Some(guard) = dbg_reader.read() {
-                                        let frame = guard.as_ref();
-                                        frame.draw(dbg_pixels.frame_mut());
-                                        dbg_pixels.render().unwrap();
-                                    }
+                            if let Some((frame, pixels, window)) = map1_dbg_handle2.as_mut() {
+                                if window_id == &window.id() {
+                                    frame.lock().unwrap().draw(pixels.frame_mut());
+                                    pixels.render().unwrap();
                                 }
                             }
-
-                            if let Some((dbg_reader, dbg_pixels, dbg_window_id)) = map2_rpw.as_mut()
-                            {
-                                if window_id == dbg_window_id {
-                                    if let Some(guard) = dbg_reader.read() {
-                                        let frame = guard.as_ref();
-                                        frame.draw(dbg_pixels.frame_mut());
-                                        dbg_pixels.render().unwrap();
-                                    }
+                            if let Some((frame, pixels, window)) = map2_dbg_handle2.as_mut() {
+                                if window_id == &window.id() {
+                                    frame.lock().unwrap().draw(pixels.frame_mut());
+                                    pixels.render().unwrap();
                                 }
                             }
                         }
@@ -282,7 +243,6 @@ fn main() -> anyhow::Result<()> {
     })?;
 
     let _ = gameboy_handle.join().unwrap();
-    gameboy_event_handle.join().unwrap();
 
     Ok(())
 }

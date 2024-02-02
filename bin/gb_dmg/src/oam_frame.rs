@@ -1,6 +1,5 @@
 #![cfg(debug_assertions)]
 
-use left_right::{Absorb, ReadGuard, ReadHandle, WriteHandle};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalSize, Position},
@@ -17,35 +16,6 @@ type Buffer = Vec<[[u8; 8]; 8]>;
 #[derive(Debug, Default)]
 pub(crate) struct OamFrame {
     buffer: Buffer,
-}
-
-impl Absorb<Buffer> for OamFrame {
-    fn absorb_first(&mut self, operation: &mut Buffer, _other: &Self) {
-        self.buffer = operation.clone();
-    }
-
-    fn sync_with(&mut self, first: &Self) {
-        self.buffer = first.buffer.clone();
-    }
-}
-
-pub struct OamFrameWriter(WriteHandle<OamFrame, Buffer>);
-impl OamFrameWriter {
-    pub fn write(&mut self, buffer: Buffer) {
-        self.0.append(buffer);
-    }
-
-    pub fn flush(&mut self) {
-        self.0.publish();
-    }
-}
-
-pub struct OamFrameReader(ReadHandle<OamFrame>);
-
-impl OamFrameReader {
-    pub fn read(&self) -> Option<ReadGuard<'_, OamFrame>> {
-        self.0.enter()
-    }
 }
 
 impl OamFrame {
@@ -67,13 +37,16 @@ impl OamFrame {
             pixel.copy_from_slice(&rgba);
         }
     }
-}
 
-pub fn new() -> (OamFrameWriter, OamFrameReader) {
-    let (write_handle, read_handle) = left_right::new();
-    let writer = OamFrameWriter(write_handle);
-    let reader = OamFrameReader(read_handle);
-    (writer, reader)
+    pub(crate) fn update(&mut self, buffer: &Buffer) {
+        if self.buffer.is_empty() {
+            self.buffer = buffer.clone();
+        } else {
+            for (i, tile) in buffer.iter().enumerate() {
+                self.buffer[i] = *tile;
+            }
+        }
+    }
 }
 
 pub fn new_window(

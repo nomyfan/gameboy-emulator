@@ -1,7 +1,6 @@
 #![cfg(debug_assertions)]
 
 use crate::config::SCALE;
-use left_right::{Absorb, ReadGuard, ReadHandle, WriteHandle};
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::{LogicalSize, Position};
 use winit::event_loop::EventLoop;
@@ -17,35 +16,6 @@ type Buffer = Vec<Tile>;
 #[derive(Debug, Default)]
 pub(crate) struct TileMapFrame {
     buffer: Buffer,
-}
-
-impl Absorb<Buffer> for TileMapFrame {
-    fn absorb_first(&mut self, operation: &mut Buffer, _other: &Self) {
-        self.buffer = operation.clone();
-    }
-
-    fn sync_with(&mut self, first: &Self) {
-        self.buffer = first.buffer.clone();
-    }
-}
-
-pub struct TileMapFrameWriter(WriteHandle<TileMapFrame, Buffer>);
-impl TileMapFrameWriter {
-    pub fn write(&mut self, buffer: Buffer) {
-        self.0.append(buffer);
-    }
-
-    pub fn flush(&mut self) {
-        self.0.publish();
-    }
-}
-
-pub struct TileMapFrameReader(ReadHandle<TileMapFrame>);
-
-impl TileMapFrameReader {
-    pub fn read(&self) -> Option<ReadGuard<'_, TileMapFrame>> {
-        self.0.enter()
-    }
 }
 
 impl TileMapFrame {
@@ -68,13 +38,16 @@ impl TileMapFrame {
             pixel.copy_from_slice(&rgba);
         }
     }
-}
 
-pub fn new() -> (TileMapFrameWriter, TileMapFrameReader) {
-    let (write_handle, read_handle) = left_right::new();
-    let writer = TileMapFrameWriter(write_handle);
-    let reader = TileMapFrameReader(read_handle);
-    (writer, reader)
+    pub(crate) fn update(&mut self, buffer: &Buffer) {
+        if self.buffer.is_empty() {
+            self.buffer = buffer.clone();
+        } else {
+            for (i, tile) in buffer.iter().enumerate() {
+                self.buffer[i] = *tile;
+            }
+        }
+    }
 }
 
 pub fn new_window(
