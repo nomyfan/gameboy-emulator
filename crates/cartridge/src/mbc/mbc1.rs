@@ -61,7 +61,7 @@ impl super::Mbc for Mbc1 {
             }
             // Write RAM
             0xA000..=0xBFFF => {
-                if self.ram_enabled && self.ram_banks.len() > 0 {
+                if self.ram_enabled && !self.ram_banks.is_empty() {
                     let ram_bank_num = (self.banking_num >> 5) & 0b11;
                     self.ram_banks[ram_bank_num][(addr - 0xA000) as usize] = value;
                 }
@@ -91,7 +91,7 @@ impl super::Mbc for Mbc1 {
             }
             // RAM bank
             0xA000..=0xBFFF => {
-                if !self.ram_enabled || self.ram_banks.len() == 0 {
+                if !self.ram_enabled || self.ram_banks.is_empty() {
                     return 0xFF;
                 }
 

@@ -39,7 +39,7 @@ impl Mbc for Mbc2 {
             }
             0xA000..=0xBFFF => {
                 if self.ram_enabled {
-                    let addr = addr & 0xA1FF - 0xA000;
+                    let addr = (addr & 0xA1FF) - 0xA000;
                     self.ram[addr as usize] = value & 0x0F;
                 }
             }
