@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{boxed_array, boxed_array_fn};
+use crate::boxed_array_fn;
 
 #[derive(Debug)]
 pub struct BoxedMatrix<T, const COLS: usize, const ROWS: usize>(Box<[Box<[T; COLS]>; ROWS]>);
@@ -25,29 +25,18 @@ impl<T, const COLS: usize, const ROWS: usize> DerefMut for BoxedMatrix<T, COLS, 
     }
 }
 
-impl<T: Copy, const COLS: usize, const ROWS: usize> Clone for BoxedMatrix<T, COLS, ROWS> {
+impl<T: Clone, const COLS: usize, const ROWS: usize> Clone for BoxedMatrix<T, COLS, ROWS> {
     fn clone(&self) -> Self {
         Self(boxed_array_fn(|i| self[i].clone()))
     }
 }
 
-// impl<T, const COLS: usize, const ROWS: usize> From<[[T; COLS]; ROWS]>
-//     for BoxedMatrix<T, COLS, ROWS>
-// {
-//     fn from(value: [[T; COLS]; ROWS]) -> Self {
-//         let value: Vec<Box<[T; COLS]>> = value.into_iter().map(|row| Box::new(row)).collect();
-//         let boxed_slice = value.into_boxed_slice();
-//         let ptr = Box::into_raw(boxed_slice) as *mut [Box<[T; COLS]>; ROWS];
-//         unsafe { Self(Box::from_raw(ptr)) }
-//     }
-// }
-
 #[derive(Debug)]
 pub struct BoxedArray<T, const SIZE: usize>(Box<[T; SIZE]>);
 
-impl<T: Copy + Default, const SIZE: usize> Default for BoxedArray<T, SIZE> {
+impl<T: Default, const SIZE: usize> Default for BoxedArray<T, SIZE> {
     fn default() -> Self {
-        Self(boxed_array(T::default()))
+        Self(boxed_array_fn(|_| T::default()))
     }
 }
 
@@ -71,8 +60,40 @@ impl<T: Copy, const SIZE: usize> From<&[T; SIZE]> for BoxedArray<T, SIZE> {
     }
 }
 
-impl<T: Copy, const SIZE: usize> Clone for BoxedArray<T, SIZE> {
+impl<T: Clone, const SIZE: usize> Clone for BoxedArray<T, SIZE> {
     fn clone(&self) -> Self {
-        Self(boxed_array_fn(|i| self[i]))
+        Self(boxed_array_fn(|i| self[i].clone()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn array_clone() {
+        let mut value: BoxedArray<u8, 2> = BoxedArray::default();
+        let value_clone = value.clone();
+        assert_eq!(value.as_ref(), value_clone.as_ref());
+
+        value[0] = 12;
+        assert_ne!(value.as_ref(), value_clone.as_ref());
+    }
+
+    #[test]
+    fn array_from() {
+        let value = [1, 2];
+        let value = BoxedArray::from(&value);
+        assert_eq!(value.as_ref(), &[1, 2]);
+    }
+
+    #[test]
+    fn matrix_clone() {
+        let mut value: BoxedMatrix<u8, 2, 2> = BoxedMatrix::default();
+        let value_clone = value.clone();
+        assert_eq!(value.as_ref(), value_clone.as_ref());
+
+        value[0][0] = 12;
+        assert_ne!(value.as_ref(), value_clone.as_ref());
     }
 }
