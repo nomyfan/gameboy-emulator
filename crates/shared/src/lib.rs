@@ -1,3 +1,5 @@
+use boxed::BoxedMatrix;
+
 pub mod bitwise;
 pub mod boxed;
 pub mod command;
@@ -58,6 +60,23 @@ pub trait InterruptRequest {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct Interrupt(pub u8);
+
+impl InterruptRequest for Interrupt {
+    fn request(&mut self, interrupt_type: InterruptType) {
+        self.0 |= interrupt_type as u8;
+    }
+}
+
+impl Interrupt {
+    pub fn take(&mut self) -> u8 {
+        let value = self.0;
+        self.0 = 0;
+        value
+    }
+}
+
 pub const fn kib(k: usize) -> usize {
     k * 1024
 }
@@ -65,3 +84,8 @@ pub const fn kib(k: usize) -> usize {
 pub const fn mib(m: usize) -> usize {
     kib(m) * 1024
 }
+
+#[cfg(debug_assertions)]
+pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>, Vec<(u32, Vec<[[u8; 8]; 8]>)>);
+#[cfg(not(debug_assertions))]
+pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>);

@@ -1,9 +1,10 @@
-use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
 use gb_cartridge::Cartridge;
 use gb_ppu::PPU;
-use gb_shared::{command::Command, InterruptRequest, Memory};
+use gb_shared::{command::Command, Memory};
 use log::debug;
 use std::ops::{Deref, DerefMut};
+
+use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
 
 pub(crate) struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -33,44 +34,11 @@ pub(crate) struct BusInner {
     dma: DMA,
     /// Serial transfer
     serial: Serial,
-    joypad_ptr: *const Joypad<Bus>,
-
-    ppu_ptr: *const PPU<Bus>,
-    timer_ptr: *const Timer<Bus>,
+    joypad: Joypad,
+    timer: Timer,
+    ppu: PPU,
 
     ref_count: usize,
-}
-
-impl BusInner {
-    #[inline]
-    fn ppu_mut(&mut self) -> &mut PPU<Bus> {
-        unsafe { &mut *(self.ppu_ptr as *mut PPU<Bus>) }
-    }
-
-    #[inline]
-    fn ppu_ref(&self) -> &PPU<Bus> {
-        unsafe { &*self.ppu_ptr }
-    }
-
-    #[inline]
-    fn timer_mut(&mut self) -> &mut Timer<Bus> {
-        unsafe { &mut *(self.timer_ptr as *mut Timer<Bus>) }
-    }
-
-    #[inline]
-    fn timer_ref(&self) -> &Timer<Bus> {
-        unsafe { &*self.timer_ptr }
-    }
-
-    #[inline]
-    fn joypad_mut(&mut self) -> &mut Joypad<Bus> {
-        unsafe { &mut *(self.joypad_ptr as *mut Joypad<Bus>) }
-    }
-
-    #[inline]
-    fn joypad_ref(&self) -> &Joypad<Bus> {
-        unsafe { &*self.joypad_ptr }
-    }
 }
 
 impl Memory for BusInner {
@@ -84,7 +52,7 @@ impl Memory for BusInner {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu_mut().write(addr, value);
+                self.ppu.write(addr, value);
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -100,14 +68,14 @@ impl Memory for BusInner {
                     return;
                 }
                 // OAM
-                self.ppu_mut().write(addr, value);
+                self.ppu.write(addr, value);
             }
             0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF00..=0xFF7F => {
                 match addr {
-                    0xFF00 => self.joypad_mut().write(addr, value),
+                    0xFF00 => self.joypad.write(addr, value),
                     0xFF01..=0xFF02 => self.serial.write(addr, value),
-                    0xFF04..=0xFF07 => self.timer_mut().write(addr, value),
+                    0xFF04..=0xFF07 => self.timer.write(addr, value),
                     0xFF0F => {
                         // IF
                         self.interrupt_flag = 0xE0 | value
@@ -121,7 +89,7 @@ impl Memory for BusInner {
                     }
                     // Exclude 0xFF46(DMA)
                     0xFF40..=0xFF4B => {
-                        self.ppu_mut().write(addr, value);
+                        self.ppu.write(addr, value);
                     }
                     _ => {
                         debug!("Unsupported");
@@ -147,7 +115,7 @@ impl Memory for BusInner {
             }
             0x8000..=0x9FFF => {
                 // VRAM
-                self.ppu_ref().read(addr)
+                self.ppu.read(addr)
             }
             0xA000..=0xBFFF => {
                 // EXT-RAM, from cartridge
@@ -167,7 +135,7 @@ impl Memory for BusInner {
                 }
 
                 // OAM
-                self.ppu_ref().read(addr)
+                self.ppu.read(addr)
             }
             0xFEA0..=0xFEFF => {
                 debug!("Unusable memory [0xFEA0, 0xFEFF]");
@@ -175,9 +143,9 @@ impl Memory for BusInner {
             }
             0xFF00..=0xFF7F => {
                 match addr {
-                    0xFF00 => self.joypad_ref().read(addr),
+                    0xFF00 => self.joypad.read(addr),
                     0xFF01..=0xFF02 => self.serial.read(addr),
-                    0xFF04..=0xFF07 => self.timer_ref().read(addr),
+                    0xFF04..=0xFF07 => self.timer.read(addr),
                     0xFF0F => {
                         // IF
                         self.interrupt_flag
@@ -187,7 +155,7 @@ impl Memory for BusInner {
                         0
                     }
                     0xFF46 => self.dma.read(addr),
-                    0xFF40..=0xFF4B => self.ppu_ref().read(addr),
+                    0xFF40..=0xFF4B => self.ppu.read(addr),
                     _ => {
                         debug!("Unsupported");
                         0
@@ -239,46 +207,41 @@ impl Bus {
                 interrupt_flag: 0xE0,
                 dma: DMA::new(),
                 serial: Serial::new(),
-                joypad_ptr: std::ptr::null(),
-                ppu_ptr: std::ptr::null(),
-                timer_ptr: std::ptr::null(),
+                joypad: Joypad::new(),
+                timer: Timer::new(),
+                ppu: PPU::new(),
                 ref_count: 1,
             })),
-        }
-    }
-
-    pub(crate) fn set_ppu(&mut self, ppu: *const PPU<Bus>) {
-        unsafe {
-            (*self.ptr).ppu_ptr = ppu;
-        }
-    }
-
-    pub(crate) fn set_timer(&mut self, timer: *const Timer<Bus>) {
-        unsafe {
-            (*self.ptr).timer_ptr = timer;
-        }
-    }
-
-    pub(crate) fn set_joypad(&mut self, joypad: *const Joypad<Bus>) {
-        unsafe {
-            (*self.ptr).joypad_ptr = joypad;
         }
     }
 
     fn step_dma(&mut self) {
         if let Some((src, dst)) = self.dma.next_addr() {
             let value = self.read(src);
-            self.ppu_mut().write(dst, value)
+            self.ppu.write(dst, value)
         }
     }
 
+    fn set_irq(&mut self, irq: u8) {
+        self.write(0xFF0F, self.read(0xFF0F) | irq);
+    }
+
     pub(crate) fn step_timer(&mut self) {
-        self.timer_mut().step();
+        self.timer.step();
+    }
+
+    pub(crate) fn set_frame_out_handle(
+        &mut self,
+        frame_out_handle: Option<Box<gb_shared::FrameOutHandle>>,
+    ) {
+        self.ppu.set_frame_out_handle(frame_out_handle);
     }
 
     pub(crate) fn handle_command(&mut self, command: Command) {
         if let Command::Joypad(joypad_command) = command {
-            self.joypad_mut().handle_command(joypad_command)
+            self.joypad.handle_command(joypad_command);
+            let irq = self.joypad.take_irq();
+            self.set_irq(irq);
         }
     }
 }
@@ -290,8 +253,13 @@ impl gb_shared::Component for Bus {
 
         for _ in 0..m_cycles {
             for _ in 0..4 {
-                self.ppu_mut().step();
+                self.ppu.step();
+                let irq = self.ppu.take_irq();
+                self.set_irq(irq);
+
                 self.step_timer();
+                let irq = self.timer.take_irq();
+                self.set_irq(irq);
             }
 
             // It costs 160 machine cycles to transfer 160 bytes of data.
@@ -331,11 +299,5 @@ impl Memory for Bus {
 
     fn read(&self, addr: u16) -> u8 {
         unsafe { (*self.ptr).read(addr) }
-    }
-}
-
-impl InterruptRequest for Bus {
-    fn request(&mut self, interrupt_type: gb_shared::InterruptType) {
-        self.write(0xFF0F, self.read(0xFF0F) | interrupt_type as u8);
     }
 }

@@ -6,32 +6,27 @@ mod serial;
 mod timer;
 mod wram;
 
-use crate::bus::Bus;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_cpu_sm83::CPU_PERIOD_NANOS;
-use gb_ppu::FrameOutHandle;
-use gb_ppu::PPU;
-use gb_shared::command::Command;
-use gb_shared::command::CommandReceiver;
-use joypad::Joypad;
+use gb_shared::{
+    command::{Command, CommandReceiver},
+    FrameOutHandle,
+};
 use std::path::Path;
-use timer::Timer;
+
+use crate::bus::Bus;
 
 pub struct GameBoy {
     cpu: Cpu<Bus>,
-    ppu: Box<PPU<Bus>>,
-    bus: Box<Bus>,
-    // We need to hold it to make it live as long as the GameBoy.
-    _timer: Box<Timer<Bus>>,
-    _joypad: Box<Joypad<Bus>>,
+    bus: Bus,
     command_receiver: Option<CommandReceiver>,
 }
 
 impl GameBoy {
     pub fn from_cartridge(cart: Cartridge) -> Self {
         let cart_header_checksum = cart.header.checksum;
-        let mut bus = Bus::new(cart);
+        let bus = Bus::new(cart);
 
         let mut cpu = Cpu::new(bus.clone());
         if cart_header_checksum == 0 {
@@ -39,21 +34,8 @@ impl GameBoy {
             // Unset H and C if the cartridge header checksum is 0.
             cpu.reg_f = 0x80;
         }
-        let ppu = Box::new(PPU::new(bus.clone()));
-        bus.set_ppu(ppu.as_ref());
-        let timer = Box::new(Timer::new(bus.clone()));
-        bus.set_timer(timer.as_ref());
-        let joypad = Box::new(Joypad::new(bus.clone()));
-        bus.set_joypad(joypad.as_ref());
 
-        Self {
-            cpu,
-            ppu,
-            bus: Box::new(bus),
-            _timer: timer,
-            _joypad: joypad,
-            command_receiver: None,
-        }
+        Self { cpu, bus, command_receiver: None }
     }
 
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
@@ -66,7 +48,7 @@ impl GameBoy {
         frame_out_handle: Box<FrameOutHandle>,
         command_receiver: CommandReceiver,
     ) -> anyhow::Result<()> {
-        self.ppu.set_frame_out_handle(Some(frame_out_handle));
+        self.bus.set_frame_out_handle(Some(frame_out_handle));
         self.command_receiver = Some(command_receiver);
 
         loop {

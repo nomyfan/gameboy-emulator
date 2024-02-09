@@ -1,11 +1,11 @@
 use gb_shared::{
     command::{JoypadCommand, JoypadKey},
-    is_bit_set, set_bits, unset_bits, InterruptRequest, Memory,
+    is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory,
 };
 
 /// The state is true when the value is zero.
 #[derive(Debug)]
-pub(crate) struct Joypad<IRQ: InterruptRequest> {
+pub(crate) struct Joypad {
     /// - Bit 7: Start
     /// - Bit 6: Select
     /// - Bit 5: B
@@ -17,10 +17,10 @@ pub(crate) struct Joypad<IRQ: InterruptRequest> {
     buttons: u8,
     select_action: bool,
     select_direction: bool,
-    irq: IRQ,
+    irq: Interrupt,
 }
 
-impl<IRQ: InterruptRequest> Memory for Joypad<IRQ> {
+impl Memory for Joypad {
     fn write(&mut self, _0xff00: u16, value: u8) {
         self.select_action = !is_bit_set!(value, 5);
         self.select_direction = !is_bit_set!(value, 4);
@@ -37,9 +37,14 @@ impl<IRQ: InterruptRequest> Memory for Joypad<IRQ> {
     }
 }
 
-impl<IRQ: InterruptRequest> Joypad<IRQ> {
-    pub(crate) fn new(irq: IRQ) -> Self {
-        Self { select_action: true, select_direction: true, irq, buttons: 0x00 }
+impl Joypad {
+    pub(crate) fn new() -> Self {
+        Self {
+            select_action: true,
+            select_direction: true,
+            irq: Interrupt::default(),
+            buttons: 0x00,
+        }
     }
 
     pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
@@ -65,14 +70,9 @@ impl<IRQ: InterruptRequest> Joypad<IRQ> {
             }
         }
     }
-}
 
-#[cfg(test)]
-mockall::mock! {
-    pub Irq {}
-
-    impl InterruptRequest for Irq {
-        fn request(&mut self, interrupt_type: gb_shared::InterruptType);
+    pub fn take_irq(&mut self) -> u8 {
+        self.irq.take()
     }
 }
 
@@ -81,22 +81,17 @@ mod tests {
     use super::*;
     use gb_shared::set_bits;
     use gb_shared::InterruptType;
-    use mockall::predicate::*;
-
-    fn prepare_irq() -> MockIrq {
-        MockIrq::default()
-    }
 
     #[test]
     fn initial_value() {
-        let joypad = Joypad::new(prepare_irq());
+        let joypad = Joypad::new();
 
         assert_eq!(joypad.read(0xFF00), 0xCF);
     }
 
     #[test]
     fn always_1_on_unused_bits() {
-        let mut joypad = Joypad::new(prepare_irq());
+        let mut joypad = Joypad::new();
         joypad.write(0xFF00, 0x00);
 
         assert_eq!(joypad.read(0xFF00), 0xCF);
@@ -104,7 +99,7 @@ mod tests {
 
     #[test]
     fn read_select_buttons() {
-        let mut joypad = Joypad::new(prepare_irq());
+        let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 4));
 
         joypad.buttons = 0b1010_0000;
@@ -115,7 +110,7 @@ mod tests {
 
     #[test]
     fn read_select_d_pad() {
-        let mut joypad = Joypad::new(prepare_irq());
+        let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 5));
 
         joypad.buttons = 0b0000_0101;
@@ -126,7 +121,7 @@ mod tests {
 
     #[test]
     fn neither_of_them_enabled() {
-        let mut joypad = Joypad::new(prepare_irq());
+        let mut joypad = Joypad::new();
         joypad.write(0xFF00, 0b11_0000);
 
         joypad.buttons = 0b0001_0100;
@@ -137,10 +132,8 @@ mod tests {
 
     #[test]
     fn req_interrupt_if_bit3210_change_from_high_to_low() {
-        let mut irq = prepare_irq();
-        irq.expect_request().with(eq(InterruptType::Joypad)).once().return_const(());
-
-        let mut joypad = Joypad::new(irq);
+        let mut joypad = Joypad::new();
         joypad.handle_command(JoypadCommand::PressKey(JoypadKey::B));
+        assert_eq!(joypad.take_irq(), InterruptType::Joypad as u8);
     }
 }

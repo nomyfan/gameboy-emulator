@@ -1,4 +1,4 @@
-use gb_shared::{is_bit_set, InterruptRequest, Memory};
+use gb_shared::{is_bit_set, Interrupt, InterruptRequest, Memory};
 
 enum CounterIncCycles {
     Cycles1024,
@@ -19,7 +19,7 @@ impl From<u8> for CounterIncCycles {
     }
 }
 
-pub(crate) struct Timer<IRQ: InterruptRequest> {
+pub(crate) struct Timer {
     /// Divider
     /// It's increased at a rate of 16384 Hz.
     /// While CPU is working on a frequency of 4194304 Hz(256 times of 16384).
@@ -37,10 +37,10 @@ pub(crate) struct Timer<IRQ: InterruptRequest> {
     ///     - 10: 65536 Hz(increased by 1 every 64 cycles)
     ///     - 11: 16384 Hz(increased by 1 every 256 cycles)
     tac: u8,
-    irq: IRQ,
+    irq: Interrupt,
 }
 
-impl<IRQ: InterruptRequest> Memory for Timer<IRQ> {
+impl Memory for Timer {
     fn write(&mut self, addr: u16, value: u8) {
         if addr == 0xFF04 {
             // Write any value to it will reset it to zero.
@@ -77,9 +77,9 @@ impl<IRQ: InterruptRequest> Memory for Timer<IRQ> {
     }
 }
 
-impl<IRQ: InterruptRequest> Timer<IRQ> {
-    pub fn new(irq: IRQ) -> Self {
-        Self { div: 0xAB00, tima: 0, tma: 0, tac: 0xF8, irq }
+impl Timer {
+    pub fn new() -> Self {
+        Self { div: 0xAB00, tima: 0, tma: 0, tac: 0xF8, irq: Interrupt::default() }
     }
 
     pub fn step(&mut self) {
@@ -100,42 +100,31 @@ impl<IRQ: InterruptRequest> Timer<IRQ> {
             }
         }
     }
-}
 
-#[cfg(test)]
-use gb_shared::InterruptType;
-#[cfg(test)]
-use mockall::mock;
-
-#[cfg(test)]
-mock! {
-    pub InterruptRequest {}
-
-    impl InterruptRequest for InterruptRequest {
-        fn request(&mut self, interrupt_type: InterruptType) {}
+    pub fn take_irq(&mut self) -> u8 {
+        self.irq.take()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use mockall::predicate::*;
-
     use super::*;
+    use gb_shared::InterruptType;
 
-    fn write_tima(timer: &mut Timer<MockInterruptRequest>, value: u8) {
+    fn write_tima(timer: &mut Timer, value: u8) {
         timer.write(0xFF05, value);
     }
 
-    fn write_tma(timer: &mut Timer<MockInterruptRequest>, value: u8) {
+    fn write_tma(timer: &mut Timer, value: u8) {
         timer.write(0xFF06, value);
     }
 
-    fn write_tac(timer: &mut Timer<MockInterruptRequest>, value: u8) {
+    fn write_tac(timer: &mut Timer, value: u8) {
         timer.write(0xFF07, value | 0xF8);
     }
 
-    fn prepare_timer() -> Timer<MockInterruptRequest> {
-        let mut timer = Timer::new(MockInterruptRequest::new());
+    fn prepare_timer() -> Timer {
+        let mut timer = Timer::new();
         // Reset DIV to zero
         timer.write(0xFF04, 0b01);
         timer.write(0xFF04, 0b00);
@@ -259,10 +248,7 @@ mod tests {
 
     #[test]
     fn request_timer_interrupt() {
-        let mut mock_int_req = MockInterruptRequest::new();
-        mock_int_req.expect_request().with(eq(InterruptType::Timer)).once().return_const(());
-
-        let mut timer = Timer::new(mock_int_req);
+        let mut timer = Timer::new();
         write_tac(&mut timer, 0b111);
 
         write_tma(&mut timer, 0xFE);
@@ -273,14 +259,13 @@ mod tests {
         }
         timer.step();
 
+        assert_eq!(timer.take_irq(), InterruptType::Timer as u8);
         assert_eq!(timer.tima, 0xFE);
     }
 
     #[test]
     fn cycles_overflow() {
-        let mut mock_int_req = MockInterruptRequest::new();
-        mock_int_req.expect_request().with(eq(InterruptType::Timer)).once().return_const(());
-        let mut timer = Timer::new(mock_int_req);
+        let mut timer = Timer::new();
         write_tac(&mut timer, 0b111);
 
         for _ in 0..0xFFFF {
@@ -290,6 +275,7 @@ mod tests {
         assert_eq!(timer.read(0xFF04), 255);
 
         timer.step();
+        assert_eq!(timer.take_irq(), InterruptType::Timer as u8);
         assert_eq!(timer.div, 0);
         assert_eq!(timer.div, 0);
     }

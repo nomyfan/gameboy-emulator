@@ -7,7 +7,9 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::{is_bit_set, set_bits, unset_bits, InterruptRequest, Memory};
+use gb_shared::{
+    is_bit_set, set_bits, unset_bits, FrameOutHandle, Interrupt, InterruptRequest, Memory,
+};
 
 #[derive(Debug, Default)]
 pub(crate) struct PPUWorkState {
@@ -32,12 +34,7 @@ pub(crate) struct PPUWorkState {
     window_used: bool,
 }
 
-#[cfg(debug_assertions)]
-pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>, Vec<(u32, Vec<[[u8; 8]; 8]>)>);
-#[cfg(not(debug_assertions))]
-pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>);
-
-pub struct PPU<IRQ: InterruptRequest> {
+pub struct PPU {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
     /// Thus, the size of this area is 6KB.
@@ -78,12 +75,12 @@ pub struct PPU<IRQ: InterruptRequest> {
     /// Storing palettes.
     video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
 
-    irq: IRQ,
+    irq: Interrupt,
     frame_out_handle: Option<Box<FrameOutHandle>>,
 }
 
-impl<IRQ: InterruptRequest> PPU<IRQ> {
-    pub fn new(irq: IRQ) -> Self {
+impl PPU {
+    pub fn new() -> Self {
         Self {
             vram: BoxedArray::default(),
             oam: BoxedArray::default(),
@@ -93,13 +90,17 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
             obp1: 0,
             work_state: PPUWorkState::default(),
             video_buffer: BoxedMatrix::default(),
-            irq,
+            irq: Interrupt::default(),
             frame_out_handle: None,
         }
     }
 
     pub fn set_frame_out_handle(&mut self, handle: Option<Box<FrameOutHandle>>) {
         self.frame_out_handle = handle;
+    }
+
+    pub fn take_irq(&mut self) -> u8 {
+        self.irq.take()
     }
 
     fn lcd_mode(&self) -> LCDMode {
@@ -495,7 +496,7 @@ impl<IRQ: InterruptRequest> PPU<IRQ> {
     }
 }
 
-impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
+impl Memory for PPU {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x8000..=0x9FFF => {
@@ -570,31 +571,12 @@ impl<IRQ: InterruptRequest> Memory for PPU<IRQ> {
 }
 
 #[cfg(test)]
-use gb_shared::InterruptType;
-#[cfg(test)]
-use mockall::mock;
-
-#[cfg(test)]
-mock! {
-    pub Bus {}
-
-    impl Memory for Bus {
-        fn write(&mut self, addr: u16, value: u8);
-        fn read(&self, addr: u16) -> u8;
-    }
-
-    impl InterruptRequest for Bus {
-        fn request(&mut self, interrupt_type: InterruptType);
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn read_only_stat_bits() {
-        let mut ppu = PPU::new(MockBus::new());
+        let mut ppu = PPU::new();
         ppu.lcd.stat = 0b0000_0101;
 
         ppu.write(0xFF41, 0b1000_0010);
@@ -603,7 +585,7 @@ mod tests {
 
     #[test]
     fn read_only_ly() {
-        let mut ppu = PPU::new(MockBus::new());
+        let mut ppu = PPU::new();
         ppu.lcd.ly = 0x12;
 
         ppu.write(0xFF44, 0x34);
