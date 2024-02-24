@@ -12,6 +12,7 @@ gb_cartridge = { workspace = true }
 gb_shared = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
+cpal = "0.15.2"
 
 [dev-dependencies]
 mockall = { workspace = true }

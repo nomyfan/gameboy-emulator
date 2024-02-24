@@ -15,3 +15,5 @@ Game Boy emulator written in Rust.
 - [Game Boy: Complete Technical Reference](https://gekkio.fi/files/gb-docs/gbctr.pdf)
 
 - [eZ80 Heaven](https://ez80.readthedocs.io/en/latest/index.html)
+
+- [電子音樂互動教材第二版本](https://pages.uoregon.edu/emi/chinese/index.php?id=15)

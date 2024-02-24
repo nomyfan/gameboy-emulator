@@ -6,6 +6,7 @@ members = [
   "crates/shared",
   "crates/ppu",
   "bin/gb_dmg",
+  "crates/apu",
 ]
 resolver = "2"
 
