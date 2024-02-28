@@ -10,6 +10,7 @@ use crate::{
 pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
     channel_clock: Clock,
+    // TODO: retrigger will reset
     period_sweep_clock: Clock,
     length_timer: LengthTimer,
     /// Sweep register.
@@ -120,6 +121,8 @@ impl PulseChannel {
                 self.nrx4 = unset_bits!(self.nrx4, 0, 1, 2) | hi;
                 self.channel_clock = new_channel_clock(self.period_value);
             }
+
+            self.period_sweep_clock = new_period_sweep_clock(self.nrx0);
         }
 
         self.length_timer.next();
@@ -129,7 +132,10 @@ impl PulseChannel {
 impl Memory for PulseChannel {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            0 => self.nrx0 = value,
+            0 => {
+                self.nrx0 = value;
+                self.period_sweep_clock = new_period_sweep_clock(self.nrx0);
+            }
             1 => {
                 self.nrx1 = value;
                 self.length_timer = LengthTimer::new(self.nrx1 & 0x3F);
