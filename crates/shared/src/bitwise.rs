@@ -27,7 +27,7 @@ macro_rules! set_bits {
 macro_rules! unset_bits {
     ($value:expr, $($bit:expr),+) => {
         {
-            ($value) & !(set_bits!(0, $($bit),+))
+            ($value) & !(0 $(| (1 << ($bit)))+)
         }
     };
 }

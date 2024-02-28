@@ -4,7 +4,7 @@ mod clock;
 mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
-use gb_shared::Memory;
+use gb_shared::{unset_bits, Memory};
 
 fn mix(buffer: &mut Vec<(f32, f32)>, max: usize, left_output: &[f32], right_output: &[f32]) {
     for (l, r) in left_output.iter().zip(right_output) {
@@ -64,6 +64,7 @@ impl Apu {
         }
     }
 
+    #[inline]
     fn audio_on(&self) -> bool {
         self.nr52 & 0x80 != 0
     }
@@ -83,18 +84,12 @@ impl Memory for Apu {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0xFF10 => {
-                self.ch1.nrx0 = value;
-                self.ch2.nrx0 = value;
+                self.ch1.write(0, value);
+                self.ch2.write(0, value);
             }
-            0xFF11 => self.ch1.nrx1 = value,
-            0xFF12 => self.ch1.nrx2 = value,
-            0xFF13 => self.ch1.nrx3 = value,
-            0xFF14 => self.ch1.nrx4 = value,
+            0xFF11..=0xFF14 => self.ch1.write(addr - 0xFF11, value),
 
-            0xFF16 => self.ch2.nrx1 = value,
-            0xFF17 => self.ch2.nrx2 = value,
-            0xFF18 => self.ch2.nrx3 = value,
-            0xFF19 => self.ch2.nrx4 = value,
+            0xFF16..=0xFF19 => self.ch2.write(addr - 0xFF15, value),
 
             0xFF1A => self.ch3.nrx0 = value,
             0xFF1B => self.ch3.nrx1 = value,
@@ -109,7 +104,7 @@ impl Memory for Apu {
 
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
-            0xFF26 => self.nr52 = value,
+            0xFF26 => self.nr52 = unset_bits!(self.nr52, 7) | (value & 0x80),
             0xFF30..=0xFF3F => self.ch3.wave_ram[(addr - 0xFF30) as usize] = value,
             _ => unreachable!(
                 "Invalid APU register write at address: {:#X} with value: {:#X}",
@@ -144,7 +139,13 @@ impl Memory for Apu {
 
             0xFF24 => self.nr50,
             0xFF25 => self.nr51,
-            0xFF26 => self.nr52,
+            0xFF26 => {
+                let ch1_active = (!self.ch1.deactivated()) as u8;
+                let ch2_active = ((!self.ch2.deactivated()) as u8) << 1;
+                // TODO: CH3 and CH4
+
+                (self.nr52 & 0x80) | ch1_active | ch2_active
+            }
             0xFF30..=0xFF3F => self.ch3.wave_ram[(addr - 0xFF30) as usize],
             _ => unreachable!("Invalid APU register read at address: {:#X}", addr),
         }
