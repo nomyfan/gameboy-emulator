@@ -101,12 +101,14 @@ impl PulseChannel {
     }
 
     pub(crate) fn next(&mut self) {
-        if self.deactivated() {
-            // TODO: if it's deactivated, generate 0
-            unimplemented!()
-        } else {
-            // TODO: generate sample data
-            unimplemented!()
+        if self.channel_clock.next() != 0 {
+            if self.deactivated() {
+                // TODO: if it's deactivated, generate 0
+                unimplemented!()
+            } else {
+                // TODO: generate sample data
+                unimplemented!()
+            }
         }
 
         if self.period_sweep_clock.next() != 0 {
