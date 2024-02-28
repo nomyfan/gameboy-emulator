@@ -3,6 +3,7 @@ use gb_shared::{unset_bits, Memory};
 use crate::{
     blipbuf,
     clock::Clock,
+    length_timer::LengthTimer,
     utils::{pulse_channel_period_sweep, pulse_channel_sample_period, pulse_period_sweep_period},
 };
 
@@ -10,6 +11,7 @@ pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
     channel_clock: Clock,
     period_sweep_clock: Clock,
+    length_timer: LengthTimer,
     /// Sweep register.
     pub(crate) nrx0: u8,
     /// Sound length/Wave pattern duty at 0xFF11.
@@ -56,6 +58,7 @@ impl PulseChannel {
                 blipbuf: blipbuf::new(frequency, sample_rate),
                 channel_clock: new_channel_clock(period_value),
                 period_sweep_clock: new_period_sweep_clock(nrx0),
+                length_timer: LengthTimer::new(0x3F),
                 nrx0,
                 nrx1: 0xBF,
                 nrx2: 0xF3,
@@ -67,6 +70,7 @@ impl PulseChannel {
                 blipbuf: blipbuf::new(frequency, sample_rate),
                 channel_clock: new_channel_clock(period_value),
                 period_sweep_clock: new_period_sweep_clock(nrx0),
+                length_timer: LengthTimer::new(0x3F),
                 nrx0,
                 nrx1: 0x3F,
                 nrx2: 0x00,
@@ -93,13 +97,17 @@ impl PulseChannel {
     /// - Period overflowed.
     #[inline]
     pub(crate) fn deactivated(&self) -> bool {
-        // TODO: length timer
-        self.dac_off() || self.period_overflow()
+        self.dac_off() || self.length_timer.expired() || self.period_overflow()
     }
 
     pub(crate) fn next(&mut self) {
-        // TODO: generate sample data
-        // TODO: if it's deactivated, generate 0
+        if self.deactivated() {
+            // TODO: if it's deactivated, generate 0
+            unimplemented!()
+        } else {
+            // TODO: generate sample data
+            unimplemented!()
+        }
 
         if self.period_sweep_clock.next() != 0 {
             self.period_value = pulse_channel_period_sweep(self.period_value, self.nrx0);
@@ -111,6 +119,8 @@ impl PulseChannel {
                 self.channel_clock = new_channel_clock(self.period_value);
             }
         }
+
+        self.length_timer.next();
     }
 }
 
@@ -118,7 +128,10 @@ impl Memory for PulseChannel {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0 => self.nrx0 = value,
-            1 => self.nrx1 = value,
+            1 => {
+                self.nrx1 = value;
+                self.length_timer = LengthTimer::new(self.nrx1 & 0x3F);
+            }
             2 => self.nrx2 = value,
             3 => {
                 self.nrx3 = value;

@@ -1,6 +1,7 @@
 mod blipbuf;
 mod channel;
 mod clock;
+mod length_timer;
 mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
