@@ -13,19 +13,19 @@ pub(crate) struct PulseChannel {
     period_sweep_clock: Clock,
     length_timer: LengthTimer,
     /// Sweep register.
-    pub(crate) nrx0: u8,
-    /// Sound length/Wave pattern duty at 0xFF11.
-    pub(crate) nrx1: u8,
+    nrx0: u8,
+    /// Sound length/Wave pattern duty.
+    nrx1: u8,
     /// Volume envelope.
-    pub(crate) nrx2: u8,
+    nrx2: u8,
     /// Period lo.
     /// The low 8 bits of the period value.
-    pub(crate) nrx3: u8,
+    nrx3: u8,
     /// Period hi and control.
     /// Bit 7: Trigger.
     /// Bit 6: Length enable.
     /// Bit 2..=0: The upper 3 bits of the period value.
-    pub(crate) nrx4: u8,
+    nrx4: u8,
     period_value: u16,
 }
 
