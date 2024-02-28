@@ -90,3 +90,5 @@ pub const fn mib(m: usize) -> usize {
 pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>, Vec<(u32, Vec<[[u8; 8]; 8]>)>);
 #[cfg(not(debug_assertions))]
 pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>);
+
+pub const CPU_FREQ: u32 = 4_194_304;

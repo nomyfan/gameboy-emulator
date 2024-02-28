@@ -1,5 +1,7 @@
 mod blipbuf;
 mod channel;
+mod clock;
+mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use gb_shared::Memory;
@@ -62,7 +64,17 @@ impl Apu {
         }
     }
 
+    fn audio_on(&self) -> bool {
+        self.nr52 & 0x80 != 0
+    }
+
     pub fn next(&mut self) {
+        if !self.audio_on() {
+            return;
+        }
+
+        self.ch1.next();
+        self.ch2.next();
         todo!()
     }
 }
