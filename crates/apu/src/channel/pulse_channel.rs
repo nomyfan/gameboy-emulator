@@ -27,7 +27,10 @@ pub(crate) struct PulseChannel {
     /// Bit 6: Length enable.
     /// Bit 2..=0: The upper 3 bits of the period value.
     nrx4: u8,
+    /// This value will be changed by period sweep functionality.
     period_value: u16,
+    /// This value will be changed by envelope functionality.
+    volume_value: u8,
 }
 
 #[inline]
@@ -54,32 +57,21 @@ impl PulseChannel {
 
         let period_value = period_value(nrx3, nrx4);
 
-        (
-            Self {
-                blipbuf: blipbuf::new(frequency, sample_rate),
-                channel_clock: new_channel_clock(period_value),
-                period_sweep_clock: new_period_sweep_clock(nrx0),
-                length_timer: LengthTimer::new(0x3F),
-                nrx0,
-                nrx1: 0xBF,
-                nrx2: 0xF3,
-                nrx3,
-                nrx4,
-                period_value,
-            },
-            Self {
-                blipbuf: blipbuf::new(frequency, sample_rate),
-                channel_clock: new_channel_clock(period_value),
-                period_sweep_clock: new_period_sweep_clock(nrx0),
-                length_timer: LengthTimer::new(0x3F),
-                nrx0,
-                nrx1: 0x3F,
-                nrx2: 0x00,
-                nrx3,
-                nrx4,
-                period_value,
-            },
-        )
+        let new_channel = |nrx2: u8| Self {
+            blipbuf: blipbuf::new(frequency, sample_rate),
+            channel_clock: new_channel_clock(period_value),
+            period_sweep_clock: new_period_sweep_clock(nrx0),
+            length_timer: LengthTimer::new(0x3F),
+            nrx0,
+            nrx1: 0xBF,
+            nrx2,
+            nrx3,
+            nrx4,
+            period_value,
+            volume_value: (nrx2 >> 4) & 0xF,
+        };
+
+        (new_channel(0xF3), new_channel(0x00))
     }
 
     #[inline]
@@ -90,6 +82,20 @@ impl PulseChannel {
     #[inline]
     fn period_overflow(&self) -> bool {
         self.period_value > 0x7FF
+    }
+
+    fn wave_duty(&self) -> u8 {
+        match (self.nrx1 >> 6) & 0b11 {
+            // 12.5%
+            0b00 => 0b1111_1110,
+            // 25%
+            0b01 => 0b0111_1110,
+            // 50%
+            0b10 => 0b0111_1000,
+            // 75%
+            0b11 => 0b1000_0001,
+            _ => unreachable!(),
+        }
     }
 
     /// Any condition below satisfied will deactivate the channel.
