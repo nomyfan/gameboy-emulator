@@ -17,6 +17,15 @@ fn mix(buffer: &mut Vec<(f32, f32)>, max: usize, left_output: &[f32], right_outp
     }
 }
 
+type SoundPanning = (bool, bool);
+
+enum Channel {
+    CH1,
+    CH2,
+    CH3,
+    CH4,
+}
+
 pub struct Apu {
     ch1: PulseChannel,
     ch2: PulseChannel,
@@ -68,6 +77,27 @@ impl Apu {
     #[inline]
     fn audio_on(&self) -> bool {
         self.nr52 & 0x80 != 0
+    }
+
+    #[inline]
+    fn master_left_volume(&self) -> u8 {
+        (self.nr50 >> 4) & 0b111
+    }
+
+    #[inline]
+    fn master_right_volume(&self) -> u8 {
+        self.nr50 & 0b111
+    }
+
+    fn sound_panning(&self, channel: &Channel) -> SoundPanning {
+        let (left, right) = match channel {
+            Channel::CH1 => (self.nr51 & 0x10 != 0, self.nr51 & 0x01 != 0),
+            Channel::CH2 => (self.nr51 & 0x20 != 0, self.nr51 & 0x02 != 0),
+            Channel::CH3 => (self.nr51 & 0x40 != 0, self.nr51 & 0x04 != 0),
+            Channel::CH4 => (self.nr51 & 0x80 != 0, self.nr51 & 0x08 != 0),
+        };
+
+        (left, right)
     }
 
     pub fn next(&mut self) {

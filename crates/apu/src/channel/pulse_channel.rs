@@ -1,4 +1,4 @@
-use gb_shared::{unset_bits, Memory};
+use gb_shared::Memory;
 
 use crate::{
     blipbuf,
@@ -118,7 +118,7 @@ impl PulseChannel {
                 let lo = self.period_value as u8;
                 let hi = ((self.period_value >> 8) as u8) & 0b111;
                 self.nrx3 = lo;
-                self.nrx4 = unset_bits!(self.nrx4, 0, 1, 2) | hi;
+                self.nrx4 = (self.nrx4 & (!0b111)) | hi;
                 self.channel_clock = new_channel_clock(self.period_value);
             }
 
