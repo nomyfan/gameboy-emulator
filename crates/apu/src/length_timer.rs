@@ -1,4 +1,4 @@
-use crate::clock::Clock;
+use crate::{clock::Clock, utils::freq_to_clock_cycles};
 
 pub(crate) struct LengthTimer {
     clock: Clock,
@@ -6,15 +6,17 @@ pub(crate) struct LengthTimer {
     ticks: u8,
 }
 
+const LENGTH_TIMER_CYCLES: u32 = freq_to_clock_cycles(256);
+
 impl LengthTimer {
     pub(crate) fn new(init_value: u8) -> Self {
         let init_value = 64.min(init_value);
 
-        Self {
-            // CPU_FREQ / 256 Hz = 16384
-            clock: Clock::new(16384),
-            ticks: init_value,
-        }
+        Self { clock: Clock::new(LENGTH_TIMER_CYCLES), ticks: init_value }
+    }
+
+    pub(crate) fn new_disabled() -> Self {
+        Self::new(64)
     }
 
     #[inline]

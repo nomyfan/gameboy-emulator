@@ -1,10 +1,10 @@
-use gb_shared::Memory;
+use gb_shared::{is_bit_set, Memory};
 
 use crate::{
     blipbuf,
     clock::Clock,
     length_timer::LengthTimer,
-    utils::{pulse_channel_period_sweep, pulse_channel_sample_period, pulse_period_sweep_period},
+    utils::{freq_to_clock_cycles, pulse_channel_period_sweep, pulse_channel_sample_period},
 };
 
 pub(crate) struct PulseChannel {
@@ -12,6 +12,7 @@ pub(crate) struct PulseChannel {
     channel_clock: Clock,
     // TODO: retrigger will reset
     period_sweep_clock: Clock,
+    envelope_clock: Clock,
     length_timer: LengthTimer,
     /// Sweep register.
     nrx0: u8,
@@ -43,9 +44,18 @@ fn new_channel_clock(period_value: u16) -> Clock {
     Clock::new(pulse_channel_sample_period(period_value))
 }
 
-#[inline]
+const PERIOD_SWEEP_CYCLES: u32 = freq_to_clock_cycles(128);
+
 fn new_period_sweep_clock(nrx0: u8) -> Clock {
-    Clock::new(pulse_period_sweep_period(nrx0))
+    let pace = (nrx0 >> 4) & 0b111;
+    Clock::new(PERIOD_SWEEP_CYCLES * pace as u32)
+}
+
+const VOLUME_ENVELOPE_CYCLES: u32 = freq_to_clock_cycles(64);
+
+fn new_envelope_clock(nrx2: u8) -> Clock {
+    let pace = nrx2 & 0b111;
+    Clock::new(VOLUME_ENVELOPE_CYCLES * pace as u32)
 }
 
 impl PulseChannel {
@@ -61,6 +71,7 @@ impl PulseChannel {
             blipbuf: blipbuf::new(frequency, sample_rate),
             channel_clock: new_channel_clock(period_value),
             period_sweep_clock: new_period_sweep_clock(nrx0),
+            envelope_clock: new_envelope_clock(nrx2),
             length_timer: LengthTimer::new(0x3F),
             nrx0,
             nrx1: 0xBF,
@@ -108,6 +119,7 @@ impl PulseChannel {
     }
 
     pub(crate) fn next(&mut self) {
+        // TODO: confirm should channel continue working when deactivated.
         if self.channel_clock.next() != 0 {
             if self.deactivated() {
                 // TODO: if it's deactivated, generate 0
@@ -129,6 +141,14 @@ impl PulseChannel {
             }
 
             self.period_sweep_clock = new_period_sweep_clock(self.nrx0);
+        }
+
+        if self.envelope_clock.next() != 0 {
+            if is_bit_set!(self.nrx2, 3) {
+                self.volume_value = self.volume_value.wrapping_sub(1);
+            } else {
+                self.volume_value = self.volume_value.wrapping_add(1);
+            }
         }
 
         self.length_timer.next();
@@ -156,6 +176,16 @@ impl Memory for PulseChannel {
                 self.nrx4 = value;
                 self.period_value = period_value(self.nrx3, self.nrx4);
                 self.channel_clock = new_channel_clock(self.period_value);
+
+                self.length_timer = if is_bit_set!(value, 6) {
+                    LengthTimer::new(self.nrx1 & 0x3F)
+                } else {
+                    LengthTimer::new_disabled()
+                };
+
+                if is_bit_set!(value, 7) && !self.dac_off() {
+                    // TODO: trigger channel only when its DAC is on
+                }
             }
             _ => unreachable!("Invalid address: {}", addr),
         }
