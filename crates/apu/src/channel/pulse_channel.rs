@@ -139,7 +139,7 @@ impl PulseChannel {
 
     pub(crate) fn next(&mut self) {
         // TODO: confirm should channel continue working when deactivated.
-        if self.channel_clock.next() != 0 {
+        if self.channel_clock.next() {
             if self.deactivated() {
                 // TODO: if it's deactivated, generate 0
                 unimplemented!()
@@ -150,7 +150,7 @@ impl PulseChannel {
             }
         }
 
-        if self.period_sweep_clock.next() != 0 {
+        if self.period_sweep_clock.next() {
             self.period_value = pulse_channel_period_sweep(self.period_value, self.nrx0);
             if !self.period_overflow() {
                 let lo = self.period_value as u8;
@@ -163,7 +163,7 @@ impl PulseChannel {
             self.period_sweep_clock = new_period_sweep_clock(self.nrx0);
         }
 
-        if self.envelope_clock.next() != 0 {
+        if self.envelope_clock.next() {
             if is_bit_set!(self.nrx2, 3) {
                 self.volume_value = self.volume_value.wrapping_sub(1);
             } else {

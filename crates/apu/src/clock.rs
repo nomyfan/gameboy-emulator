@@ -8,14 +8,14 @@ impl Clock {
         Self { div, ticks: 0 }
     }
 
-    pub(crate) fn next(&mut self) -> u32 {
+    pub(crate) fn next(&mut self) -> bool {
         if self.div == 0 {
-            return 0;
+            return false;
         }
 
         self.ticks += 1;
-        let cycle = self.ticks / self.div;
+        let should_tick = (self.ticks / self.div) != 0;
         self.ticks %= self.div;
-        cycle
+        should_tick
     }
 }

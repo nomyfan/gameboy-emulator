@@ -29,7 +29,7 @@ impl LengthTimer {
             return;
         }
 
-        if self.clock.next() != 0 {
+        if self.clock.next() {
             self.ticks += 1;
         }
     }
