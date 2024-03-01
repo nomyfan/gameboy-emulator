@@ -196,6 +196,11 @@ impl PulseChannel {
         (self.nrx2 >> 3) == 0
     }
 
+    #[inline]
+    fn triggered(&self) -> bool {
+        is_bit_set!(self.nrx4, 7)
+    }
+
     /// Any condition below satisfied will deactivate the channel.
     /// - DAC is off.
     /// - Length timer expired.
@@ -208,12 +213,13 @@ impl PulseChannel {
     pub(crate) fn next(&mut self) {
         // TODO: confirm should channel continue working when deactivated.
         if self.channel_clock.next() {
-            if self.deactivated() {
-                // TODO: if it's deactivated, generate 0
-                unimplemented!()
-            } else {
+            let active = self.triggered() && !self.deactivated();
+            if active {
                 let is_high_signal = self.duty_cycle.next(self.nrx1);
                 // TODO: generate sample data
+                unimplemented!()
+            } else {
+                // TODO: if it's deactivated, generate 0
                 unimplemented!()
             }
         }
@@ -241,25 +247,36 @@ impl Memory for PulseChannel {
                 self.nrx1 = value;
                 self.length_timer = LengthTimer::new(self.nrx1 & 0x3F);
             }
-            2 => self.nrx2 = value,
+            2 => {
+                // Writes to this register while the channel is on require retriggering it afterwards. If the write turns the channel off, retriggering is not necessary (it would do nothing).
+                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=writes%20to%20this%20register%20while%20the%20channel%20is%20on%20require%20retriggering%20it%20afterwards.%20if%20the%20write%20turns%20the%20channel%20off%2C%20retriggering%20is%20not%20necessary%20(it%20would%20do%20nothing).
+                self.nrx2 = value;
+            }
             3 => {
                 self.nrx3 = value;
+                // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
+                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
                 self.period_sweep.set_period_value(self.nrx3, self.nrx4);
                 self.channel_clock = Self::new_channel_clock(self.period_sweep.period_value());
             }
             4 => {
                 self.nrx4 = value;
+
+                // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
+                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
                 self.period_sweep.set_period_value(self.nrx3, self.nrx4);
                 self.channel_clock = Self::new_channel_clock(self.period_sweep.period_value());
 
-                self.length_timer = if is_bit_set!(value, 6) {
-                    LengthTimer::new(self.nrx1 & 0x3F)
-                } else {
-                    LengthTimer::new_disabled()
-                };
+                if self.triggered() && !self.dac_off() {
+                    self.length_timer = if is_bit_set!(value, 6) {
+                        LengthTimer::new(self.nrx1 & 0x3F)
+                    } else {
+                        LengthTimer::new_expired()
+                    };
 
-                if is_bit_set!(value, 7) && !self.dac_off() {
-                    // TODO: trigger channel only when its DAC is on
+                    self.volume_envelope = VolumeEnvelope::new(self.nrx2);
+                    self.period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);
+                    self.channel_clock = Self::new_channel_clock(self.period_sweep.period_value());
                 }
             }
             _ => unreachable!("Invalid address: {}", addr),
