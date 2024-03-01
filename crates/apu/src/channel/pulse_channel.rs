@@ -7,6 +7,37 @@ use crate::{
     utils::{freq_to_clock_cycles, pulse_channel_period_sweep, pulse_channel_sample_period},
 };
 
+pub(crate) struct DutyCycle {
+    index: u8,
+}
+
+impl DutyCycle {
+    fn new() -> Self {
+        Self { index: 0 }
+    }
+
+    /// We do not handle the case where duty cycle
+    /// get changed during one cycle.
+    /// Return true if the signal is high.
+    fn next(&mut self, nrx1: u8) -> bool {
+        let waveform = match (nrx1 >> 6) & 0b11 {
+            // 12.5%
+            0b00 => 0b1111_1110,
+            // 25%
+            0b01 => 0b0111_1110,
+            // 50%
+            0b10 => 0b0111_1000,
+            // 75%
+            0b11 => 0b1000_0001,
+            _ => unreachable!(),
+        };
+        let signal = (waveform >> self.index) & 1 == 1;
+        self.index = (self.index + 1) % 8;
+
+        signal
+    }
+}
+
 pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
     channel_clock: Clock,
@@ -32,6 +63,7 @@ pub(crate) struct PulseChannel {
     period_value: u16,
     /// This value will be changed by envelope functionality.
     volume_value: u8,
+    duty_cycle: DutyCycle,
 }
 
 #[inline]
@@ -80,6 +112,7 @@ impl PulseChannel {
             nrx4,
             period_value,
             volume_value: (nrx2 >> 4) & 0xF,
+            duty_cycle: DutyCycle::new(),
         };
 
         (new_channel(0xF3), new_channel(0x00))
@@ -93,20 +126,6 @@ impl PulseChannel {
     #[inline]
     fn period_overflow(&self) -> bool {
         self.period_value > 0x7FF
-    }
-
-    fn wave_duty(&self) -> u8 {
-        match (self.nrx1 >> 6) & 0b11 {
-            // 12.5%
-            0b00 => 0b1111_1110,
-            // 25%
-            0b01 => 0b0111_1110,
-            // 50%
-            0b10 => 0b0111_1000,
-            // 75%
-            0b11 => 0b1000_0001,
-            _ => unreachable!(),
-        }
     }
 
     /// Any condition below satisfied will deactivate the channel.
@@ -125,6 +144,7 @@ impl PulseChannel {
                 // TODO: if it's deactivated, generate 0
                 unimplemented!()
             } else {
+                let is_high_signal = self.duty_cycle.next(self.nrx1);
                 // TODO: generate sample data
                 unimplemented!()
             }
