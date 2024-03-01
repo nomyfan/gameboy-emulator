@@ -164,8 +164,8 @@ impl Memory for Apu {
             0xFF24 => self.nr50,
             0xFF25 => self.nr51,
             0xFF26 => {
-                let ch1_active = (!self.ch1.deactivated()) as u8;
-                let ch2_active = ((!self.ch2.deactivated()) as u8) << 1;
+                let ch1_active = self.ch1.active() as u8;
+                let ch2_active = (self.ch2.active() as u8) << 1;
                 // TODO: CH3 and CH4
 
                 (self.nr52 & 0x80) | ch1_active | ch2_active

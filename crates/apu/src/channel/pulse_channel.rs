@@ -201,20 +201,19 @@ impl PulseChannel {
         is_bit_set!(self.nrx4, 7)
     }
 
-    /// Any condition below satisfied will deactivate the channel.
-    /// - DAC is off.
-    /// - Length timer expired.
-    /// - Period overflowed.
-    #[inline]
-    pub(crate) fn deactivated(&self) -> bool {
-        self.dac_off() || self.length_timer.expired() || self.period_sweep.overflow()
+    /// Return `true` if the channel is active.
+    pub(crate) fn active(&self) -> bool {
+        // Any condition below satisfied will deactivate the channel.
+        // - DAC is off.
+        // - Length timer expired.
+        // - Period overflowed.
+        !(self.dac_off() || self.length_timer.expired() || self.period_sweep.overflow())
     }
 
     pub(crate) fn next(&mut self) {
         // TODO: confirm should channel continue working when deactivated.
         if self.channel_clock.next() {
-            let active = self.triggered() && !self.deactivated();
-            if active {
+            if self.active() {
                 let is_high_signal = self.duty_cycle.next(self.nrx1);
                 // TODO: generate sample data
                 unimplemented!()
