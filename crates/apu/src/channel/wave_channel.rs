@@ -72,23 +72,27 @@ pub struct WaveChannel {
 }
 
 impl WaveChannel {
-    pub fn new(frequency: u32, sample_rate: u32) -> Self {
-        let nrx1 = 0xFF;
-        let nrx3 = 0xFF;
-        let nrx4 = 0xBF;
+    pub(crate) fn from_nrxs(
+        (nrx0, nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8, u8),
+        frequency: u32,
+        sample_rate: u32,
+    ) -> Self {
         let channel_clock = Self::new_channel_clock(nrx3, nrx4);
-
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
-            nrx0: 0x7F,
+            nrx0,
             nrx1,
-            nrx2: 0x9F,
+            nrx2,
             nrx3,
             nrx4,
             wave_ram: WaveRam::new(),
             length_timer: None,
             channel_clock,
         }
+    }
+
+    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
+        Self::from_nrxs((0, 0, 0, 0, 0), frequency, sample_rate)
     }
 
     fn new_channel_clock(nrx3: u8, nrx4: u8) -> Clock {

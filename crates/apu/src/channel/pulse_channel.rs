@@ -140,35 +140,31 @@ impl PulseChannel {
         Clock::new(pulse_channel_sample_period(period_value))
     }
 
-    /// Create CH1(left) and CH2(right).
-    pub(crate) fn new_chs(frequency: u32, sample_rate: u32) -> (Self, Self) {
-        let nrx0 = 0x80;
-        let nrx3 = 0xFF;
-        let nrx4 = 0xBF;
+    pub(crate) fn from_nrxs(
+        (nrx0, nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8, u8),
+        frequency: u32,
+        sample_rate: u32,
+        with_period_sweep: bool,
+    ) -> Self {
+        let period_sweep = PeriodSweep::new(nrx0, nrx3, nrx4);
+        let volume_envelope = VolumeEnvelope::new(nrx2);
+        Self {
+            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, volume_envelope.volume() as i32),
+            channel_clock: Self::new_channel_clock(period_sweep.period_value()),
+            length_timer: None,
+            nrx0,
+            nrx1,
+            nrx2,
+            nrx3,
+            nrx4,
+            duty_cycle: DutyCycle::new(),
+            volume_envelope,
+            period_sweep: if with_period_sweep { Some(period_sweep) } else { None },
+        }
+    }
 
-        let new_channel = |nrx2: u8, ch1: bool| {
-            let period_sweep = PeriodSweep::new(nrx0, nrx3, nrx4);
-            let volume_envelope = VolumeEnvelope::new(nrx2);
-            Self {
-                blipbuf: blipbuf::BlipBuf::new(
-                    frequency,
-                    sample_rate,
-                    volume_envelope.volume() as i32,
-                ),
-                channel_clock: Self::new_channel_clock(period_sweep.period_value()),
-                length_timer: None,
-                nrx0,
-                nrx1: 0xBF,
-                nrx2,
-                nrx3,
-                nrx4,
-                duty_cycle: DutyCycle::new(),
-                volume_envelope,
-                period_sweep: if ch1 { Some(period_sweep) } else { None },
-            }
-        };
-
-        (new_channel(0xF3, true), new_channel(0x00, false))
+    pub(crate) fn new(frequency: u32, sample_rate: u32, with_period_sweep: bool) -> Self {
+        Self::from_nrxs((0, 0, 0, 0, 0), frequency, sample_rate, with_period_sweep)
     }
 
     #[inline]

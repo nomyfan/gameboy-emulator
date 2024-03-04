@@ -6,7 +6,7 @@ mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use clock::Clock;
-use gb_shared::{unset_bits, Memory};
+use gb_shared::{is_bit_set, unset_bits, Memory};
 
 fn mix(buffer: &mut Vec<(f32, f32)>, max: usize, left_output: &[f32], right_output: &[f32]) {
     for (l, r) in left_output.iter().zip(right_output) {
@@ -59,23 +59,48 @@ pub struct Apu {
     /// Bit 1 - CH2 ON flag (Read Only)
     /// Bit 0 - CH1 ON flag (Read Only)
     nr52: u8,
+    frequency: u32,
+    sample_rate: u32,
 }
 
 impl Apu {
     pub fn new(frequency: u32, sample_rate: u32) -> Self {
-        let (ch1, ch2) = PulseChannel::new_chs(frequency, sample_rate);
         Self {
-            ch1,
-            ch2,
-            ch3: WaveChannel::new(frequency, sample_rate),
-            ch4: NoiseChannel::new(frequency, sample_rate),
+            ch1: PulseChannel::from_nrxs(
+                (0x80, 0xBF, 0xF3, 0xFF, 0xBF),
+                frequency,
+                sample_rate,
+                true,
+            ),
+            ch2: PulseChannel::from_nrxs(
+                (0x00, 0x3F, 0x00, 0xFF, 0xBF),
+                frequency,
+                sample_rate,
+                false,
+            ),
+            ch3: WaveChannel::from_nrxs((0x7F, 0xFF, 0x9F, 0xFF, 0xBF), frequency, sample_rate),
+            ch4: NoiseChannel::from_nrxs((0xFF, 0x00, 0x00, 0xBF), frequency, sample_rate),
             // TODO: adjust mixer frequency
             mixer_clock: Clock::new(8192),
             output_buffer: vec![],
             nr50: 0x77,
             nr51: 0xF3,
             nr52: 0xF1,
+            frequency,
+            sample_rate,
         }
+    }
+
+    fn turn_off(&mut self) {
+        self.ch1 = PulseChannel::new(self.frequency, self.sample_rate, true);
+        self.ch2 = PulseChannel::new(self.frequency, self.sample_rate, false);
+        self.ch3 = WaveChannel::new(self.frequency, self.sample_rate);
+        self.ch4 = NoiseChannel::new(self.frequency, self.sample_rate);
+        self.mixer_clock = Clock::new(8192);
+        self.output_buffer.clear();
+        self.nr50 = 0;
+        self.nr51 = 0;
+        self.nr52 = 0;
     }
 
     #[inline]
@@ -129,8 +154,12 @@ impl Apu {
 
 impl Memory for Apu {
     fn write(&mut self, addr: u16, value: u8) {
-        // TODO: all registers except NR52 are read-only when APU is disabled.
+        // All registers except NR52 are read-only when APU is disabled.
         // @see https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-4--noise:~:text=makes%20them%20read-only%20until%20turned%20back%20on
+        if !self.audio_on() && addr != 0xFF26 {
+            return;
+        }
+
         match addr {
             0xFF10 => self.ch1.set_nrx0(value),
             0xFF11 => self.ch1.set_nrx1(value),
@@ -156,7 +185,12 @@ impl Memory for Apu {
 
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
-            0xFF26 => self.nr52 = unset_bits!(self.nr52, 7) | (value & 0x80),
+            0xFF26 => {
+                self.nr52 = unset_bits!(self.nr52, 7) | (value & 0x80);
+                if !self.audio_on() {
+                    self.turn_off();
+                }
+            }
             0xFF30..=0xFF3F => self.ch3.wave_ram.write(addr, value),
             _ => unreachable!(
                 "Invalid APU register write at address: {:#X} with value: {:#X}",

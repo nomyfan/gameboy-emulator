@@ -69,19 +69,25 @@ pub(crate) struct NoiseChannel {
 }
 
 impl NoiseChannel {
-    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
-        let nrx2 = 0x00;
-        let nrx3 = 0x00;
+    pub(crate) fn from_nrxs(
+        (nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8),
+        frequency: u32,
+        sample_rate: u32,
+    ) -> Self {
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
-            nrx1: 0xFF,
+            nrx1,
             nrx2,
             nrx3,
-            nrx4: 0xBF,
+            nrx4,
             length_timer: None,
             volume_envelope: VolumeEnvelope::new(nrx2),
             lfsr: Lfsr::new(nrx3),
         }
+    }
+
+    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
+        Self::from_nrxs((0xFF, 0x00, 0x00, 0xBF), frequency, sample_rate)
     }
 
     fn triggered(&self) -> bool {
