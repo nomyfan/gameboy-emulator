@@ -28,7 +28,6 @@ pub trait Memory {
     fn read(&self, addr: u16) -> u8;
 }
 
-// TODO: replace step with tick which accepts no parameters.
 pub trait Component {
     fn step(&mut self, cycles: u8);
 }
