@@ -109,10 +109,12 @@ impl PeriodSweep {
         let direction = (nrx0 >> 3) & 0b1;
         let step = nrx0 & 0b111;
 
+        let delta = period_value / 2u16.pow(step as u32);
+
         if direction == 1 {
-            ((period_value as i16) - ((period_value / 2u16.pow(step as u32)) as i16)) as u16
+            period_value.wrapping_sub(delta)
         } else {
-            period_value + (period_value / 2u16.pow(step as u32))
+            period_value.wrapping_add(delta)
         }
     }
 
