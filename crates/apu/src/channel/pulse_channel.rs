@@ -2,6 +2,8 @@ use gb_shared::is_bit_set;
 
 use crate::{blipbuf, clock::Clock, length_timer::LengthTimer, utils::freq_to_clock_cycles};
 
+use super::VolumeEnvelope;
+
 /// How many CPU clock cycles to produce a sample.
 #[inline]
 pub(crate) fn pulse_channel_sample_period(period_value: u16) -> u32 {
@@ -132,36 +134,6 @@ impl PeriodSweep {
         }
 
         None
-    }
-}
-
-const VOLUME_ENVELOPE_CYCLES: u32 = freq_to_clock_cycles(64);
-
-struct VolumeEnvelope {
-    clock: Clock,
-    volume: u8,
-}
-
-impl VolumeEnvelope {
-    fn new(nrx2: u8) -> Self {
-        let pace = nrx2 & 0b111;
-        let init_volume = (nrx2 >> 4) & 0xF;
-        Self { clock: Clock::new(VOLUME_ENVELOPE_CYCLES * pace as u32), volume: init_volume }
-    }
-
-    #[inline]
-    fn volume(&self) -> u8 {
-        self.volume
-    }
-
-    fn next(&mut self, nrx2: u8) {
-        if self.clock.next() {
-            if is_bit_set!(nrx2, 3) {
-                self.volume = self.volume.wrapping_sub(1);
-            } else {
-                self.volume = self.volume.wrapping_add(1);
-            }
-        }
     }
 }
 
