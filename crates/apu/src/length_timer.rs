@@ -15,10 +15,6 @@ impl LengthTimer {
         Self { clock: Clock::new(LENGTH_TIMER_CYCLES), ticks: init_value }
     }
 
-    pub(crate) fn new_expired() -> Self {
-        Self::new(64)
-    }
-
     #[inline]
     pub(crate) fn expired(&self) -> bool {
         self.ticks == 64

@@ -45,7 +45,7 @@ impl DutyCycle {
 pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
     channel_clock: Clock,
-    length_timer: LengthTimer,
+    length_timer: Option<LengthTimer>,
     /// Sweep register.
     nrx0: u8,
     /// Sound length/Wave pattern duty.
@@ -187,7 +187,7 @@ impl PulseChannel {
                     volume_envelope.volume() as i32,
                 ),
                 channel_clock: Self::new_channel_clock(period_sweep.period_value()),
-                length_timer: LengthTimer::new(0x3F),
+                length_timer: None,
                 nrx0,
                 nrx1: 0xBF,
                 nrx2,
@@ -218,8 +218,8 @@ impl PulseChannel {
         // - DAC is off.
         // - Length timer expired.
         // - Period overflowed.
-        // FIXME: if length timer is not enabled
-        !(self.dac_off() || self.length_timer.expired() || self.period_sweep.overflow())
+        let length_timer_expired = self.length_timer.as_ref().map_or(false, |lt| lt.expired());
+        !(self.dac_off() || length_timer_expired || self.period_sweep.overflow())
     }
 
     pub(crate) fn next(&mut self) {
@@ -242,7 +242,9 @@ impl PulseChannel {
 
         self.volume_envelope.next(self.nrx2);
 
-        self.length_timer.next();
+        if let Some(length_timer) = self.length_timer.as_mut() {
+            length_timer.next();
+        }
     }
 
     pub(crate) fn read_samples(&mut self, duration: u32) -> Vec<i16> {
@@ -266,9 +268,9 @@ impl PulseChannel {
         self.nrx1
     }
 
+    #[inline]
     pub(crate) fn set_nrx1(&mut self, value: u8) {
         self.nrx1 = value;
-        self.length_timer = LengthTimer::new(self.nrx1 & 0x3F);
     }
 
     #[inline]
@@ -309,11 +311,8 @@ impl PulseChannel {
         self.channel_clock = Self::new_channel_clock(self.period_sweep.period_value());
 
         if self.triggered() && !self.dac_off() {
-            self.length_timer = if is_bit_set!(value, 6) {
-                LengthTimer::new(self.nrx1 & 0x3F)
-            } else {
-                LengthTimer::new_expired()
-            };
+            self.length_timer =
+                if is_bit_set!(value, 6) { Some(LengthTimer::new(self.nrx1 & 0x3F)) } else { None };
 
             self.volume_envelope = VolumeEnvelope::new(self.nrx2);
             self.period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);
