@@ -112,13 +112,16 @@ impl Apu {
         self.ch1.next();
         self.ch2.next();
         self.ch3.next();
+        self.ch4.next();
 
         if self.mixer_clock.next() {
             let ch1_samples = self.ch1.read_samples(self.mixer_clock.div());
             let ch2_samples = self.ch2.read_samples(self.mixer_clock.div());
             let ch3_samples = self.ch3.read_samples(self.mixer_clock.div());
+            let ch4_samples = self.ch4.read_samples(self.mixer_clock.div());
             debug_assert_eq!(ch1_samples.len(), ch2_samples.len());
             debug_assert_eq!(ch2_samples.len(), ch3_samples.len());
+            debug_assert_eq!(ch3_samples.len(), ch4_samples.len());
             // TODO: mixer
         }
     }
@@ -147,10 +150,10 @@ impl Memory for Apu {
             0xFF1D => self.ch3.set_nrx3(value),
             0xFF1E => self.ch3.set_nrx4(value),
 
-            0xFF20 => self.ch4.nrx1 = value,
-            0xFF21 => self.ch4.nrx2 = value,
-            0xFF22 => self.ch4.nrx3 = value,
-            0xFF23 => self.ch4.nrx4 = value,
+            0xFF20 => self.ch4.set_nrx1(value),
+            0xFF21 => self.ch4.set_nrx2(value),
+            0xFF22 => self.ch4.set_nrx3(value),
+            0xFF23 => self.ch4.set_nrx4(value),
 
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
@@ -182,10 +185,10 @@ impl Memory for Apu {
             0xFF1D => self.ch3.nrx3(),
             0xFF1E => self.ch3.nrx4(),
 
-            0xFF20 => self.ch4.nrx1,
-            0xFF21 => self.ch4.nrx2,
-            0xFF22 => self.ch4.nrx3,
-            0xFF23 => self.ch4.nrx4,
+            0xFF20 => self.ch4.nrx1(),
+            0xFF21 => self.ch4.nrx2(),
+            0xFF22 => self.ch4.nrx3(),
+            0xFF23 => self.ch4.nrx4(),
 
             0xFF24 => self.nr50,
             0xFF25 => self.nr51,

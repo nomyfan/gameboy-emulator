@@ -283,8 +283,11 @@ impl PulseChannel {
         self.channel_clock = Self::new_channel_clock(self.period_sweep.period_value());
 
         if self.triggered() && !self.dac_off() {
-            self.length_timer =
-                if is_bit_set!(value, 6) { Some(LengthTimer::new(self.nrx1 & 0x3F)) } else { None };
+            self.length_timer = if is_bit_set!(self.nrx4, 6) {
+                Some(LengthTimer::new(self.nrx1 & 0x3F))
+            } else {
+                None
+            };
 
             self.volume_envelope = VolumeEnvelope::new(self.nrx2);
             self.period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);

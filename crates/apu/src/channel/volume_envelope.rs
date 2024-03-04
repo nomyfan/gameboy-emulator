@@ -10,10 +10,10 @@ pub(super) struct VolumeEnvelope {
 }
 
 impl VolumeEnvelope {
-    /// About `nrx`, see https://gbdev.io/pandocs/Audio_Registers.html#ff12--nr12-channel-1-volume--envelope
-    pub(super) fn new(nrx: u8) -> Self {
-        let pace = nrx & 0b111;
-        let init_volume = (nrx >> 4) & 0xF;
+    /// About `nrx2`, see https://gbdev.io/pandocs/Audio_Registers.html#ff12--nr12-channel-1-volume--envelope
+    pub(super) fn new(nrx2: u8) -> Self {
+        let pace = nrx2 & 0b111;
+        let init_volume = (nrx2 >> 4) & 0xF;
         Self { clock: Clock::new(VOLUME_ENVELOPE_CYCLES * pace as u32), volume: init_volume }
     }
 
