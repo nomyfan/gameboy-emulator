@@ -29,7 +29,7 @@ pub struct WaveChannel {
 impl WaveChannel {
     pub fn new(frequency: u32, sample_rate: u32) -> Self {
         Self {
-            blipbuf: blipbuf::new(frequency, sample_rate),
+            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
             nrx0: 0x7F,
             nrx1: 0xFF,
             nrx2: 0x9F,

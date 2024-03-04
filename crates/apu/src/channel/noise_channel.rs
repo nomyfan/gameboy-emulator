@@ -20,7 +20,7 @@ pub struct NoiseChannel {
 impl NoiseChannel {
     pub fn new(frequency: u32, sample_rate: u32) -> Self {
         Self {
-            blipbuf: blipbuf::new(frequency, sample_rate),
+            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
             nrx1: 0xFF,
             nrx2: 0x00,
             nrx3: 0x00,
