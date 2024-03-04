@@ -52,9 +52,9 @@ impl GameBoy {
         self.command_receiver = Some(command_receiver);
 
         loop {
+            let now = std::time::Instant::now();
             self.cpu.step();
 
-            let now = std::time::Instant::now();
             let spin_period = (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64).round() as u128;
             while now.elapsed().as_nanos() < spin_period {
                 std::hint::spin_loop();
