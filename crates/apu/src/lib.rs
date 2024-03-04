@@ -111,11 +111,14 @@ impl Apu {
 
         self.ch1.next();
         self.ch2.next();
+        self.ch3.next();
 
         if self.mixer_clock.next() {
             let ch1_samples = self.ch1.read_samples(self.mixer_clock.div());
             let ch2_samples = self.ch2.read_samples(self.mixer_clock.div());
+            let ch3_samples = self.ch3.read_samples(self.mixer_clock.div());
             debug_assert_eq!(ch1_samples.len(), ch2_samples.len());
+            debug_assert_eq!(ch2_samples.len(), ch3_samples.len());
             // TODO: mixer
         }
     }
@@ -138,11 +141,11 @@ impl Memory for Apu {
             0xFF18 => self.ch2.set_nrx3(value),
             0xFF19 => self.ch2.set_nrx4(value),
 
-            0xFF1A => self.ch3.nrx0 = value,
-            0xFF1B => self.ch3.nrx1 = value,
-            0xFF1C => self.ch3.nrx2 = value,
-            0xFF1D => self.ch3.nrx3 = value,
-            0xFF1E => self.ch3.nrx4 = value,
+            0xFF1A => self.ch3.set_nrx0(value),
+            0xFF1B => self.ch3.set_nrx1(value),
+            0xFF1C => self.ch3.set_nrx2(value),
+            0xFF1D => self.ch3.set_nrx3(value),
+            0xFF1E => self.ch3.set_nrx4(value),
 
             0xFF20 => self.ch4.nrx1 = value,
             0xFF21 => self.ch4.nrx2 = value,
@@ -152,7 +155,7 @@ impl Memory for Apu {
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
             0xFF26 => self.nr52 = unset_bits!(self.nr52, 7) | (value & 0x80),
-            0xFF30..=0xFF3F => self.ch3.wave_ram[(addr - 0xFF30) as usize] = value,
+            0xFF30..=0xFF3F => self.ch3.wave_ram.write(addr, value),
             _ => unreachable!(
                 "Invalid APU register write at address: {:#X} with value: {:#X}",
                 addr, value
@@ -173,11 +176,11 @@ impl Memory for Apu {
             0xFF18 => self.ch2.nrx3(),
             0xFF19 => self.ch2.nrx4(),
 
-            0xFF1A => self.ch3.nrx0,
-            0xFF1B => self.ch3.nrx1,
-            0xFF1C => self.ch3.nrx2,
-            0xFF1D => self.ch3.nrx3,
-            0xFF1E => self.ch3.nrx4,
+            0xFF1A => self.ch3.nrx0(),
+            0xFF1B => self.ch3.nrx1(),
+            0xFF1C => self.ch3.nrx2(),
+            0xFF1D => self.ch3.nrx3(),
+            0xFF1E => self.ch3.nrx4(),
 
             0xFF20 => self.ch4.nrx1,
             0xFF21 => self.ch4.nrx2,
@@ -189,11 +192,12 @@ impl Memory for Apu {
             0xFF26 => {
                 let ch1_active = self.ch1.active() as u8;
                 let ch2_active = (self.ch2.active() as u8) << 1;
-                // TODO: CH3 and CH4
+                let ch3_active = (self.ch3.active() as u8) << 2;
+                // TODO: CH4
 
-                (self.nr52 & 0x80) | ch1_active | ch2_active
+                (self.nr52 & 0x80) | ch1_active | ch2_active | ch3_active
             }
-            0xFF30..=0xFF3F => self.ch3.wave_ram[(addr - 0xFF30) as usize],
+            0xFF30..=0xFF3F => self.ch3.wave_ram.read(addr),
             _ => unreachable!("Invalid APU register read at address: {:#X}", addr),
         }
     }

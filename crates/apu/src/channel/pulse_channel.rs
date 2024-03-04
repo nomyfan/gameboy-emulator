@@ -218,6 +218,7 @@ impl PulseChannel {
         // - DAC is off.
         // - Length timer expired.
         // - Period overflowed.
+        // FIXME: if length timer is not enabled
         !(self.dac_off() || self.length_timer.expired() || self.period_sweep.overflow())
     }
 
