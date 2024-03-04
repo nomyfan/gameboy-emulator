@@ -6,7 +6,7 @@ mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use clock::Clock;
-use gb_shared::{is_bit_set, unset_bits, Memory};
+use gb_shared::{unset_bits, Memory, CPU_FREQ};
 
 fn mix(buffer: &mut Vec<(f32, f32)>, max: usize, left_output: &[f32], right_output: &[f32]) {
     for (l, r) in left_output.iter().zip(right_output) {
@@ -64,7 +64,8 @@ pub struct Apu {
 }
 
 impl Apu {
-    pub fn new(frequency: u32, sample_rate: u32) -> Self {
+    pub fn new(sample_rate: u32) -> Self {
+        let frequency = CPU_FREQ;
         Self {
             ch1: PulseChannel::from_nrxs(
                 (0x80, 0xBF, 0xF3, 0xFF, 0xBF),
@@ -167,6 +168,7 @@ impl Memory for Apu {
             0xFF13 => self.ch1.set_nrx3(value),
             0xFF14 => self.ch1.set_nrx4(value),
 
+            0xFF15 => {}
             0xFF16 => self.ch2.set_nrx1(value),
             0xFF17 => self.ch2.set_nrx2(value),
             0xFF18 => self.ch2.set_nrx3(value),
@@ -178,6 +180,7 @@ impl Memory for Apu {
             0xFF1D => self.ch3.set_nrx3(value),
             0xFF1E => self.ch3.set_nrx4(value),
 
+            0xFF1F => {}
             0xFF20 => self.ch4.set_nrx1(value),
             0xFF21 => self.ch4.set_nrx2(value),
             0xFF22 => self.ch4.set_nrx3(value),
@@ -191,6 +194,7 @@ impl Memory for Apu {
                     self.turn_off();
                 }
             }
+            0xFF27..=0xFF2F => {}
             0xFF30..=0xFF3F => self.ch3.wave_ram.write(addr, value),
             _ => unreachable!(
                 "Invalid APU register write at address: {:#X} with value: {:#X}",
@@ -207,6 +211,7 @@ impl Memory for Apu {
             0xFF13 => self.ch1.nrx3(),
             0xFF14 => self.ch1.nrx4(),
 
+            0xFF15 => 0,
             0xFF16 => self.ch2.nrx1(),
             0xFF17 => self.ch2.nrx2(),
             0xFF18 => self.ch2.nrx3(),
@@ -218,6 +223,7 @@ impl Memory for Apu {
             0xFF1D => self.ch3.nrx3(),
             0xFF1E => self.ch3.nrx4(),
 
+            0xFF1F => 0,
             0xFF20 => self.ch4.nrx1(),
             0xFF21 => self.ch4.nrx2(),
             0xFF22 => self.ch4.nrx3(),
@@ -233,6 +239,7 @@ impl Memory for Apu {
 
                 (self.nr52 & 0x80) | ch1_active | ch2_active | ch3_active | ch4_active
             }
+            0xFF27..=0xFF2F => 0,
             0xFF30..=0xFF3F => self.ch3.wave_ram.read(addr),
             _ => unreachable!("Invalid APU register read at address: {:#X}", addr),
         }

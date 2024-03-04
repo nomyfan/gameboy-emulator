@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+gb_apu = { workspace = true }
 gb_ppu = { workspace = true }
 gb_cpu_sm83 = { workspace = true }
 gb_cartridge = { workspace = true }

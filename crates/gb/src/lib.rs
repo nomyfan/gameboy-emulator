@@ -17,6 +17,17 @@ use std::path::Path;
 
 use crate::bus::Bus;
 
+pub struct Manifest {
+    pub cart: Cartridge,
+    pub sample_rate: Option<u32>,
+}
+
+impl Manifest {
+    pub fn silent(cart: Cartridge) -> Self {
+        Self { cart, sample_rate: None }
+    }
+}
+
 pub struct GameBoy {
     cpu: Cpu<Bus>,
     bus: Bus,
@@ -24,9 +35,11 @@ pub struct GameBoy {
 }
 
 impl GameBoy {
-    pub fn from_cartridge(cart: Cartridge) -> Self {
+    pub fn new(manifest: Manifest) -> Self {
+        let Manifest { cart, sample_rate } = manifest;
+
         let cart_header_checksum = cart.header.checksum;
-        let bus = Bus::new(cart);
+        let bus = Bus::new(cart, sample_rate);
 
         let mut cpu = Cpu::new(bus.clone());
         if cart_header_checksum == 0 {
@@ -40,7 +53,7 @@ impl GameBoy {
 
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let cart = Cartridge::load(path)?;
-        Ok(Self::from_cartridge(cart))
+        Ok(Self::new(Manifest::silent(cart)))
     }
 
     pub fn play(

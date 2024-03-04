@@ -674,6 +674,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cpal",
+ "gb_apu",
  "gb_cartridge",
  "gb_cpu_sm83",
  "gb_ppu",

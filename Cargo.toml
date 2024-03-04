@@ -14,6 +14,7 @@ resolver = "2"
 gb_cpu_sm83 = { path = "crates/cpu_sm83" }
 gb_cartridge = { path = "crates/cartridge" }
 gb_ppu = { path = "crates/ppu" }
+gb_apu = { path = "crates/apu" }
 gb_shared = { path = "crates/shared" }
 gb = { path = "crates/gb" }
 log = "0.4.17"

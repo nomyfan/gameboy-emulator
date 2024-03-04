@@ -1,3 +1,4 @@
+use gb_apu::Apu;
 use gb_cartridge::Cartridge;
 use gb_ppu::Ppu;
 use gb_shared::{command::Command, Memory};
@@ -37,7 +38,7 @@ pub(crate) struct BusInner {
     joypad: Joypad,
     timer: Timer,
     ppu: Ppu,
- 
+    apu: Option<Apu>,
     ref_count: usize,
 }
 
@@ -81,7 +82,9 @@ impl Memory for BusInner {
                         self.interrupt_flag = 0xE0 | value
                     }
                     0xFF10..=0xFF3F => {
-                        // TODO: Sound
+                        if let Some(apu) = &mut self.apu {
+                            apu.write(addr, value);
+                        }
                     }
                     0xFF46 => {
                         // DMA
@@ -151,8 +154,11 @@ impl Memory for BusInner {
                         self.interrupt_flag
                     }
                     0xFF10..=0xFF3F => {
-                        // TODO: Sound
-                        0
+                        if let Some(apu) = &self.apu {
+                            apu.read(addr)
+                        } else {
+                            0
+                        }
                     }
                     0xFF46 => self.dma.read(addr),
                     0xFF40..=0xFF4B => self.ppu.read(addr),
@@ -197,7 +203,7 @@ impl DerefMut for Bus {
 }
 
 impl Bus {
-    pub(crate) fn new(cart: Cartridge) -> Self {
+    pub(crate) fn new(cart: Cartridge, sample_rate: Option<u32>) -> Self {
         Self {
             ptr: Box::into_raw(Box::new(BusInner {
                 cart,
@@ -210,6 +216,7 @@ impl Bus {
                 joypad: Joypad::new(),
                 timer: Timer::new(),
                 ppu: Ppu::new(),
+                apu: sample_rate.map(Apu::new),
                 ref_count: 1,
             })),
         }
