@@ -130,7 +130,7 @@ impl Apu {
         (left, right)
     }
 
-    pub fn next(&mut self) {
+    pub fn step(&mut self) {
         if !self.audio_on() {
             return;
         }

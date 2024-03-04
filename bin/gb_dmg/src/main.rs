@@ -133,7 +133,8 @@ fn main() -> anyhow::Result<()> {
         let frame = main_frame.clone();
 
         move || -> anyhow::Result<()> {
-            let gb = GameBoy::try_from_path(rom_path)?;
+            // FIXME: read sample rate from cpal
+            let gb = GameBoy::try_from_path(rom_path, Some(48000))?;
             gb.play(
                 {
                     Box::new(move |buffer, #[cfg(debug_assertions)] dbg_buffers| {

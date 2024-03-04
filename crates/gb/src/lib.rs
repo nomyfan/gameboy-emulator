@@ -22,12 +22,6 @@ pub struct Manifest {
     pub sample_rate: Option<u32>,
 }
 
-impl Manifest {
-    pub fn silent(cart: Cartridge) -> Self {
-        Self { cart, sample_rate: None }
-    }
-}
-
 pub struct GameBoy {
     cpu: Cpu<Bus>,
     bus: Bus,
@@ -51,9 +45,12 @@ impl GameBoy {
         Self { cpu, bus, command_receiver: None }
     }
 
-    pub fn try_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let cart = Cartridge::load(path)?;
-        Ok(Self::new(Manifest::silent(cart)))
+    pub fn try_from_path<P: AsRef<Path>>(
+        path: P,
+        sample_rate: Option<u32>,
+    ) -> anyhow::Result<Self> {
+        let cart = Cartridge::try_from_path(path)?;
+        Ok(Self::new(Manifest { cart, sample_rate }))
     }
 
     pub fn play(

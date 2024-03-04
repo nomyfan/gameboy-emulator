@@ -267,6 +267,10 @@ impl gb_shared::Component for Bus {
                 self.step_timer();
                 let irq = self.timer.take_irq();
                 self.set_irq(irq);
+
+                if let Some(apu) = self.apu.as_mut() {
+                    apu.step();
+                }
             }
 
             // It costs 160 machine cycles to transfer 160 bytes of data.
