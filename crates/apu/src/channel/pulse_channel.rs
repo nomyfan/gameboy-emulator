@@ -44,6 +44,7 @@ impl DutyCycle {
     }
 }
 
+// FIXME: CH2 has no period sweep.
 pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
     channel_clock: Clock,
