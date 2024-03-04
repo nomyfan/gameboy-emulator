@@ -45,7 +45,6 @@ impl DutyCycle {
 pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
     channel_clock: Clock,
-    // TODO: retrigger will reset
     length_timer: LengthTimer,
     /// Sweep register.
     nrx0: u8,
