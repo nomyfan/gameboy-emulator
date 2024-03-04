@@ -129,6 +129,8 @@ impl Apu {
 
 impl Memory for Apu {
     fn write(&mut self, addr: u16, value: u8) {
+        // TODO: all registers except NR52 are read-only when APU is disabled.
+        // @see https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-4--noise:~:text=makes%20them%20read-only%20until%20turned%20back%20on
         match addr {
             0xFF10 => {
                 self.ch1.set_nrx0(value);
@@ -196,9 +198,9 @@ impl Memory for Apu {
                 let ch1_active = self.ch1.active() as u8;
                 let ch2_active = (self.ch2.active() as u8) << 1;
                 let ch3_active = (self.ch3.active() as u8) << 2;
-                // TODO: CH4
+                let ch4_active = (self.ch4.active() as u8) << 3;
 
-                (self.nr52 & 0x80) | ch1_active | ch2_active | ch3_active
+                (self.nr52 & 0x80) | ch1_active | ch2_active | ch3_active | ch4_active
             }
             0xFF30..=0xFF3F => self.ch3.wave_ram.read(addr),
             _ => unreachable!("Invalid APU register read at address: {:#X}", addr),

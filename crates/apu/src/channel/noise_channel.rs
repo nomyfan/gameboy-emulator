@@ -88,7 +88,7 @@ impl NoiseChannel {
         is_bit_set!(self.nrx4, 7)
     }
 
-    fn active(&self) -> bool {
+    pub(crate) fn active(&self) -> bool {
         let length_timer_expired = self.length_timer.as_ref().map_or(false, |lt| lt.expired());
 
         !length_timer_expired
