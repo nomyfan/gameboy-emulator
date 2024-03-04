@@ -12,7 +12,7 @@ use gb_shared::{
 };
 
 #[derive(Debug, Default)]
-pub(crate) struct PPUWorkState {
+pub(crate) struct PpuWorkState {
     /// X of current scanline.
     /// Reset when moving to next scanline.
     scanline_x: u8,
@@ -34,7 +34,7 @@ pub(crate) struct PPUWorkState {
     window_used: bool,
 }
 
-pub struct PPU {
+pub struct Ppu {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
     /// Thus, the size of this area is 6KB.
@@ -71,7 +71,7 @@ pub struct PPU {
     /// OBJ palette 1, at 0xFF49.
     obp1: u8,
     /// PPU work state.
-    work_state: PPUWorkState,
+    work_state: PpuWorkState,
     /// Storing palettes.
     video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
 
@@ -79,7 +79,7 @@ pub struct PPU {
     frame_out_handle: Option<Box<FrameOutHandle>>,
 }
 
-impl PPU {
+impl Ppu {
     pub fn new() -> Self {
         Self {
             vram: BoxedArray::default(),
@@ -88,7 +88,7 @@ impl PPU {
             bgp: 0xFC,
             obp0: 0,
             obp1: 0,
-            work_state: PPUWorkState::default(),
+            work_state: PpuWorkState::default(),
             video_buffer: BoxedMatrix::default(),
             irq: Interrupt::default(),
             frame_out_handle: None,
@@ -496,7 +496,7 @@ impl PPU {
     }
 }
 
-impl Memory for PPU {
+impl Memory for Ppu {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x8000..=0x9FFF => {
@@ -576,7 +576,7 @@ mod tests {
 
     #[test]
     fn read_only_stat_bits() {
-        let mut ppu = PPU::new();
+        let mut ppu = Ppu::new();
         ppu.lcd.stat = 0b0000_0101;
 
         ppu.write(0xFF41, 0b1000_0010);
@@ -585,7 +585,7 @@ mod tests {
 
     #[test]
     fn read_only_ly() {
-        let mut ppu = PPU::new();
+        let mut ppu = Ppu::new();
         ppu.lcd.ly = 0x12;
 
         ppu.write(0xFF44, 0x34);

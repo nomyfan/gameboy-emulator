@@ -1,5 +1,5 @@
 use gb_cartridge::Cartridge;
-use gb_ppu::PPU;
+use gb_ppu::Ppu;
 use gb_shared::{command::Command, Memory};
 use log::debug;
 use std::ops::{Deref, DerefMut};
@@ -36,8 +36,8 @@ pub(crate) struct BusInner {
     serial: Serial,
     joypad: Joypad,
     timer: Timer,
-    ppu: PPU,
-
+    ppu: Ppu,
+ 
     ref_count: usize,
 }
 
@@ -209,7 +209,7 @@ impl Bus {
                 serial: Serial::new(),
                 joypad: Joypad::new(),
                 timer: Timer::new(),
-                ppu: PPU::new(),
+                ppu: Ppu::new(),
                 ref_count: 1,
             })),
         }
