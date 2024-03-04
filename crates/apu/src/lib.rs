@@ -132,10 +132,7 @@ impl Memory for Apu {
         // TODO: all registers except NR52 are read-only when APU is disabled.
         // @see https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-4--noise:~:text=makes%20them%20read-only%20until%20turned%20back%20on
         match addr {
-            0xFF10 => {
-                self.ch1.set_nrx0(value);
-                self.ch2.set_nrx0(value);
-            }
+            0xFF10 => self.ch1.set_nrx0(value),
             0xFF11 => self.ch1.set_nrx1(value),
             0xFF12 => self.ch1.set_nrx2(value),
             0xFF13 => self.ch1.set_nrx3(value),
