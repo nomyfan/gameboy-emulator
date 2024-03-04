@@ -149,6 +149,11 @@ impl VolumeEnvelope {
         Self { clock: Clock::new(VOLUME_ENVELOPE_CYCLES * pace as u32), volume: init_volume }
     }
 
+    #[inline]
+    fn volume(&self) -> u8 {
+        self.volume
+    }
+
     fn next(&mut self, nrx2: u8) {
         if self.clock.next() {
             if is_bit_set!(nrx2, 3) {
@@ -174,8 +179,13 @@ impl PulseChannel {
 
         let new_channel = |nrx2: u8| {
             let period_sweep = PeriodSweep::new(nrx0, nrx3, nrx4);
+            let volume_envelope = VolumeEnvelope::new(nrx2);
             Self {
-                blipbuf: blipbuf::new(frequency, sample_rate),
+                blipbuf: blipbuf::BlipBuf::new(
+                    frequency,
+                    sample_rate,
+                    volume_envelope.volume() as i32,
+                ),
                 channel_clock: Self::new_channel_clock(period_sweep.period_value()),
                 length_timer: LengthTimer::new(0x3F),
                 nrx0,
@@ -184,7 +194,7 @@ impl PulseChannel {
                 nrx3,
                 nrx4,
                 duty_cycle: DutyCycle::new(),
-                volume_envelope: VolumeEnvelope::new(nrx2),
+                volume_envelope,
                 period_sweep,
             }
         };
@@ -212,15 +222,14 @@ impl PulseChannel {
     }
 
     pub(crate) fn next(&mut self) {
-        // TODO: confirm should channel continue working when deactivated.
         if self.channel_clock.next() {
             if self.active() {
                 let is_high_signal = self.duty_cycle.next(self.nrx1);
-                // TODO: generate sample data
-                unimplemented!()
+                let volume = self.volume_envelope.volume() as i32;
+                let volume = if is_high_signal { volume } else { -volume };
+                self.blipbuf.add_delta(self.channel_clock.div(), volume);
             } else {
-                // TODO: if it's deactivated, generate 0
-                unimplemented!()
+                self.blipbuf.add_delta(self.channel_clock.div(), 0);
             }
         }
 
@@ -233,6 +242,10 @@ impl PulseChannel {
         self.volume_envelope.next(self.nrx2);
 
         self.length_timer.next();
+    }
+
+    pub(crate) fn read_samples(&mut self) -> Vec<i16> {
+        self.blipbuf.end()
     }
 }
 

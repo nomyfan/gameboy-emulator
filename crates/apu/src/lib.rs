@@ -107,6 +107,7 @@ impl Apu {
 
         self.ch1.next();
         self.ch2.next();
+        // TODO: mixer
         todo!()
     }
 }

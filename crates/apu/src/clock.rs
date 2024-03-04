@@ -8,6 +8,10 @@ impl Clock {
         Self { div, ticks: 0 }
     }
 
+    pub(crate) fn div(&self) -> u32 {
+        self.div
+    }
+
     pub(crate) fn next(&mut self) -> bool {
         if self.div == 0 {
             return false;
