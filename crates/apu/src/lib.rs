@@ -5,6 +5,7 @@ mod length_timer;
 mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
+use clock::Clock;
 use gb_shared::{unset_bits, Memory};
 
 fn mix(buffer: &mut Vec<(f32, f32)>, max: usize, left_output: &[f32], right_output: &[f32]) {
@@ -31,6 +32,7 @@ pub struct Apu {
     ch2: PulseChannel,
     ch3: WaveChannel,
     ch4: NoiseChannel,
+    mixer_clock: Clock,
     // TODO: measure consume speed vs. produce speed
     output_buffer: Vec<(f32, f32)>,
     /// Master volumn & VIN panning.
@@ -67,6 +69,8 @@ impl Apu {
             ch2,
             ch3: WaveChannel::new(frequency, sample_rate),
             ch4: NoiseChannel::new(frequency, sample_rate),
+            // TODO: adjust mixer frequency
+            mixer_clock: Clock::new(8192),
             output_buffer: vec![],
             nr50: 0x77,
             nr51: 0xF3,
@@ -107,8 +111,13 @@ impl Apu {
 
         self.ch1.next();
         self.ch2.next();
-        // TODO: mixer
-        todo!()
+
+        if self.mixer_clock.next() {
+            let ch1_samples = self.ch1.read_samples(self.mixer_clock.div());
+            let ch2_samples = self.ch2.read_samples(self.mixer_clock.div());
+            debug_assert_eq!(ch1_samples.len(), ch2_samples.len());
+            // TODO: mixer
+        }
     }
 }
 

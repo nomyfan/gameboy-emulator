@@ -244,8 +244,8 @@ impl PulseChannel {
         self.length_timer.next();
     }
 
-    pub(crate) fn read_samples(&mut self) -> Vec<i16> {
-        self.blipbuf.end()
+    pub(crate) fn read_samples(&mut self, duration: u32) -> Vec<i16> {
+        self.blipbuf.end(duration)
     }
 }
 

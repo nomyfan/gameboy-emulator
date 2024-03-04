@@ -19,8 +19,8 @@ impl BlipBuf {
         self.volume = volume;
     }
 
-    pub(crate) fn end(&mut self) -> Vec<i16> {
-        self.buf.end_frame(self.clock_time);
+    pub(crate) fn end(&mut self, duration: u32) -> Vec<i16> {
+        self.buf.end_frame(duration);
 
         let samples_avail = self.buf.samples_avail();
         // TODO: keep an eye on performance
