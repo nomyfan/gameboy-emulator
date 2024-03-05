@@ -130,7 +130,7 @@ fn main() -> anyhow::Result<()> {
     let main_window_id = main_window.id();
     let main_frame = Arc::new(Mutex::new(frame::Frame::default()));
 
-    let audio_samples = Arc::new(Mutex::new(Vec::new()));
+    let audio_samples: Arc<Mutex<Vec<(f32, f32)>>> = Arc::new(Mutex::new(Vec::new()));
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
     log::debug!("Open the audio player: {}", device.name().unwrap());

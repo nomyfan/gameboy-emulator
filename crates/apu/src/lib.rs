@@ -6,16 +6,7 @@ mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use clock::Clock;
-use gb_shared::{unset_bits, AudioOutHandle, Memory, CPU_FREQ};
-
-type SoundPanning = (bool, bool);
-
-enum Channel {
-    CH1,
-    CH2,
-    CH3,
-    CH4,
-}
+use gb_shared::{is_bit_set, unset_bits, AudioOutHandle, Memory, CPU_FREQ};
 
 pub struct Apu {
     ch1: PulseChannel,
@@ -50,17 +41,20 @@ pub struct Apu {
     frequency: u32,
     sample_rate: u32,
     audio_out_handle: Option<Box<AudioOutHandle>>,
+    samples_buffer: Vec<i16>,
+    mixed_samples_buffer: Vec<(f32, f32)>,
 }
 
 impl Apu {
+    const MIXER_FREQ: u32 = 64;
+
     fn new_mixer_clock() -> Clock {
-        // TODO: adjust mixer frequency, 4194304 will cause samples to be too large
-        // Clock::new(4_194_304)
-        Clock::new(8192)
+        Clock::new(gb_shared::CPU_FREQ / Self::MIXER_FREQ)
     }
 
     pub fn new(sample_rate: u32) -> Self {
         let frequency = CPU_FREQ;
+        let buffer_size = sample_rate.div_ceil(Self::MIXER_FREQ) as usize;
         Self {
             ch1: PulseChannel::from_nrxs(
                 (0x80, 0xBF, 0xF3, 0xFF, 0xBF),
@@ -83,6 +77,8 @@ impl Apu {
             frequency,
             sample_rate,
             audio_out_handle: None,
+            samples_buffer: vec![0; buffer_size],
+            mixed_samples_buffer: vec![(0.0, 0.0); buffer_size],
         }
     }
 
@@ -116,17 +112,6 @@ impl Apu {
         self.nr50 & 0b111
     }
 
-    fn sound_panning(&self, channel: &Channel) -> SoundPanning {
-        let (left, right) = match channel {
-            Channel::CH1 => (self.nr51 & 0x10 != 0, self.nr51 & 0x01 != 0),
-            Channel::CH2 => (self.nr51 & 0x20 != 0, self.nr51 & 0x02 != 0),
-            Channel::CH3 => (self.nr51 & 0x40 != 0, self.nr51 & 0x04 != 0),
-            Channel::CH4 => (self.nr51 & 0x80 != 0, self.nr51 & 0x08 != 0),
-        };
-
-        (left, right)
-    }
-
     pub fn step(&mut self) {
         if !self.audio_on() {
             return;
@@ -138,26 +123,19 @@ impl Apu {
         self.ch4.next();
 
         if self.mixer_clock.next() {
-            let ch1_samples = self.ch1.read_samples(self.mixer_clock.div());
-            let ch2_samples = self.ch2.read_samples(self.mixer_clock.div());
-            let ch3_samples = self.ch3.read_samples(self.mixer_clock.div());
-            let ch4_samples = self.ch4.read_samples(self.mixer_clock.div());
-
-            debug_assert_eq!(ch1_samples.len(), ch2_samples.len());
-            debug_assert_eq!(ch2_samples.len(), ch3_samples.len());
-            debug_assert_eq!(ch3_samples.len(), ch4_samples.len());
-
-            let sample_count = ch1_samples.len();
-
             let left_volume_coefficient =
                 ((self.master_left_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
             let right_volume_coefficient =
                 ((self.master_right_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
 
-            let mut mixed_samples = vec![(0.0, 0.0); sample_count];
+            self.mixed_samples_buffer.iter_mut().for_each(|(l, r)| {
+                *l = 0.0;
+                *r = 0.0;
+            });
+            self.samples_buffer.fill(0);
 
-            let mut mix = |(left, right): (bool, bool), samples: Vec<i16>| {
-                for (v, mixed) in samples.iter().zip(&mut mixed_samples) {
+            let mut mix = |left: bool, right: bool, samples: &[i16]| {
+                for (v, mixed) in samples.iter().zip(&mut self.mixed_samples_buffer) {
                     if left {
                         mixed.0 += f32::from(*v) * left_volume_coefficient;
                     }
@@ -167,19 +145,20 @@ impl Apu {
                 }
             };
 
-            mix(self.sound_panning(&Channel::CH1), ch1_samples);
-            mix(self.sound_panning(&Channel::CH2), ch2_samples);
-            mix(self.sound_panning(&Channel::CH3), ch3_samples);
-            mix(self.sound_panning(&Channel::CH4), ch4_samples);
+            self.ch1.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            mix(is_bit_set!(self.nr51, 4), is_bit_set!(self.nr51, 0), &mut self.samples_buffer);
 
-            log::debug!("sample count {}", sample_count);
-            for (l, r) in mixed_samples.iter() {
-                if l > &1.0 || r > &1.0 || l < &-1.0 || r < &-1.0 {
-                    panic!("(l,r) = ({},{})", l, r);
-                }
-            }
+            self.ch2.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            mix(is_bit_set!(self.nr51, 5), is_bit_set!(self.nr51, 1), &mut self.samples_buffer);
+
+            self.ch3.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            mix(is_bit_set!(self.nr51, 6), is_bit_set!(self.nr51, 2), &mut self.samples_buffer);
+
+            self.ch4.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            mix(is_bit_set!(self.nr51, 7), is_bit_set!(self.nr51, 3), &mut self.samples_buffer);
+
             if let Some(handle) = self.audio_out_handle.as_mut() {
-                handle(&mixed_samples);
+                handle(&self.mixed_samples_buffer);
             }
         }
     }

@@ -114,8 +114,8 @@ impl NoiseChannel {
         }
     }
 
-    pub(crate) fn read_samples(&mut self, duration: u32) -> Vec<i16> {
-        self.blipbuf.end(duration)
+    pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
+        self.blipbuf.end(buffer, duration)
     }
 }
 
