@@ -64,6 +64,11 @@ pub struct Apu {
 }
 
 impl Apu {
+    fn new_mixer_clock() -> Clock {
+        // TODO: adjust mixer frequency
+        Clock::new(4_194_304)
+    }
+
     pub fn new(sample_rate: u32) -> Self {
         let frequency = CPU_FREQ;
         Self {
@@ -81,8 +86,7 @@ impl Apu {
             ),
             ch3: WaveChannel::from_nrxs((0x7F, 0xFF, 0x9F, 0xFF, 0xBF), frequency, sample_rate),
             ch4: NoiseChannel::from_nrxs((0xFF, 0x00, 0x00, 0xBF), frequency, sample_rate),
-            // TODO: adjust mixer frequency
-            mixer_clock: Clock::new(8192),
+            mixer_clock: Self::new_mixer_clock(),
             output_buffer: vec![],
             nr50: 0x77,
             nr51: 0xF3,
@@ -97,7 +101,7 @@ impl Apu {
         self.ch2 = PulseChannel::new(self.frequency, self.sample_rate, false);
         self.ch3 = WaveChannel::new(self.frequency, self.sample_rate);
         self.ch4 = NoiseChannel::new(self.frequency, self.sample_rate);
-        self.mixer_clock = Clock::new(8192);
+        self.mixer_clock = Self::new_mixer_clock();
         self.output_buffer.clear();
         self.nr50 = 0;
         self.nr51 = 0;
