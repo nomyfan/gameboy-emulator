@@ -10,7 +10,7 @@ struct Lfsr {
 }
 
 impl Lfsr {
-    fn new_lfsr_clock(nrx3: u8) -> Clock {
+    fn new(nrx3: u8) -> Self {
         let shift = (nrx3 >> 4) & 0xF;
         let divider = (nrx3 & 0b111) as u32;
 
@@ -21,12 +21,11 @@ impl Lfsr {
         } else {
             divider * (1 << (shift + 4))
         };
-        Clock::new(div)
+        Self { value: 0, clock: Clock::new(div) }
     }
-    fn new(nrx3: u8) -> Self {
-        Self { value: 0, clock: Self::new_lfsr_clock(nrx3) }
-    }
+}
 
+impl Lfsr {
     fn next(&mut self, nrx3: u8) -> Option<bool> {
         if self.clock.next() {
             // Algorithm, see https://gbdev.io/pandocs/Audio_details.html#noise-channel-ch4:~:text=to%20shift%20in.-,when%20ch4%20is%20ticked,-(at%20the%20frequency

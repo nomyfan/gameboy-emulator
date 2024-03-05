@@ -4,13 +4,30 @@ use crate::{blipbuf, clock::Clock, length_timer::LengthTimer, utils::freq_to_clo
 
 use super::VolumeEnvelope;
 
-/// How many CPU clock cycles to produce a sample.
-#[inline]
-pub(crate) fn pulse_channel_sample_period(period_value: u16) -> u32 {
-    debug_assert!(period_value <= 2047);
+struct PulseChannelClock(Clock);
 
-    // CPU_FREQ / (1048576 / (2048 - period_value as u32))
-    4 * (2048 - period_value as u32)
+impl PulseChannelClock {
+    #[inline]
+    fn from_period(period: u16) -> Self {
+        debug_assert!(period <= 2047);
+        // CPU_FREQ / (1048576 / (2048 - period_value as u32))
+        Self(Clock::new(4 * (2048 - period as u32)))
+    }
+
+    #[inline]
+    fn from_nrxs(nrx3: u8, nrx4: u8) -> Self {
+        Self::from_period(((nrx4 as u16 & 0b111) << 8) | (nrx3 as u16))
+    }
+
+    #[inline(always)]
+    fn next(&mut self) -> bool {
+        self.0.next()
+    }
+
+    #[inline]
+    fn div(&self) -> u32 {
+        self.0.div()
+    }
 }
 
 struct DutyCycle {
@@ -44,10 +61,9 @@ impl DutyCycle {
     }
 }
 
-// FIXME: CH2 has no period sweep.
 pub(crate) struct PulseChannel {
     blipbuf: blipbuf::BlipBuf,
-    channel_clock: Clock,
+    channel_clock: PulseChannelClock,
     length_timer: Option<LengthTimer>,
     /// Sweep register.
     nrx0: u8,
@@ -73,24 +89,25 @@ fn period_value(nrx3: u8, nrx4: u8) -> u16 {
     ((nrx4 as u16 & 0b111) << 8) | (nrx3 as u16)
 }
 
-const PERIOD_SWEEP_CYCLES: u32 = freq_to_clock_cycles(128);
-
 struct PeriodSweep {
     clock: Clock,
     period_value: u16,
 }
 
 impl PeriodSweep {
-    fn new_period_sweep_clock(nrx0: u8) -> Clock {
+    fn new_sweep_clock(nrx0: u8) -> Clock {
+        const PERIOD_SWEEP_CYCLES: u32 = freq_to_clock_cycles(128);
         let pace = (nrx0 >> 4) & 0b111;
         Clock::new(PERIOD_SWEEP_CYCLES * pace as u32)
     }
 
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self {
         let period_value = period_value(nrx3, nrx4);
-        Self { clock: Self::new_period_sweep_clock(nrx0), period_value }
+        Self { clock: Self::new_sweep_clock(nrx0), period_value }
     }
+}
 
+impl PeriodSweep {
     #[inline]
     fn overflow(&self) -> bool {
         self.period_value > 0x7FF
@@ -127,7 +144,7 @@ impl PeriodSweep {
                 return Some((lo, hi));
             }
 
-            self.clock = Self::new_period_sweep_clock(nrx0);
+            self.clock = Self::new_sweep_clock(nrx0);
         }
 
         None
@@ -135,11 +152,6 @@ impl PeriodSweep {
 }
 
 impl PulseChannel {
-    #[inline]
-    fn new_channel_clock(period_value: u16) -> Clock {
-        Clock::new(pulse_channel_sample_period(period_value))
-    }
-
     pub(crate) fn from_nrxs(
         (nrx0, nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8, u8),
         frequency: u32,
@@ -150,7 +162,7 @@ impl PulseChannel {
         let volume_envelope = VolumeEnvelope::new(nrx2);
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, volume_envelope.volume() as i32),
-            channel_clock: Self::new_channel_clock(period_sweep.period_value()),
+            channel_clock: PulseChannelClock::from_period(period_sweep.period_value()),
             length_timer: None,
             nrx0,
             nrx1,
@@ -205,7 +217,7 @@ impl PulseChannel {
             if let Some((lo, hi)) = period_sweep.next(self.nrx0) {
                 self.nrx3 = lo;
                 self.nrx4 = (self.nrx4 & (!0b111)) | hi;
-                self.channel_clock = Self::new_channel_clock(period_sweep.period_value());
+                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
             }
         }
 
@@ -264,10 +276,10 @@ impl PulseChannel {
         match self.period_sweep.as_mut() {
             Some(period_sweep) => {
                 period_sweep.set_period_value(self.nrx3, self.nrx4);
-                self.channel_clock = Self::new_channel_clock(period_sweep.period_value());
+                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
             }
             None => {
-                self.channel_clock = Self::new_channel_clock(period_value(self.nrx3, self.nrx4));
+                self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
             }
         };
     }
@@ -285,10 +297,10 @@ impl PulseChannel {
         match self.period_sweep.as_mut() {
             Some(period_sweep) => {
                 period_sweep.set_period_value(self.nrx3, self.nrx4);
-                self.channel_clock = Self::new_channel_clock(period_sweep.period_value());
+                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
             }
             None => {
-                self.channel_clock = Self::new_channel_clock(period_value(self.nrx3, self.nrx4));
+                self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
             }
         };
 
@@ -303,10 +315,10 @@ impl PulseChannel {
 
             if self.period_sweep.is_some() {
                 let period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);
-                self.channel_clock = Self::new_channel_clock(period_sweep.period_value());
+                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
                 self.period_sweep = Some(period_sweep);
             } else {
-                self.channel_clock = Self::new_channel_clock(period_value(self.nrx3, self.nrx4));
+                self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
             }
         }
     }

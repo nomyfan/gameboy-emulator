@@ -72,12 +72,20 @@ pub struct WaveChannel {
 }
 
 impl WaveChannel {
+    fn new_channel_clock(nrx3: u8, nrx4: u8) -> Clock {
+        let period_value = (((nrx4 & 0b111) as u16) << 8) | (nrx3 as u16);
+
+        // CPU_FREQ / (2097152 / (2048 - period_value as u32))
+        Clock::new(2 * (2048 - period_value as u32))
+    }
+}
+
+impl WaveChannel {
     pub(crate) fn from_nrxs(
         (nrx0, nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8, u8),
         frequency: u32,
         sample_rate: u32,
     ) -> Self {
-        let channel_clock = Self::new_channel_clock(nrx3, nrx4);
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
             nrx0,
@@ -87,20 +95,12 @@ impl WaveChannel {
             nrx4,
             wave_ram: WaveRam::new(),
             length_timer: None,
-            channel_clock,
+            channel_clock: Self::new_channel_clock(nrx3, nrx4),
         }
     }
 
     pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
         Self::from_nrxs((0, 0, 0, 0, 0), frequency, sample_rate)
-    }
-
-    fn new_channel_clock(nrx3: u8, nrx4: u8) -> Clock {
-        let period_value = (((nrx4 & 0b111) as u16) << 8) | (nrx3 as u16);
-
-        // CPU_FREQ / (2097152 / (2048 - period_value as u32))
-        let div = 2 * (2048 - period_value as u32);
-        Clock::new(div)
     }
 
     pub(crate) fn active(&self) -> bool {
@@ -210,7 +210,6 @@ impl WaveChannel {
                 if is_bit_set!(self.nrx4, 6) { Some(LengthTimer::new(self.nrx1)) } else { None };
 
             self.wave_ram.reset();
-            self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
         }
     }
 }
