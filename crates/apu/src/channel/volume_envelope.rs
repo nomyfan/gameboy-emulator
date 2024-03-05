@@ -25,9 +25,9 @@ impl VolumeEnvelope {
     pub(super) fn next(&mut self, nrx2: u8) {
         if self.clock.next() {
             if is_bit_set!(nrx2, 3) {
-                self.volume = self.volume.wrapping_sub(1);
+                self.volume = self.volume.saturating_sub(1);
             } else {
-                self.volume = self.volume.wrapping_add(1);
+                self.volume = self.volume.saturating_add(1) % 8;
             }
         }
     }

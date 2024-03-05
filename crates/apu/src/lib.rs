@@ -8,16 +8,6 @@ use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use clock::Clock;
 use gb_shared::{unset_bits, Memory, CPU_FREQ};
 
-fn mix(buffer: &mut Vec<(f32, f32)>, max: usize, left_output: &[f32], right_output: &[f32]) {
-    for (l, r) in left_output.iter().zip(right_output) {
-        if buffer.len() >= max {
-            break;
-        }
-
-        buffer.push((*l, *r));
-    }
-}
-
 type SoundPanning = (bool, bool);
 
 enum Channel {
@@ -65,8 +55,9 @@ pub struct Apu {
 
 impl Apu {
     fn new_mixer_clock() -> Clock {
-        // TODO: adjust mixer frequency
-        Clock::new(4_194_304)
+        // TODO: adjust mixer frequency, 4194304 will cause samples to be too large
+        // Clock::new(4_194_304)
+        Clock::new(8192)
     }
 
     pub fn new(sample_rate: u32) -> Self {
@@ -149,10 +140,42 @@ impl Apu {
             let ch2_samples = self.ch2.read_samples(self.mixer_clock.div());
             let ch3_samples = self.ch3.read_samples(self.mixer_clock.div());
             let ch4_samples = self.ch4.read_samples(self.mixer_clock.div());
+
             debug_assert_eq!(ch1_samples.len(), ch2_samples.len());
             debug_assert_eq!(ch2_samples.len(), ch3_samples.len());
             debug_assert_eq!(ch3_samples.len(), ch4_samples.len());
-            // TODO: mixer
+
+            let sample_count = ch1_samples.len();
+
+            let left_volume_coefficient =
+                ((self.master_left_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
+            let right_volume_coefficient =
+                ((self.master_right_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
+
+            let mut mixed_samples = vec![(0.0, 0.0); sample_count];
+
+            let mut mix = |(left, right): (bool, bool), samples: Vec<i16>| {
+                for (v, mixed) in samples.iter().zip(&mut mixed_samples) {
+                    if left {
+                        mixed.0 += f32::from(*v) * left_volume_coefficient;
+                    }
+                    if right {
+                        mixed.1 += f32::from(*v) * right_volume_coefficient;
+                    }
+                }
+            };
+
+            mix(self.sound_panning(&Channel::CH1), ch1_samples);
+            mix(self.sound_panning(&Channel::CH2), ch2_samples);
+            mix(self.sound_panning(&Channel::CH3), ch3_samples);
+            mix(self.sound_panning(&Channel::CH4), ch4_samples);
+
+            log::debug!("sample count {}", sample_count);
+            for (l, r) in mixed_samples.iter() {
+                if l > &1.0 || r > &1.0 || l < &-1.0 || r < &-1.0 {
+                    panic!("(l,r) = ({},{})", l, r);
+                }
+            }
         }
     }
 }
