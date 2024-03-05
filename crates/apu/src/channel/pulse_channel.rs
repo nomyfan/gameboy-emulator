@@ -152,12 +152,13 @@ impl PeriodSweep {
 }
 
 impl PulseChannel {
-    pub(crate) fn from_nrxs(
-        (nrx0, nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8, u8),
-        frequency: u32,
-        sample_rate: u32,
-        with_period_sweep: bool,
-    ) -> Self {
+    pub(crate) fn new(frequency: u32, sample_rate: u32, with_period_sweep: bool) -> Self {
+        let nrx0 = 0;
+        let nrx1 = 0;
+        let nrx2 = 0;
+        let nrx3 = 0;
+        let nrx4 = 0;
+
         let period_sweep = PeriodSweep::new(nrx0, nrx3, nrx4);
         let volume_envelope = VolumeEnvelope::new(nrx2);
         Self {
@@ -173,10 +174,6 @@ impl PulseChannel {
             volume_envelope,
             period_sweep: if with_period_sweep { Some(period_sweep) } else { None },
         }
-    }
-
-    pub(crate) fn new(frequency: u32, sample_rate: u32, with_period_sweep: bool) -> Self {
-        Self::from_nrxs((0, 0, 0, 0, 0), frequency, sample_rate, with_period_sweep)
     }
 
     #[inline]

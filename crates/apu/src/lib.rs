@@ -56,20 +56,10 @@ impl Apu {
         let frequency = CPU_FREQ;
         let buffer_size = sample_rate.div_ceil(Self::MIXER_FREQ) as usize;
         Self {
-            ch1: PulseChannel::from_nrxs(
-                (0x80, 0xBF, 0xF3, 0xFF, 0xBF),
-                frequency,
-                sample_rate,
-                true,
-            ),
-            ch2: PulseChannel::from_nrxs(
-                (0x00, 0x3F, 0x00, 0xFF, 0xBF),
-                frequency,
-                sample_rate,
-                false,
-            ),
-            ch3: WaveChannel::from_nrxs((0x7F, 0xFF, 0x9F, 0xFF, 0xBF), frequency, sample_rate),
-            ch4: NoiseChannel::from_nrxs((0xFF, 0x00, 0x00, 0xBF), frequency, sample_rate),
+            ch1: PulseChannel::new(frequency, sample_rate, true),
+            ch2: PulseChannel::new(frequency, sample_rate, false),
+            ch3: WaveChannel::new(frequency, sample_rate),
+            ch4: NoiseChannel::new(frequency, sample_rate),
             mixer_clock: Self::new_mixer_clock(),
             nr50: 0x77,
             nr51: 0xF3,

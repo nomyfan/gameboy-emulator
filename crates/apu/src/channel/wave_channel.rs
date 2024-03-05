@@ -81,11 +81,13 @@ impl WaveChannel {
 }
 
 impl WaveChannel {
-    pub(crate) fn from_nrxs(
-        (nrx0, nrx1, nrx2, nrx3, nrx4): (u8, u8, u8, u8, u8),
-        frequency: u32,
-        sample_rate: u32,
-    ) -> Self {
+    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
+        let nrx0 = 0;
+        let nrx1 = 0;
+        let nrx2 = 0;
+        let nrx3 = 0;
+        let nrx4 = 0;
+
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
             nrx0,
@@ -97,10 +99,6 @@ impl WaveChannel {
             length_timer: None,
             channel_clock: Self::new_channel_clock(nrx3, nrx4),
         }
-    }
-
-    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
-        Self::from_nrxs((0, 0, 0, 0, 0), frequency, sample_rate)
     }
 
     pub(crate) fn active(&self) -> bool {
