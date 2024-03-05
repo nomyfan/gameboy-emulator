@@ -9,6 +9,7 @@ mod wram;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
 use gb_cpu_sm83::CPU_PERIOD_NANOS;
+use gb_shared::AudioOutHandle;
 use gb_shared::{
     command::{Command, CommandReceiver},
     FrameOutHandle,
@@ -56,9 +57,11 @@ impl GameBoy {
     pub fn play(
         mut self,
         frame_out_handle: Box<FrameOutHandle>,
+        audio_out_handle: Box<AudioOutHandle>,
         command_receiver: CommandReceiver,
     ) -> anyhow::Result<()> {
         self.bus.set_frame_out_handle(Some(frame_out_handle));
+        self.bus.set_audio_out_handle(Some(audio_out_handle));
         self.command_receiver = Some(command_receiver);
 
         loop {

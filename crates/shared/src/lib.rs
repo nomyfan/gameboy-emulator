@@ -90,4 +90,6 @@ pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>, Vec<(u32, Vec<[[
 #[cfg(not(debug_assertions))]
 pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>);
 
+pub type AudioOutHandle = dyn FnMut(&[(f32, f32)]);
+
 pub const CPU_FREQ: u32 = 4_194_304;

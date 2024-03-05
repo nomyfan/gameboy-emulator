@@ -8,6 +8,8 @@ mod oam_frame;
 mod tile_map_frame;
 
 use crate::config::{HEIGHT, SCALE, WIDTH};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::Sample;
 use gb::GameBoy;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use pixels::{Pixels, SurfaceTexture};
@@ -128,13 +130,63 @@ fn main() -> anyhow::Result<()> {
     let main_window_id = main_window.id();
     let main_frame = Arc::new(Mutex::new(frame::Frame::default()));
 
+    let audio_samples = Arc::new(Mutex::new(Vec::new()));
+    let host = cpal::default_host();
+    let device = host.default_output_device().unwrap();
+    log::debug!("Open the audio player: {}", device.name().unwrap());
+    let config = device.default_output_config().unwrap();
+    let sample_format = config.sample_format();
+    log::debug!("Sample format: {}", sample_format);
+    let config: cpal::StreamConfig = config.into();
+    log::debug!("Stream config: {:?}", config);
+    let sample_rate = config.sample_rate.0 as u32;
+
+    let stream = {
+        let audio_samples = audio_samples.clone();
+        let stream = match sample_format {
+            cpal::SampleFormat::F32 => device
+                .build_output_stream(
+                    &config,
+                    move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                        let mut audio_samples = audio_samples.lock().unwrap();
+                        let len = std::cmp::min(data.len() / 2, audio_samples.len());
+                        for (i, (data_l, data_r)) in audio_samples.drain(..len).enumerate() {
+                            data[i * 2] = data_l;
+                            data[i * 2 + 1] = data_r;
+                        }
+                    },
+                    move |err| log::error!("{}", err),
+                    None,
+                )
+                .unwrap(),
+            cpal::SampleFormat::F64 => device
+                .build_output_stream(
+                    &config,
+                    move |data: &mut [f64], _: &cpal::OutputCallbackInfo| {
+                        let mut audio_samples = audio_samples.lock().unwrap();
+                        let len = std::cmp::min(data.len() / 2, audio_samples.len());
+                        for (i, (data_l, data_r)) in audio_samples.drain(..len).enumerate() {
+                            data[i * 2] = data_l.to_sample::<f64>();
+                            data[i * 2 + 1] = data_r.to_sample::<f64>();
+                        }
+                    },
+                    move |err| log::error!("{}", err),
+                    None,
+                )
+                .unwrap(),
+            _ => panic!("unreachable"),
+        };
+
+        stream
+    };
+    stream.play().unwrap();
+
     let gameboy_handle = thread::spawn({
         let window = main_window.clone();
         let frame = main_frame.clone();
 
         move || -> anyhow::Result<()> {
-            // FIXME: read sample rate from cpal
-            let gb = GameBoy::try_from_path(rom_path, Some(48000))?;
+            let gb = GameBoy::try_from_path(rom_path, Some(sample_rate))?;
             gb.play(
                 {
                     Box::new(move |buffer, #[cfg(debug_assertions)] dbg_buffers| {
@@ -163,6 +215,10 @@ fn main() -> anyhow::Result<()> {
                         }
                     })
                 },
+                Box::new(move |sample_data| {
+                    // TODO: measure consume speed vs. produce speed
+                    audio_samples.lock().unwrap().extend_from_slice(sample_data);
+                }),
                 command_receiver,
             )?;
             Ok(())

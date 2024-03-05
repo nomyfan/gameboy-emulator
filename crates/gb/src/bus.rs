@@ -244,6 +244,15 @@ impl Bus {
         self.ppu.set_frame_out_handle(frame_out_handle);
     }
 
+    pub(crate) fn set_audio_out_handle(
+        &mut self,
+        audio_out_handle: Option<Box<gb_shared::AudioOutHandle>>,
+    ) {
+        if let Some(apu) = self.apu.as_mut() {
+            apu.set_audio_out_handle(audio_out_handle);
+        }
+    }
+
     pub(crate) fn handle_command(&mut self, command: Command) {
         if let Command::Joypad(joypad_command) = command {
             self.joypad.handle_command(joypad_command);

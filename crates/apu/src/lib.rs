@@ -6,7 +6,7 @@ mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use clock::Clock;
-use gb_shared::{unset_bits, Memory, CPU_FREQ};
+use gb_shared::{unset_bits, AudioOutHandle, Memory, CPU_FREQ};
 
 type SoundPanning = (bool, bool);
 
@@ -23,8 +23,6 @@ pub struct Apu {
     ch3: WaveChannel,
     ch4: NoiseChannel,
     mixer_clock: Clock,
-    // TODO: measure consume speed vs. produce speed
-    output_buffer: Vec<(f32, f32)>,
     /// Master volumn & VIN panning.
     /// Bit 7: VIN left.
     /// Bit 6..=4: Volume left.
@@ -51,6 +49,7 @@ pub struct Apu {
     nr52: u8,
     frequency: u32,
     sample_rate: u32,
+    audio_out_handle: Option<Box<AudioOutHandle>>,
 }
 
 impl Apu {
@@ -78,13 +77,17 @@ impl Apu {
             ch3: WaveChannel::from_nrxs((0x7F, 0xFF, 0x9F, 0xFF, 0xBF), frequency, sample_rate),
             ch4: NoiseChannel::from_nrxs((0xFF, 0x00, 0x00, 0xBF), frequency, sample_rate),
             mixer_clock: Self::new_mixer_clock(),
-            output_buffer: vec![],
             nr50: 0x77,
             nr51: 0xF3,
             nr52: 0xF1,
             frequency,
             sample_rate,
+            audio_out_handle: None,
         }
+    }
+
+    pub fn set_audio_out_handle(&mut self, audio_out_handle: Option<Box<AudioOutHandle>>) {
+        self.audio_out_handle = audio_out_handle;
     }
 
     fn turn_off(&mut self) {
@@ -93,7 +96,6 @@ impl Apu {
         self.ch3 = WaveChannel::new(self.frequency, self.sample_rate);
         self.ch4 = NoiseChannel::new(self.frequency, self.sample_rate);
         self.mixer_clock = Self::new_mixer_clock();
-        self.output_buffer.clear();
         self.nr50 = 0;
         self.nr51 = 0;
         self.nr52 = 0;
@@ -175,6 +177,9 @@ impl Apu {
                 if l > &1.0 || r > &1.0 || l < &-1.0 || r < &-1.0 {
                     panic!("(l,r) = ({},{})", l, r);
                 }
+            }
+            if let Some(handle) = self.audio_out_handle.as_mut() {
+                handle(&mixed_samples);
             }
         }
     }
