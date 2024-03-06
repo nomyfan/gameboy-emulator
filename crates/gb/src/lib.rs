@@ -8,13 +8,14 @@ mod wram;
 
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
-use gb_cpu_sm83::CPU_PERIOD_NANOS;
-use gb_shared::AudioOutHandle;
 use gb_shared::{
     command::{Command, CommandReceiver},
-    FrameOutHandle,
+    AudioOutHandle, FrameOutHandle, CPU_FREQ,
 };
-use std::path::Path;
+use std::{
+    path::Path,
+    time::{Duration, Instant},
+};
 
 use crate::bus::Bus;
 
@@ -27,9 +28,13 @@ pub struct GameBoy {
     cpu: Cpu<Bus>,
     bus: Bus,
     command_receiver: Option<CommandReceiver>,
+    cycles: u32,
+    ts: Instant,
 }
 
 impl GameBoy {
+    const DURATION_ONE_SECOND: Duration = Duration::from_secs(1);
+
     pub fn new(manifest: Manifest) -> Self {
         let Manifest { cart, sample_rate } = manifest;
 
@@ -43,7 +48,7 @@ impl GameBoy {
             cpu.reg_f = 0x80;
         }
 
-        Self { cpu, bus, command_receiver: None }
+        Self { cpu, bus, command_receiver: None, cycles: 0, ts: Instant::now() }
     }
 
     pub fn try_from_path<P: AsRef<Path>>(
@@ -64,13 +69,20 @@ impl GameBoy {
         self.bus.set_audio_out_handle(Some(audio_out_handle));
         self.command_receiver = Some(command_receiver);
 
+        self.ts = Instant::now();
+
         loop {
-            let now = std::time::Instant::now();
             self.cpu.step();
 
-            let spin_period = (CPU_PERIOD_NANOS * self.cpu.finish_cycles() as f64).round() as u128;
-            while now.elapsed().as_nanos() < spin_period {
-                std::hint::spin_loop();
+            let cycles = self.cycles + self.cpu.finish_cycles() as u32;
+            self.cycles = cycles % CPU_FREQ;
+
+            if cycles >= CPU_FREQ {
+                let duration = self.ts.elapsed();
+                if duration < Self::DURATION_ONE_SECOND {
+                    std::thread::sleep(Self::DURATION_ONE_SECOND - duration);
+                }
+                self.ts = Instant::now();
             }
 
             // Safety: we set the command_receiver at the start of `play` function.

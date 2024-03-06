@@ -7,8 +7,6 @@ use cpu16::{Cpu16, Register16, Register8};
 use gb_shared::{is_bit_set, set_bits, unset_bits};
 use interrupt::INTERRUPTS;
 
-pub const CPU_PERIOD_NANOS: f64 = 238.418579;
-
 impl<BUS> Cpu16 for Cpu<BUS>
 where
     BUS: gb_shared::Memory + gb_shared::Component,
