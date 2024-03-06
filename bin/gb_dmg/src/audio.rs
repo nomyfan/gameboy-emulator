@@ -2,10 +2,24 @@ use std::sync::{Arc, Mutex};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    Sample, Stream,
+    FromSample, Sample, SizedSample, Stream,
 };
 
 pub(crate) type AudioSamplesBuffer = Vec<(f32, f32)>;
+
+fn write_data<T>(output: &mut [T], samples: &mut AudioSamplesBuffer)
+where
+    T: SizedSample + FromSample<f32>,
+{
+    let len = std::cmp::min(output.len() / 2, samples.len());
+
+    samples.drain(..len).zip(output.chunks_mut(2)).for_each(
+        |((left_channel, right_channel), stero)| {
+            stero[0] = left_channel.to_sample();
+            stero[1] = right_channel.to_sample();
+        },
+    );
+}
 
 pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
     let samples_buf: Arc<Mutex<AudioSamplesBuffer>> = Arc::new(Mutex::new(Vec::new()));
@@ -26,13 +40,7 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
                 .build_output_stream(
                     &config,
                     move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                        let mut samples_buf = samples_buf.lock().unwrap();
-                        let len = std::cmp::min(data.len() / 2, samples_buf.len());
-                        for (i, (sample_left, sample_right)) in samples_buf.drain(..len).enumerate()
-                        {
-                            data[i * 2] = sample_left;
-                            data[i * 2 + 1] = sample_right;
-                        }
+                        write_data(data, &mut samples_buf.lock().unwrap());
                     },
                     move |err| log::error!("{}", err),
                     None,
@@ -42,13 +50,7 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
                 .build_output_stream(
                     &config,
                     move |data: &mut [f64], _: &cpal::OutputCallbackInfo| {
-                        let mut samples_buf = samples_buf.lock().unwrap();
-                        let len = std::cmp::min(data.len() / 2, samples_buf.len());
-                        for (i, (sample_left, sample_right)) in samples_buf.drain(..len).enumerate()
-                        {
-                            data[i * 2] = sample_left.to_sample::<f64>();
-                            data[i * 2 + 1] = sample_right.to_sample::<f64>();
-                        }
+                        write_data(data, &mut samples_buf.lock().unwrap());
                     },
                     move |err| log::error!("{}", err),
                     None,
