@@ -15,9 +15,25 @@ impl LengthTimer {
         Self { clock: Clock::new(LENGTH_TIMER_CYCLES), ticks: init_value }
     }
 
+    pub(crate) fn new_expired() -> Self {
+        Self::new(64)
+    }
+}
+
+impl LengthTimer {
     #[inline]
     pub(crate) fn expired(&self) -> bool {
         self.ticks == 64
+    }
+
+    pub(crate) fn reset(&mut self) {
+        if self.expired() {
+            self.ticks = 0;
+        }
+    }
+
+    pub(crate) fn set(&mut self, ticks: u8) {
+        self.ticks = ticks;
     }
 
     pub(crate) fn step(&mut self) {

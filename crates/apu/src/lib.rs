@@ -203,7 +203,7 @@ impl Memory for Apu {
                 let ch1_active = self.ch1.active() as u8;
                 let ch2_active = (self.ch2.active() as u8) << 1;
                 let ch3_active = (self.ch3.active() as u8) << 2;
-                let ch4_active = (self.ch4.active() as u8) << 3;
+                let ch4_active = (self.ch4.on() as u8) << 3;
 
                 (self.nr52 & 0x80) | ch1_active | ch2_active | ch3_active | ch4_active
             }

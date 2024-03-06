@@ -10,7 +10,7 @@ struct Lfsr {
 }
 
 impl Lfsr {
-    fn new(nrx3: u8) -> Self {
+    fn new_lfsr_clock(nrx3: u8) -> Clock {
         let shift = (nrx3 >> 4) & 0xF;
         let divider = (nrx3 & 0b111) as u32;
 
@@ -21,17 +21,26 @@ impl Lfsr {
         } else {
             divider * (1 << (shift + 4))
         };
-        Self { value: 0x7FFF, clock: Clock::new(div) }
+
+        Clock::new(div)
+    }
+
+    fn new(nrx3: u8) -> Self {
+        Self { value: 0, clock: Self::new_lfsr_clock(nrx3) }
     }
 }
 
 impl Lfsr {
+    fn set_clock(&mut self, nrx3: u8) {
+        self.clock = Self::new_lfsr_clock(nrx3);
+    }
+
     fn step(&mut self, nrx3: u8) -> Option<bool> {
         if self.clock.step() {
             // Algorithm, see https://gbdev.io/pandocs/Audio_details.html#noise-channel-ch4:~:text=to%20shift%20in.-,when%20ch4%20is%20ticked,-(at%20the%20frequency
             let b0 = self.value & 1;
             let b1 = (self.value >> 1) & 1;
-            let bit = b0 ^ b1;
+            let bit = b0 ^ b1 ^ 1;
 
             self.value = unset_bits!(self.value, 15) | (bit << 15);
             if is_bit_set!(nrx3, 3) {
@@ -62,7 +71,7 @@ pub(crate) struct NoiseChannel {
     /// Bit 7: Trigger.
     /// Bit 6: Length enable.
     nrx4: u8,
-    length_timer: Option<LengthTimer>,
+    length_timer: LengthTimer,
     volume_envelope: VolumeEnvelope,
     lfsr: Lfsr,
 }
@@ -79,20 +88,20 @@ impl NoiseChannel {
             nrx2,
             nrx3,
             nrx4,
-            length_timer: None,
+            length_timer: LengthTimer::new_expired(),
             volume_envelope: VolumeEnvelope::new(nrx2),
             lfsr: Lfsr::new(nrx3),
         }
     }
 
-    fn triggered(&self) -> bool {
-        is_bit_set!(self.nrx4, 7)
+    pub(crate) fn on(&self) -> bool {
+        let triggered = is_bit_set!(self.nrx4, 7);
+        !self.length_timer.expired() && triggered
     }
 
     pub(crate) fn active(&self) -> bool {
-        let length_timer_expired = self.length_timer.as_ref().map_or(false, |lt| lt.expired());
-
-        !length_timer_expired
+        let dac_on = (self.nrx2 & 0xF8) != 0;
+        dac_on && self.on()
     }
 
     pub(crate) fn step(&mut self) {
@@ -104,9 +113,7 @@ impl NoiseChannel {
 
         self.volume_envelope.step(self.nrx2);
 
-        if let Some(length_timer) = self.length_timer.as_mut() {
-            length_timer.step();
-        }
+        self.length_timer.step();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
@@ -118,27 +125,25 @@ impl Memory for NoiseChannel {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             1 => {
+                self.length_timer.set(value & 0x3F);
                 self.nrx1 = value;
             }
             2 => {
+                self.volume_envelope = VolumeEnvelope::new(value);
                 self.nrx2 = value;
             }
             3 => {
+                self.lfsr.set_clock(value);
                 self.nrx3 = value;
             }
             4 => {
-                self.nrx4 = value;
-
-                if self.triggered() {
-                    self.length_timer = if is_bit_set!(self.nrx4, 6) {
-                        Some(LengthTimer::new(self.nrx1 & 0x3F))
-                    } else {
-                        None
-                    };
-
+                // Trigger the channel
+                if is_bit_set!(value, 7) && !is_bit_set!(self.nrx4, 7) {
+                    self.length_timer.reset();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.lfsr = Lfsr::new(self.nrx3);
                 }
+                self.nrx4 = value;
             }
             _ => unreachable!("Invalid address for NoiseChannel: {:#X}", addr),
         }
