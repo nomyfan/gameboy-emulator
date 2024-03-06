@@ -13,7 +13,7 @@ impl BlipBuf {
     }
 
     pub(crate) fn add_delta(&mut self, duration: u32, volume: i32) {
-        // TODO: check this MUST not overflow
+        // It has no chance to overflow u32::MAX.
         self.clock_time = self.clock_time.saturating_add(duration);
         self.buf.add_delta(self.clock_time, volume - self.volume);
         self.volume = volume;
