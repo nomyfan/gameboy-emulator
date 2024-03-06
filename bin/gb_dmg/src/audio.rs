@@ -2,21 +2,23 @@ use std::sync::{Arc, Mutex};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    FromSample, Sample, SizedSample, Stream,
+    ChannelCount, FromSample, Sample, SizedSample, Stream,
 };
 
 pub(crate) type AudioSamplesBuffer = Vec<(f32, f32)>;
 
-fn write_data<T>(output: &mut [T], samples: &mut AudioSamplesBuffer)
+fn write_data<T>(channel_count: ChannelCount, output: &mut [T], samples: &mut AudioSamplesBuffer)
 where
     T: SizedSample + FromSample<f32>,
 {
-    let len = std::cmp::min(output.len() / 2, samples.len());
+    let channel_count = channel_count as usize;
+    let len = std::cmp::min(output.len() / channel_count, samples.len());
 
-    samples.drain(..len).zip(output.chunks_mut(2)).for_each(
-        |((left_channel, right_channel), stero)| {
-            stero[0] = left_channel.to_sample();
-            stero[1] = right_channel.to_sample();
+    samples.drain(..len).zip(output.chunks_mut(channel_count)).for_each(
+        |((left_channel, right_channel), channles)| {
+            channles.iter_mut().zip(&[left_channel, right_channel]).for_each(|(o, i)| {
+                *o = i.to_sample();
+            });
         },
     );
 }
@@ -32,6 +34,7 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
     let config: cpal::StreamConfig = config.into();
     log::debug!("Stream config: {:?}", config);
     let sample_rate = config.sample_rate.0 as u32;
+    let channel_count = config.channels;
 
     let stream = {
         let samples_buf = samples_buf.clone();
@@ -40,7 +43,7 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
                 .build_output_stream(
                     &config,
                     move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                        write_data(data, &mut samples_buf.lock().unwrap());
+                        write_data(channel_count, data, &mut samples_buf.lock().unwrap());
                     },
                     move |err| log::error!("{}", err),
                     None,
@@ -50,7 +53,7 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
                 .build_output_stream(
                     &config,
                     move |data: &mut [f64], _: &cpal::OutputCallbackInfo| {
-                        write_data(data, &mut samples_buf.lock().unwrap());
+                        write_data(channel_count, data, &mut samples_buf.lock().unwrap());
                     },
                     move |err| log::error!("{}", err),
                     None,
