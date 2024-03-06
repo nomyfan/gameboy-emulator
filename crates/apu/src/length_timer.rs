@@ -20,12 +20,12 @@ impl LengthTimer {
         self.ticks == 64
     }
 
-    pub(crate) fn next(&mut self) {
+    pub(crate) fn step(&mut self) {
         if self.expired() {
             return;
         }
 
-        if self.clock.next() {
+        if self.clock.step() {
             self.ticks += 1;
         }
     }

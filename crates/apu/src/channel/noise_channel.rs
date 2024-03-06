@@ -26,8 +26,8 @@ impl Lfsr {
 }
 
 impl Lfsr {
-    fn next(&mut self, nrx3: u8) -> Option<bool> {
-        if self.clock.next() {
+    fn step(&mut self, nrx3: u8) -> Option<bool> {
+        if self.clock.step() {
             // Algorithm, see https://gbdev.io/pandocs/Audio_details.html#noise-channel-ch4:~:text=to%20shift%20in.-,when%20ch4%20is%20ticked,-(at%20the%20frequency
             let b0 = self.value & 1;
             let b1 = (self.value >> 1) & 1;
@@ -95,17 +95,17 @@ impl NoiseChannel {
         !length_timer_expired
     }
 
-    pub(crate) fn next(&mut self) {
-        if let Some(use_volume) = self.lfsr.next(self.nrx3) {
+    pub(crate) fn step(&mut self) {
+        if let Some(use_volume) = self.lfsr.step(self.nrx3) {
             let volume =
                 if use_volume && self.active() { self.volume_envelope.volume() as i32 } else { 0 };
             self.blipbuf.add_delta(self.lfsr.clock.div(), volume);
         }
 
-        self.volume_envelope.next(self.nrx2);
+        self.volume_envelope.step(self.nrx2);
 
         if let Some(length_timer) = self.length_timer.as_mut() {
-            length_timer.next();
+            length_timer.step();
         }
     }
 

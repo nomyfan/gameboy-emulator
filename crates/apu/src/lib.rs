@@ -107,12 +107,12 @@ impl Apu {
             return;
         }
 
-        self.ch1.next();
-        self.ch2.next();
-        self.ch3.next();
-        self.ch4.next();
+        self.ch1.step();
+        self.ch2.step();
+        self.ch3.step();
+        self.ch4.step();
 
-        if self.mixer_clock.next() {
+        if self.mixer_clock.step() {
             let left_volume_coefficient =
                 ((self.master_left_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
             let right_volume_coefficient =

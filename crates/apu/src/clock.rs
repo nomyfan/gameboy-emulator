@@ -12,7 +12,7 @@ impl Clock {
         self.div
     }
 
-    pub(crate) fn next(&mut self) -> bool {
+    pub(crate) fn step(&mut self) -> bool {
         if self.div == 0 {
             return false;
         }

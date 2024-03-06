@@ -23,7 +23,7 @@ impl WaveRam {
         self.index = 1;
     }
 
-    fn next(&mut self) -> u8 {
+    fn step(&mut self) -> u8 {
         let value = self.ram[self.index / 2];
         let value = if self.index % 2 == 0 { value >> 4 } else { value & 0x0F };
 
@@ -127,10 +127,10 @@ impl WaveChannel {
         is_bit_set!(self.nrx4, 7)
     }
 
-    pub(crate) fn next(&mut self) {
-        if self.channel_clock.next() {
+    pub(crate) fn step(&mut self) {
+        if self.channel_clock.step() {
             if self.active() {
-                let volume = self.wave_ram.next();
+                let volume = self.wave_ram.step();
                 let volume = match self.output_level() {
                     OutputLevel::Mute => 0,
                     OutputLevel::Full => volume,
@@ -144,7 +144,7 @@ impl WaveChannel {
         }
 
         if let Some(length_timer) = self.length_timer.as_mut() {
-            length_timer.next();
+            length_timer.step();
         }
     }
 

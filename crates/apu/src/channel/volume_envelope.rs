@@ -22,8 +22,8 @@ impl VolumeEnvelope {
         self.volume
     }
 
-    pub(super) fn next(&mut self, nrx2: u8) {
-        if self.clock.next() {
+    pub(super) fn step(&mut self, nrx2: u8) {
+        if self.clock.step() {
             if is_bit_set!(nrx2, 3) {
                 self.volume = self.volume.saturating_sub(1);
             } else {

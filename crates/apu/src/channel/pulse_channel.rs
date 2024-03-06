@@ -20,8 +20,8 @@ impl PulseChannelClock {
     }
 
     #[inline(always)]
-    fn next(&mut self) -> bool {
-        self.0.next()
+    fn step(&mut self) -> bool {
+        self.0.step()
     }
 
     #[inline]
@@ -42,7 +42,7 @@ impl DutyCycle {
     /// We do not handle the case where duty cycle
     /// get changed during one cycle.
     /// Return true if the signal is high.
-    fn next(&mut self, nrx1: u8) -> bool {
+    fn step(&mut self, nrx1: u8) -> bool {
         let waveform = match (nrx1 >> 6) & 0b11 {
             // 12.5%
             0b00 => 0b1111_1110,
@@ -134,8 +134,8 @@ impl PeriodSweep {
         }
     }
 
-    fn next(&mut self, nrx0: u8) -> Option<(u8, u8)> {
-        if self.clock.next() {
+    fn step(&mut self, nrx0: u8) -> Option<(u8, u8)> {
+        if self.clock.step() {
             self.period_value = Self::next_period_value(self.period_value, nrx0);
             if !self.overflow() {
                 let lo = self.period_value as u8;
@@ -198,10 +198,10 @@ impl PulseChannel {
         !self.dac_off() && !length_timer_expired && !period_overflow
     }
 
-    pub(crate) fn next(&mut self) {
-        if self.channel_clock.next() {
+    pub(crate) fn step(&mut self) {
+        if self.channel_clock.step() {
             if self.active() {
-                let is_high_signal = self.duty_cycle.next(self.nrx1);
+                let is_high_signal = self.duty_cycle.step(self.nrx1);
                 let volume = self.volume_envelope.volume() as i32;
                 let volume = if is_high_signal { volume } else { -volume };
                 self.blipbuf.add_delta(self.channel_clock.div(), volume);
@@ -211,17 +211,17 @@ impl PulseChannel {
         }
 
         if let Some(period_sweep) = self.period_sweep.as_mut() {
-            if let Some((lo, hi)) = period_sweep.next(self.nrx0) {
+            if let Some((lo, hi)) = period_sweep.step(self.nrx0) {
                 self.nrx3 = lo;
                 self.nrx4 = (self.nrx4 & (!0b111)) | hi;
                 self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
             }
         }
 
-        self.volume_envelope.next(self.nrx2);
+        self.volume_envelope.step(self.nrx2);
 
         if let Some(length_timer) = self.length_timer.as_mut() {
-            length_timer.next();
+            length_timer.step();
         }
     }
 
