@@ -114,9 +114,9 @@ impl Apu {
 
         if self.mixer_clock.step() {
             let left_volume_coefficient =
-                ((self.master_left_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
+                ((self.master_left_volume() + 1) as f32 / 8.0) * (1.0 / 15.0) * 0.25;
             let right_volume_coefficient =
-                ((self.master_right_volume() + 1) as f32 / 8.0) * (1.0 / 16.0) * 0.25;
+                ((self.master_right_volume() + 1) as f32 / 8.0) * (1.0 / 15.0) * 0.25;
 
             self.mixed_samples_buffer.iter_mut().for_each(|(l, r)| {
                 *l = 0.0;
