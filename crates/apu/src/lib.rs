@@ -163,29 +163,13 @@ impl Memory for Apu {
         }
 
         match addr {
-            0xFF10 => self.ch1.set_nrx0(value),
-            0xFF11 => self.ch1.set_nrx1(value),
-            0xFF12 => self.ch1.set_nrx2(value),
-            0xFF13 => self.ch1.set_nrx3(value),
-            0xFF14 => self.ch1.set_nrx4(value),
-
+            0xFF10..=0xFF14 => self.ch1.write(addr - 0xFF10, value),
             0xFF15 => {}
-            0xFF16 => self.ch2.set_nrx1(value),
-            0xFF17 => self.ch2.set_nrx2(value),
-            0xFF18 => self.ch2.set_nrx3(value),
-            0xFF19 => self.ch2.set_nrx4(value),
+            0xFF16..=0xFF19 => self.ch2.write(addr - 0xFF15, value),
 
-            0xFF1A => self.ch3.set_nrx0(value),
-            0xFF1B => self.ch3.set_nrx1(value),
-            0xFF1C => self.ch3.set_nrx2(value),
-            0xFF1D => self.ch3.set_nrx3(value),
-            0xFF1E => self.ch3.set_nrx4(value),
-
+            0xFF1A..=0xFF1E => self.ch3.write(addr - 0xFF1A, value),
             0xFF1F => {}
-            0xFF20 => self.ch4.set_nrx1(value),
-            0xFF21 => self.ch4.set_nrx2(value),
-            0xFF22 => self.ch4.set_nrx3(value),
-            0xFF23 => self.ch4.set_nrx4(value),
+            0xFF20..=0xFF23 => self.ch4.write(addr - 0xFF1F, value),
 
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
@@ -206,29 +190,12 @@ impl Memory for Apu {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0xFF10 => self.ch1.nrx0(),
-            0xFF11 => self.ch1.nrx1(),
-            0xFF12 => self.ch1.nrx2(),
-            0xFF13 => self.ch1.nrx3(),
-            0xFF14 => self.ch1.nrx4(),
-
+            0xFF10..=0xFF14 => self.ch1.read(addr - 0xFF10),
             0xFF15 => 0,
-            0xFF16 => self.ch2.nrx1(),
-            0xFF17 => self.ch2.nrx2(),
-            0xFF18 => self.ch2.nrx3(),
-            0xFF19 => self.ch2.nrx4(),
-
-            0xFF1A => self.ch3.nrx0(),
-            0xFF1B => self.ch3.nrx1(),
-            0xFF1C => self.ch3.nrx2(),
-            0xFF1D => self.ch3.nrx3(),
-            0xFF1E => self.ch3.nrx4(),
-
+            0xFF16..=0xFF19 => self.ch2.read(addr - 0xFF15),
+            0xFF1A..=0xFF1E => self.ch3.read(addr - 0xFF1A),
             0xFF1F => 0,
-            0xFF20 => self.ch4.nrx1(),
-            0xFF21 => self.ch4.nrx2(),
-            0xFF22 => self.ch4.nrx3(),
-            0xFF23 => self.ch4.nrx4(),
+            0xFF20..=0xFF23 => self.ch4.read(addr - 0xFF1F),
 
             0xFF24 => self.nr50,
             0xFF25 => self.nr51,

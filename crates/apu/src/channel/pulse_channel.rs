@@ -1,4 +1,4 @@
-use gb_shared::is_bit_set;
+use gb_shared::{is_bit_set, Memory};
 
 use crate::{blipbuf, clock::Clock, length_timer::LengthTimer, utils::freq_to_clock_cycles};
 
@@ -230,93 +230,82 @@ impl PulseChannel {
     }
 }
 
-impl PulseChannel {
-    #[inline]
-    pub(crate) fn nrx0(&self) -> u8 {
-        self.nrx0
-    }
-
-    pub(crate) fn set_nrx0(&mut self, value: u8) {
-        self.nrx0 = value;
-    }
-
-    #[inline]
-    pub(crate) fn nrx1(&self) -> u8 {
-        self.nrx1
-    }
-
-    #[inline]
-    pub(crate) fn set_nrx1(&mut self, value: u8) {
-        self.nrx1 = value;
-    }
-
-    #[inline]
-    pub(crate) fn nrx2(&self) -> u8 {
-        self.nrx2
-    }
-
-    pub(crate) fn set_nrx2(&mut self, value: u8) {
-        // Writes to this register while the channel is on require retriggering it afterwards. If the write turns the channel off, retriggering is not necessary (it would do nothing).
-        // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=writes%20to%20this%20register%20while%20the%20channel%20is%20on%20require%20retriggering%20it%20afterwards.%20if%20the%20write%20turns%20the%20channel%20off%2C%20retriggering%20is%20not%20necessary%20(it%20would%20do%20nothing).
-        self.nrx2 = value;
-    }
-
-    #[inline]
-    pub(crate) fn nrx3(&self) -> u8 {
-        self.nrx3
-    }
-
-    pub(crate) fn set_nrx3(&mut self, value: u8) {
-        self.nrx3 = value;
-        // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
-        // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
-        match self.period_sweep.as_mut() {
-            Some(period_sweep) => {
-                period_sweep.set_period_value(self.nrx3, self.nrx4);
-                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
+impl Memory for PulseChannel {
+    fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            0 => {
+                self.nrx0 = value;
             }
-            None => {
-                self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
+            1 => {
+                self.nrx1 = value;
             }
-        };
+            2 => {
+                // Writes to this register while the channel is on require retriggering it afterwards. If the write turns the channel off, retriggering is not necessary (it would do nothing).
+                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=writes%20to%20this%20register%20while%20the%20channel%20is%20on%20require%20retriggering%20it%20afterwards.%20if%20the%20write%20turns%20the%20channel%20off%2C%20retriggering%20is%20not%20necessary%20(it%20would%20do%20nothing).
+                self.nrx2 = value;
+            }
+            3 => {
+                self.nrx3 = value;
+                // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
+                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
+                match self.period_sweep.as_mut() {
+                    Some(period_sweep) => {
+                        period_sweep.set_period_value(self.nrx3, self.nrx4);
+                        self.channel_clock =
+                            PulseChannelClock::from_period(period_sweep.period_value());
+                    }
+                    None => {
+                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
+                    }
+                };
+            }
+            4 => {
+                self.nrx4 = value;
+
+                // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
+                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
+                match self.period_sweep.as_mut() {
+                    Some(period_sweep) => {
+                        period_sweep.set_period_value(self.nrx3, self.nrx4);
+                        self.channel_clock =
+                            PulseChannelClock::from_period(period_sweep.period_value());
+                    }
+                    None => {
+                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
+                    }
+                };
+
+                if self.triggered() && !self.dac_off() {
+                    self.length_timer = if is_bit_set!(self.nrx4, 6) {
+                        Some(LengthTimer::new(self.nrx1 & 0x3F))
+                    } else {
+                        None
+                    };
+
+                    self.volume_envelope = VolumeEnvelope::new(self.nrx2);
+
+                    if self.period_sweep.is_some() {
+                        let period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);
+                        self.channel_clock =
+                            PulseChannelClock::from_period(period_sweep.period_value());
+                        self.period_sweep = Some(period_sweep);
+                    } else {
+                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
+                    }
+                }
+            }
+            _ => unreachable!("Invalid address for PulseChannel: {:#X}", addr),
+        }
     }
 
-    #[inline]
-    pub(crate) fn nrx4(&self) -> u8 {
-        self.nrx4
-    }
-
-    pub(crate) fn set_nrx4(&mut self, value: u8) {
-        self.nrx4 = value;
-
-        // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
-        // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
-        match self.period_sweep.as_mut() {
-            Some(period_sweep) => {
-                period_sweep.set_period_value(self.nrx3, self.nrx4);
-                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
-            }
-            None => {
-                self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
-            }
-        };
-
-        if self.triggered() && !self.dac_off() {
-            self.length_timer = if is_bit_set!(self.nrx4, 6) {
-                Some(LengthTimer::new(self.nrx1 & 0x3F))
-            } else {
-                None
-            };
-
-            self.volume_envelope = VolumeEnvelope::new(self.nrx2);
-
-            if self.period_sweep.is_some() {
-                let period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);
-                self.channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
-                self.period_sweep = Some(period_sweep);
-            } else {
-                self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
-            }
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
+            0 => self.nrx0,
+            1 => self.nrx1,
+            2 => self.nrx2,
+            3 => self.nrx3,
+            4 => self.nrx4,
+            _ => unreachable!("Invalid address for PulseChannel: {:#X}", addr),
         }
     }
 }

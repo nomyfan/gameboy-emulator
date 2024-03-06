@@ -1,4 +1,4 @@
-use gb_shared::{is_bit_set, unset_bits};
+use gb_shared::{is_bit_set, unset_bits, Memory};
 
 use crate::{blipbuf, clock::Clock, length_timer::LengthTimer};
 
@@ -114,52 +114,43 @@ impl NoiseChannel {
     }
 }
 
-impl NoiseChannel {
-    #[inline]
-    pub(crate) fn nrx1(&self) -> u8 {
-        self.nrx1
+impl Memory for NoiseChannel {
+    fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            1 => {
+                self.nrx1 = value;
+            }
+            2 => {
+                self.nrx2 = value;
+            }
+            3 => {
+                self.nrx3 = value;
+            }
+            4 => {
+                self.nrx4 = value;
+
+                if self.triggered() {
+                    self.length_timer = if is_bit_set!(self.nrx4, 6) {
+                        Some(LengthTimer::new(self.nrx1 & 0x3F))
+                    } else {
+                        None
+                    };
+
+                    self.volume_envelope = VolumeEnvelope::new(self.nrx2);
+                    self.lfsr = Lfsr::new(self.nrx3);
+                }
+            }
+            _ => unreachable!("Invalid address for NoiseChannel: {:#X}", addr),
+        }
     }
 
-    #[inline]
-    pub(crate) fn nrx2(&self) -> u8 {
-        self.nrx2
-    }
-
-    #[inline]
-    pub(crate) fn nrx3(&self) -> u8 {
-        self.nrx3
-    }
-
-    #[inline]
-    pub(crate) fn nrx4(&self) -> u8 {
-        self.nrx4
-    }
-
-    #[inline]
-    pub(crate) fn set_nrx1(&mut self, value: u8) {
-        self.nrx1 = value;
-    }
-
-    pub(crate) fn set_nrx2(&mut self, value: u8) {
-        self.nrx2 = value;
-    }
-
-    pub(crate) fn set_nrx3(&mut self, value: u8) {
-        self.nrx3 = value;
-    }
-
-    pub(crate) fn set_nrx4(&mut self, value: u8) {
-        self.nrx4 = value;
-
-        if self.triggered() {
-            self.length_timer = if is_bit_set!(self.nrx4, 6) {
-                Some(LengthTimer::new(self.nrx1 & 0x3F))
-            } else {
-                None
-            };
-
-            self.volume_envelope = VolumeEnvelope::new(self.nrx2);
-            self.lfsr = Lfsr::new(self.nrx3);
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
+            1 => self.nrx1,
+            2 => self.nrx2,
+            3 => self.nrx3,
+            4 => self.nrx4,
+            _ => unreachable!("Invalid address for NoiseChannel: {:#X}", addr),
         }
     }
 }

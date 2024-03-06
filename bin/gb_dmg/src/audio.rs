@@ -59,7 +59,7 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
                     None,
                 )
                 .unwrap(),
-            _ => panic!("unreachable"),
+            _ => unreachable!(),
         };
 
         stream

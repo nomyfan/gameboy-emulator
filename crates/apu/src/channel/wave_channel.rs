@@ -153,61 +153,48 @@ impl WaveChannel {
     }
 }
 
-impl WaveChannel {
-    #[inline]
-    pub(crate) fn nrx0(&self) -> u8 {
-        self.nrx0
+impl Memory for WaveChannel {
+    fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            0 => {
+                self.nrx0 = value;
+            }
+            1 => {
+                self.nrx1 = value;
+            }
+            2 => {
+                self.nrx2 = value;
+            }
+            3 => {
+                self.nrx3 = value;
+                self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
+            }
+            4 => {
+                self.nrx4 = value;
+                self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
+
+                if self.triggered() && !self.dac_off() {
+                    self.length_timer = if is_bit_set!(self.nrx4, 6) {
+                        Some(LengthTimer::new(self.nrx1))
+                    } else {
+                        None
+                    };
+
+                    self.wave_ram.reset();
+                }
+            }
+            _ => unreachable!("Invalid address for WaveChannel: {:#X}", addr),
+        }
     }
 
-    #[inline]
-    pub(crate) fn nrx1(&self) -> u8 {
-        self.nrx1
-    }
-
-    #[inline]
-    pub(crate) fn nrx2(&self) -> u8 {
-        self.nrx2
-    }
-
-    #[inline]
-    pub(crate) fn nrx3(&self) -> u8 {
-        self.nrx3
-    }
-
-    #[inline]
-    pub(crate) fn nrx4(&self) -> u8 {
-        self.nrx4
-    }
-
-    #[inline]
-    pub(crate) fn set_nrx0(&mut self, value: u8) {
-        self.nrx0 = value;
-    }
-
-    #[inline]
-    pub(crate) fn set_nrx1(&mut self, value: u8) {
-        self.nrx1 = value;
-    }
-
-    #[inline]
-    pub(crate) fn set_nrx2(&mut self, value: u8) {
-        self.nrx2 = value;
-    }
-
-    pub(crate) fn set_nrx3(&mut self, value: u8) {
-        self.nrx3 = value;
-        self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
-    }
-
-    pub(crate) fn set_nrx4(&mut self, value: u8) {
-        self.nrx4 = value;
-        self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
-
-        if self.triggered() && !self.dac_off() {
-            self.length_timer =
-                if is_bit_set!(self.nrx4, 6) { Some(LengthTimer::new(self.nrx1)) } else { None };
-
-            self.wave_ram.reset();
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
+            0 => self.nrx0,
+            1 => self.nrx1,
+            2 => self.nrx2,
+            3 => self.nrx3,
+            4 => self.nrx4,
+            _ => unreachable!("Invalid address for WaveChannel: {:#X}", addr),
         }
     }
 }
