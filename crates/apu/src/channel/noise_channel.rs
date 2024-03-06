@@ -21,7 +21,7 @@ impl Lfsr {
         } else {
             divider * (1 << (shift + 4))
         };
-        Self { value: 0, clock: Clock::new(div) }
+        Self { value: 0x7FFF, clock: Clock::new(div) }
     }
 }
 
