@@ -1,6 +1,9 @@
 use gb_shared::{is_bit_set, Memory};
 
-use crate::{blipbuf, clock::Clock, length_timer::LengthTimer, utils::freq_to_clock_cycles};
+use crate::{
+    blipbuf, clock::Clock, length_timer::PulseChannelLengthTimer as LengthTimer,
+    utils::freq_to_clock_cycles,
+};
 
 use super::VolumeEnvelope;
 
@@ -62,26 +65,48 @@ impl DutyCycle {
 }
 
 pub(crate) struct PulseChannel {
-    blipbuf: blipbuf::BlipBuf,
-    channel_clock: PulseChannelClock,
-    length_timer: Option<LengthTimer>,
-    /// Sweep register.
+    /// Period sweep. Channel 2 lacks this feature.
+    /// Bit0..=2, individual step. Used to calculate next period value.
+    /// Bit3, direction. 0: increase, 1: decrease.
+    /// Bit4..=6, pace. Control period sweep clock frequency.
     nrx0: u8,
     /// Sound length/Wave pattern duty.
+    /// Bit0..=5, initial length timer. Used to set length timer's length. Write-only.
+    /// Bit6..=7, wave duty.
     nrx1: u8,
     /// Volume envelope.
+    /// Bit0..=2, pace. Control volume envelope clock frequency. 0 disables the envelope.
+    /// Bit3, direction. 0: decrease, 1: increase.
+    /// Bit4..=7, initial volume. Used to set volume envelope's volume.
+    /// When Bit3..=7 are all 0, the DAC is off.
     nrx2: u8,
     /// Period lo.
     /// The low 8 bits of the period value.
+    ///
+    /// Period changes (written to NR13 or NR14) only take effect after the current “sample” ends; see description above.
+    /// @see https://gbdev.io/pandocs/Audio_Registers.html#ff11--nr11-channel-1-length-timer--duty-cycle:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends%3B%20see%20description%20above.
     nrx3: u8,
     /// Period hi and control.
-    /// Bit 7: Trigger.
+    /// Bit 2..=0: The upper 3 bits of the period value. Write-only.
+    ///
+    /// Period changes (written to NR13 or NR14) only take effect after the current “sample” ends; see description above.
+    /// @see https://gbdev.io/pandocs/Audio_Registers.html#ff11--nr11-channel-1-length-timer--duty-cycle:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends%3B%20see%20description%20above.
+    ///
     /// Bit 6: Length enable.
-    /// Bit 2..=0: The upper 3 bits of the period value.
+    /// Bit 7: Trigger. Write-only.
     nrx4: u8,
+    blipbuf: blipbuf::BlipBuf,
+    channel_clock: PulseChannelClock,
+    length_timer: LengthTimer,
     duty_cycle: DutyCycle,
     volume_envelope: VolumeEnvelope,
     period_sweep: Option<PeriodSweep>,
+    /// Indicates if the channel is working.
+    /// The only case where setting it to `true` is triggering the channel.
+    /// When length timer expires, it is set to `false`.
+    /// When the sweep overflows, it is set to `false`.
+    /// Default is `false`.
+    active: bool,
 }
 
 #[inline]
@@ -136,8 +161,8 @@ impl PeriodSweep {
 
     fn step(&mut self, nrx0: u8) -> Option<(u8, u8)> {
         if self.clock.step() {
-            self.period_value = Self::next_period_value(self.period_value, nrx0);
             if !self.overflow() {
+                self.period_value = Self::next_period_value(self.period_value, nrx0);
                 let lo = self.period_value as u8;
                 let hi = ((self.period_value >> 8) as u8) & 0b111;
 
@@ -164,7 +189,7 @@ impl PulseChannel {
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, volume_envelope.volume() as i32),
             channel_clock: PulseChannelClock::from_period(period_sweep.period_value()),
-            length_timer: None,
+            length_timer: LengthTimer::new_expired(),
             nrx0,
             nrx1,
             nrx2,
@@ -173,34 +198,23 @@ impl PulseChannel {
             duty_cycle: DutyCycle::new(),
             volume_envelope,
             period_sweep: if with_period_sweep { Some(period_sweep) } else { None },
+            active: false,
         }
     }
 
     #[inline]
-    fn dac_off(&self) -> bool {
-        (self.nrx2 >> 3) == 0
+    pub(crate) fn on(&self) -> bool {
+        self.active
     }
 
     #[inline]
-    fn triggered(&self) -> bool {
-        is_bit_set!(self.nrx4, 7)
-    }
-
-    /// Return `true` if the channel is active.
-    pub(crate) fn active(&self) -> bool {
-        // Any condition below satisfied will deactivate the channel.
-        // - DAC is off.
-        // - Length timer expired.
-        // - Period overflowed.
-        let length_timer_expired = self.length_timer.as_ref().map_or(false, |lt| lt.expired());
-        let period_overflow = self.period_sweep.as_ref().map_or(false, |s| s.overflow());
-
-        !self.dac_off() && !length_timer_expired && !period_overflow
+    fn dac_on(&self) -> bool {
+        (self.nrx2 & 0xF8) != 0
     }
 
     pub(crate) fn step(&mut self) {
         if self.channel_clock.step() {
-            if self.active() {
+            if self.on() {
                 let is_high_signal = self.duty_cycle.step(self.nrx1);
                 let volume = self.volume_envelope.volume() as i32;
                 let volume = if is_high_signal { volume } else { -volume };
@@ -219,80 +233,99 @@ impl PulseChannel {
         }
 
         self.volume_envelope.step(self.nrx2);
+        self.length_timer.step();
 
-        if let Some(length_timer) = self.length_timer.as_mut() {
-            length_timer.step();
-        }
+        self.active &= self.length_timer.active()
+            && self.period_sweep.as_ref().map_or(true, |s| !s.overflow());
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
         self.blipbuf.end(buffer, duration)
     }
+
+    /// Called when the APU is turned off which resets all registers.
+    pub(crate) fn turn_off(&mut self) {
+        for addr in 0..=4 {
+            self.write(addr, 0);
+        }
+    }
 }
 
 impl Memory for PulseChannel {
     fn write(&mut self, addr: u16, value: u8) {
+        let ch1 = self.period_sweep.is_some();
+        log::debug!("Write to NR{}{}: {:#X}", if ch1 { 1 } else { 2 }, addr, value);
+
         match addr {
             0 => {
                 self.nrx0 = value;
             }
             1 => {
+                self.length_timer.set_len(value & 0x3F);
                 self.nrx1 = value;
             }
             2 => {
-                // Writes to this register while the channel is on require retriggering it afterwards. If the write turns the channel off, retriggering is not necessary (it would do nothing).
-                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=writes%20to%20this%20register%20while%20the%20channel%20is%20on%20require%20retriggering%20it%20afterwards.%20if%20the%20write%20turns%20the%20channel%20off%2C%20retriggering%20is%20not%20necessary%20(it%20would%20do%20nothing).
                 self.nrx2 = value;
+
+                log::debug!(
+                    "CH{} dac {}",
+                    if ch1 { 1 } else { 2 },
+                    if self.dac_on() { "on" } else { "off" }
+                );
+                self.active &= self.dac_on();
             }
             3 => {
-                self.nrx3 = value;
-                // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
-                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
+                // TODO: extract this logic to a function
+                // TODO: update channel clock only? Should sweep get updated when trigger?
                 match self.period_sweep.as_mut() {
                     Some(period_sweep) => {
-                        period_sweep.set_period_value(self.nrx3, self.nrx4);
+                        period_sweep.set_period_value(value, self.nrx4);
                         self.channel_clock =
                             PulseChannelClock::from_period(period_sweep.period_value());
                     }
                     None => {
-                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
+                        self.channel_clock = PulseChannelClock::from_nrxs(value, self.nrx4);
                     }
                 };
+
+                self.nrx3 = value;
             }
             4 => {
-                self.nrx4 = value;
-
-                // Period changes (written to NR13 or NR14) only take effect after the current “sample” ends.
-                // @see https://gbdev.io/pandocs/Audio_Registers.html#ff20--nr41-channel-4-length-timer-write-only:~:text=period%20changes%20(written%20to%20nr13%20or%20nr14)%20only%20take%20effect%20after%20the%20current%20%E2%80%9Csample%E2%80%9D%20ends
+                // TODO: update channel clock only? Should sweep get updated when trigger?
                 match self.period_sweep.as_mut() {
                     Some(period_sweep) => {
-                        period_sweep.set_period_value(self.nrx3, self.nrx4);
+                        period_sweep.set_period_value(self.nrx3, value);
                         self.channel_clock =
                             PulseChannelClock::from_period(period_sweep.period_value());
                     }
                     None => {
-                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
+                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, value);
                     }
                 };
 
-                if self.triggered() && !self.dac_off() {
-                    self.length_timer = if is_bit_set!(self.nrx4, 6) {
-                        Some(LengthTimer::new(self.nrx1 & 0x3F))
-                    } else {
-                        None
-                    };
+                log::debug!(
+                    "{} CH{} length",
+                    if is_bit_set!(value, 6) { "enable" } else { "disable" },
+                    if ch1 { 1 } else { 2 }
+                );
+                self.length_timer.set_enabled(value);
 
+                // Trigger the channel
+                if is_bit_set!(value, 7) {
+                    log::debug!("CH{} trigger", if self.period_sweep.is_some() { 1 } else { 2 });
+                    self.length_timer.reset_len();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
+                    self.blipbuf.clear();
 
-                    if self.period_sweep.is_some() {
-                        let period_sweep = PeriodSweep::new(self.nrx0, self.nrx3, self.nrx4);
-                        self.channel_clock =
-                            PulseChannelClock::from_period(period_sweep.period_value());
-                        self.period_sweep = Some(period_sweep);
-                    } else {
-                        self.channel_clock = PulseChannelClock::from_nrxs(self.nrx3, self.nrx4);
-                    }
+                    // TODO: Should sweep get updated when trigger?
                 }
+
+                self.active = self.length_timer.active()
+                    && self.period_sweep.as_ref().map_or(true, |s| !s.overflow());
+                self.active &= self.dac_on();
+                log::info!("CH{} active: {}", if ch1 { 1 } else { 2 }, self.active);
+
+                self.nrx4 = value;
             }
             _ => unreachable!("Invalid address for PulseChannel: {:#X}", addr),
         }

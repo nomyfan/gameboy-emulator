@@ -1,6 +1,6 @@
 use gb_shared::{is_bit_set, Memory};
 
-use crate::{blipbuf, clock::Clock, length_timer::LengthTimer};
+use crate::{blipbuf, clock::Clock, length_timer::WaveChannelLengthTimer as LengthTimer};
 
 enum OutputLevel {
     Mute,
@@ -45,14 +45,13 @@ impl Memory for WaveRam {
 }
 
 pub struct WaveChannel {
-    blipbuf: blipbuf::BlipBuf,
     /// DAC enable.
-    /// Bit 7: On/Off.
+    /// Bit7, 1: On, 0: Off
     nrx0: u8,
-    /// Length timer.
+    /// Length timer. Write-only.
     nrx1: u8,
     /// Output level.
-    /// Bit 6..=5: Output level.
+    /// Bit5..=6: Output level.
     /// 00: Mute.
     /// 01: 100%.
     /// 10: 50%.
@@ -60,15 +59,24 @@ pub struct WaveChannel {
     nrx2: u8,
     /// Period low.
     /// The low 8 bits of the period value.
+    ///
+    /// Period changes (written to NR33 or NR34) only take effect after the following time wave RAM is read.
+    /// @see https://gbdev.io/pandocs/Audio_Registers.html#ff11--nr11-channel-1-length-timer--duty-cycle:~:text=only%20take%20effect%20after%20the%20following%20time%20wave%20ram%20is%20read
     nrx3: u8,
     /// Period hi and control.
+    ///
+    /// Period changes (written to NR33 or NR34) only take effect after the following time wave RAM is read.
+    /// @see https://gbdev.io/pandocs/Audio_Registers.html#ff11--nr11-channel-1-length-timer--duty-cycle:~:text=only%20take%20effect%20after%20the%20following%20time%20wave%20ram%20is%20read
+    ///
     /// Bit 7: Trigger.
     /// Bit 6: Length enable.
     /// Bit 2..=0: The upper 3 bits of the period value.
     nrx4: u8,
+    blipbuf: blipbuf::BlipBuf,
     pub(crate) wave_ram: WaveRam,
-    length_timer: Option<LengthTimer>,
+    length_timer: LengthTimer,
     channel_clock: Clock,
+    active: bool,
 }
 
 impl WaveChannel {
@@ -96,15 +104,20 @@ impl WaveChannel {
             nrx3,
             nrx4,
             wave_ram: WaveRam::new(),
-            length_timer: None,
+            length_timer: LengthTimer::new_expired(),
             channel_clock: Self::new_channel_clock(nrx3, nrx4),
+            active: false,
         }
     }
 
-    pub(crate) fn active(&self) -> bool {
-        let length_timer_expired = self.length_timer.as_ref().map_or(false, |lt| lt.expired());
+    #[inline]
+    pub(crate) fn on(&self) -> bool {
+        self.active
+    }
 
-        !self.dac_off() && !length_timer_expired
+    #[inline]
+    fn dac_on(&self) -> bool {
+        is_bit_set!(self.nrx0, 7)
     }
 
     fn output_level(&self) -> OutputLevel {
@@ -117,19 +130,9 @@ impl WaveChannel {
         }
     }
 
-    #[inline]
-    fn dac_off(&self) -> bool {
-        !is_bit_set!(self.nrx0, 7)
-    }
-
-    #[inline]
-    fn triggered(&self) -> bool {
-        is_bit_set!(self.nrx4, 7)
-    }
-
     pub(crate) fn step(&mut self) {
         if self.channel_clock.step() {
-            if self.active() {
+            if self.on() {
                 let volume = self.wave_ram.step();
                 let volume = match self.output_level() {
                     OutputLevel::Mute => 0,
@@ -143,45 +146,66 @@ impl WaveChannel {
             }
         }
 
-        if let Some(length_timer) = self.length_timer.as_mut() {
-            length_timer.step();
-        }
+        self.length_timer.step();
+
+        self.active &= self.length_timer.active();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
         self.blipbuf.end(buffer, duration)
     }
+
+    pub(crate) fn turn_off(&mut self) {
+        for addr in 0..=4 {
+            self.write(addr, 0);
+        }
+    }
 }
 
 impl Memory for WaveChannel {
     fn write(&mut self, addr: u16, value: u8) {
+        log::debug!("Write to NR3{}: {:#X}", addr, value);
         match addr {
             0 => {
                 self.nrx0 = value;
+
+                log::debug!("CH3 dac {}", if self.dac_on() { "on" } else { "off" });
+                self.active &= self.dac_on();
             }
             1 => {
+                self.length_timer.set_len(value);
                 self.nrx1 = value;
             }
             2 => {
                 self.nrx2 = value;
             }
             3 => {
+                // TODO: update delay. After current sample ends.
+                self.channel_clock = Self::new_channel_clock(value, self.nrx4);
                 self.nrx3 = value;
-                self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
             }
             4 => {
-                self.nrx4 = value;
-                self.channel_clock = Self::new_channel_clock(self.nrx3, self.nrx4);
+                // TODO: update delay. After current sample ends.
+                self.channel_clock = Self::new_channel_clock(self.nrx3, value);
+                log::debug!(
+                    "{} CH3 length",
+                    if is_bit_set!(value, 6) { "enable" } else { "disable" }
+                );
+                self.length_timer.set_enabled(value);
 
-                if self.triggered() && !self.dac_off() {
-                    self.length_timer = if is_bit_set!(self.nrx4, 6) {
-                        Some(LengthTimer::new(self.nrx1))
-                    } else {
-                        None
-                    };
-
+                // Trigger the channel
+                if is_bit_set!(value, 7) {
+                    log::debug!("CH3 trigger");
+                    self.length_timer.reset_len();
                     self.wave_ram.reset();
+                    self.blipbuf.clear();
                 }
+
+                self.active = self.length_timer.active();
+                self.active &= self.dac_on();
+                log::info!("CH3 active: {}", self.active);
+
+                self.nrx4 = value;
             }
             _ => unreachable!("Invalid address for WaveChannel: {:#X}", addr),
         }

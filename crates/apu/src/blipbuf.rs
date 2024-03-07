@@ -27,4 +27,8 @@ impl BlipBuf {
         self.buf.read_samples(buffer, false);
         self.clock_time = 0;
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.buf.clear();
+    }
 }

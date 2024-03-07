@@ -6,7 +6,7 @@ mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
 use clock::Clock;
-use gb_shared::{is_bit_set, unset_bits, AudioOutHandle, Memory, CPU_FREQ};
+use gb_shared::{is_bit_set, AudioOutHandle, Memory, CPU_FREQ};
 
 pub struct Apu {
     ch1: PulseChannel,
@@ -38,8 +38,6 @@ pub struct Apu {
     /// Bit 1 - CH2 ON flag (Read Only)
     /// Bit 0 - CH1 ON flag (Read Only)
     nr52: u8,
-    frequency: u32,
-    sample_rate: u32,
     audio_out_handle: Option<Box<AudioOutHandle>>,
     samples_buffer: Vec<i16>,
     mixed_samples_buffer: Vec<(f32, f32)>,
@@ -61,11 +59,9 @@ impl Apu {
             ch3: WaveChannel::new(frequency, sample_rate),
             ch4: NoiseChannel::new(frequency, sample_rate),
             mixer_clock: Self::new_mixer_clock(),
-            nr50: 0x77,
-            nr51: 0xF3,
-            nr52: 0xF1,
-            frequency,
-            sample_rate,
+            nr50: 0x00,
+            nr51: 0x00,
+            nr52: 0x00,
             audio_out_handle: None,
             samples_buffer: vec![0; buffer_size],
             mixed_samples_buffer: vec![(0.0, 0.0); buffer_size],
@@ -77,10 +73,10 @@ impl Apu {
     }
 
     fn turn_off(&mut self) {
-        self.ch1 = PulseChannel::new(self.frequency, self.sample_rate, true);
-        self.ch2 = PulseChannel::new(self.frequency, self.sample_rate, false);
-        self.ch3 = WaveChannel::new(self.frequency, self.sample_rate);
-        self.ch4 = NoiseChannel::new(self.frequency, self.sample_rate);
+        self.ch1.turn_off();
+        self.ch2.turn_off();
+        self.ch3.turn_off();
+        self.ch4.turn_off();
         self.mixer_clock = Self::new_mixer_clock();
         self.nr50 = 0;
         self.nr51 = 0;
@@ -158,7 +154,7 @@ impl Memory for Apu {
     fn write(&mut self, addr: u16, value: u8) {
         // All registers except NR52 are read-only when APU is disabled.
         // @see https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-4--noise:~:text=makes%20them%20read-only%20until%20turned%20back%20on
-        if !self.audio_on() && addr != 0xFF26 {
+        if !self.audio_on() && addr != 0xFF26 && !(0xFF30..=0xFF3F).contains(&addr) {
             return;
         }
 
@@ -174,13 +170,15 @@ impl Memory for Apu {
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
             0xFF26 => {
-                self.nr52 = unset_bits!(self.nr52, 7) | (value & 0x80);
+                self.nr52 = value;
                 if !self.audio_on() {
                     self.turn_off();
                 }
             }
             0xFF27..=0xFF2F => {}
-            0xFF30..=0xFF3F => self.ch3.wave_ram.write(addr, value),
+            0xFF30..=0xFF3F => {
+                self.ch3.wave_ram.write(addr, value);
+            }
             _ => unreachable!(
                 "Invalid APU register write at address: {:#X} with value: {:#X}",
                 addr, value
@@ -189,7 +187,19 @@ impl Memory for Apu {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        match addr {
+        const MASKS: [u8; 0x30] = [
+    
+            0x80, 0x3F, 0x00, 0xFF, 0xBF, // NR1y
+            0xFF, 0x3F, 0x00, 0xFF, 0xBF, // NR2y
+            0x7F, 0xFF, 0x9F, 0xFF, 0xBF, // NR3y
+            0xFF, 0xFF, 0x00, 0x00, 0xBF, // NR4y
+            0x00, 0x00, 0x70, // NR5y
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // Unused memory
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Wave RAM
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Wave RAM
+        ];
+
+        let value = match addr {
             0xFF10..=0xFF14 => self.ch1.read(addr - 0xFF10),
             0xFF15 => 0,
             0xFF16..=0xFF19 => self.ch2.read(addr - 0xFF15),
@@ -200,16 +210,20 @@ impl Memory for Apu {
             0xFF24 => self.nr50,
             0xFF25 => self.nr51,
             0xFF26 => {
-                let ch1_active = self.ch1.active() as u8;
-                let ch2_active = (self.ch2.active() as u8) << 1;
-                let ch3_active = (self.ch3.active() as u8) << 2;
-                let ch4_active = (self.ch4.on() as u8) << 3;
+                let ch1_on = self.ch1.on() as u8;
+                let ch2_on = (self.ch2.on() as u8) << 1;
+                let ch3_on = (self.ch3.on() as u8) << 2;
+                let ch4_on = (self.ch4.on() as u8) << 3;
 
-                (self.nr52 & 0x80) | ch1_active | ch2_active | ch3_active | ch4_active
+                log::debug!("CH1: {}, CH2: {}, CH3: {}, CH4: {}", ch1_on, ch2_on, ch3_on, ch4_on);
+
+                (self.nr52 & 0x80) | ch1_on | ch2_on | ch3_on | ch4_on
             }
             0xFF27..=0xFF2F => 0,
             0xFF30..=0xFF3F => self.ch3.wave_ram.read(addr),
             _ => unreachable!("Invalid APU register read at address: {:#X}", addr),
-        }
+        };
+
+        value | MASKS[addr as usize - 0xFF10]
     }
 }

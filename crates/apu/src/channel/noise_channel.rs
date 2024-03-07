@@ -1,6 +1,6 @@
 use gb_shared::{is_bit_set, unset_bits, Memory};
 
-use crate::{blipbuf, clock::Clock, length_timer::LengthTimer};
+use crate::{blipbuf, clock::Clock, length_timer::NoiseChannelLengthTimer as LengthTimer};
 
 use super::volume_envelope::VolumeEnvelope;
 
@@ -57,23 +57,28 @@ impl Lfsr {
 }
 
 pub(crate) struct NoiseChannel {
-    blipbuf: blipbuf::BlipBuf,
     /// Length timer.
     nrx1: u8,
     /// Volume envelope.
+    /// Bit0..=2, pace. Control volume envelope clock frequency. 0 disables the envelope.
+    /// Bit3, direction. 0: decrease, 1: increase.
+    /// Bit4..=7, initial volume. Used to set volume envelope's volume.
+    /// When Bit3..=7 are all 0, the DAC is off.
     nrx2: u8,
     /// Frequency and randomness.
-    /// Bit 7..=4: Clock shift.
-    /// Bit 3: LFSR width.
-    /// Bit 2..=0: Clock divider.
+    /// Bit2..=0, Clock divider.
+    /// Bit3, LFSR width.
+    /// Bit7..=4, Clock shift.
     nrx3: u8,
     /// Channel control.
-    /// Bit 7: Trigger.
-    /// Bit 6: Length enable.
+    /// Bit7, Trigger.
+    /// Bit6, Length enable.
     nrx4: u8,
+    blipbuf: blipbuf::BlipBuf,
     length_timer: LengthTimer,
     volume_envelope: VolumeEnvelope,
     lfsr: Lfsr,
+    active: bool,
 }
 
 impl NoiseChannel {
@@ -91,58 +96,83 @@ impl NoiseChannel {
             length_timer: LengthTimer::new_expired(),
             volume_envelope: VolumeEnvelope::new(nrx2),
             lfsr: Lfsr::new(nrx3),
+            active: false,
         }
     }
 
+    #[inline]
     pub(crate) fn on(&self) -> bool {
-        let triggered = is_bit_set!(self.nrx4, 7);
-        !self.length_timer.expired() && triggered
+        self.active
     }
 
-    pub(crate) fn active(&self) -> bool {
-        let dac_on = (self.nrx2 & 0xF8) != 0;
-        dac_on && self.on()
+    #[inline]
+    fn dac_on(&self) -> bool {
+        (self.nrx2 & 0xF8) != 0
     }
 
+    #[inline]
     pub(crate) fn step(&mut self) {
         if let Some(use_volume) = self.lfsr.step(self.nrx3) {
             let volume =
-                if use_volume && self.active() { self.volume_envelope.volume() as i32 } else { 0 };
+                if use_volume && (self.on()) { self.volume_envelope.volume() as i32 } else { 0 };
             self.blipbuf.add_delta(self.lfsr.clock.div(), volume);
         }
 
         self.volume_envelope.step(self.nrx2);
 
         self.length_timer.step();
+
+        self.active &= self.length_timer.active();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
         self.blipbuf.end(buffer, duration)
     }
+
+    pub(crate) fn turn_off(&mut self) {
+        for addr in 1..=4 {
+            self.write(addr, 0);
+        }
+    }
 }
 
 impl Memory for NoiseChannel {
     fn write(&mut self, addr: u16, value: u8) {
+        log::debug!("Write to NR4{}: {:#X}", addr, value);
         match addr {
             1 => {
-                self.length_timer.set(value & 0x3F);
+                self.length_timer.set_len(value & 0x3F);
                 self.nrx1 = value;
             }
             2 => {
-                self.volume_envelope = VolumeEnvelope::new(value);
                 self.nrx2 = value;
+
+                log::debug!("CH4 dac {}", if self.dac_on() { "on" } else { "off" });
+                self.active &= self.dac_on();
             }
             3 => {
                 self.lfsr.set_clock(value);
                 self.nrx3 = value;
             }
             4 => {
+                log::debug!(
+                    "{} CH4 length",
+                    if is_bit_set!(value, 6) { "enable" } else { "disable" }
+                );
+                self.length_timer.set_enabled(value);
+
                 // Trigger the channel
-                if is_bit_set!(value, 7) && !is_bit_set!(self.nrx4, 7) {
-                    self.length_timer.reset();
+                if is_bit_set!(value, 7) {
+                    log::debug!("CH4 trigger");
+                    self.length_timer.reset_len();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.lfsr = Lfsr::new(self.nrx3);
+                    self.blipbuf.clear();
                 }
+                self.active = self.length_timer.active();
+                self.active &= self.dac_on();
+                log::info!("CH4 active: {}", self.active);
+
                 self.nrx4 = value;
             }
             _ => unreachable!("Invalid address for NoiseChannel: {:#X}", addr),

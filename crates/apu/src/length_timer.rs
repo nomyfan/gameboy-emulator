@@ -1,48 +1,68 @@
+use gb_shared::is_bit_set;
+
 use crate::{clock::Clock, utils::freq_to_clock_cycles};
 
-pub(crate) struct LengthTimer {
+pub(crate) struct LengthTimer<const MAX: u16> {
     clock: Clock,
-    /// When the length timer reaches 64, the channel is turned off.
-    ticks: u8,
+    /// When the length timer reaches MAX, the channel is turned off.
+    pub(crate) len: u16,
+    pub(crate) enabled: bool,
 }
 
 const LENGTH_TIMER_CYCLES: u32 = freq_to_clock_cycles(256);
 
-impl LengthTimer {
+impl<const MAX: u16> LengthTimer<MAX> {
     pub(crate) fn new(init_value: u8) -> Self {
-        let init_value = 64.min(init_value);
-
-        Self { clock: Clock::new(LENGTH_TIMER_CYCLES), ticks: init_value }
+        let len = MAX.min(init_value as u16);
+        Self { clock: Clock::new(LENGTH_TIMER_CYCLES), len, enabled: false }
     }
 
     pub(crate) fn new_expired() -> Self {
-        Self::new(64)
+        Self::new(MAX as u8)
     }
 }
 
-impl LengthTimer {
+impl<const MAX: u16> LengthTimer<MAX> {
     #[inline]
     pub(crate) fn expired(&self) -> bool {
-        self.ticks == 64
+        self.len == MAX
     }
 
-    pub(crate) fn reset(&mut self) {
+    /// Reset the length to to maximum when it's expired.
+    pub(crate) fn reset_len(&mut self) {
+        log::debug!("reset_len {} {}", self.len, MAX);
         if self.expired() {
-            self.ticks = 0;
+            log::debug!("Reset OK");
+            self.len = 0;
         }
     }
 
-    pub(crate) fn set(&mut self, ticks: u8) {
-        self.ticks = ticks;
+    pub(crate) fn set_len(&mut self, len: u8) {
+        self.len = len as u16;
+    }
+
+    pub(crate) fn set_enabled(&mut self, nrx4: u8) {
+        self.enabled = is_bit_set!(nrx4, 6);
+    }
+
+    pub(crate) fn active(&self) -> bool {
+        self.enabled && !self.expired()
     }
 
     pub(crate) fn step(&mut self) {
-        if self.expired() {
+        if self.expired() || !self.enabled {
             return;
         }
 
         if self.clock.step() {
-            self.ticks += 1;
+            self.len += 1;
         }
     }
 }
+
+pub(crate) type LengthTimer64 = LengthTimer<64>;
+pub(crate) type LengthTimer256 = LengthTimer<256>;
+
+pub(crate) type PulseChannelLengthTimer = LengthTimer64;
+pub(crate) type WaveChannelLengthTimer = LengthTimer256;
+pub(crate) type NoiseChannelLengthTimer = LengthTimer64;

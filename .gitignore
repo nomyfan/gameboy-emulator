@@ -10,3 +10,5 @@
 .vscode
 .DS_Store
 /roms/games
+# Log files
+*.log
