@@ -1,7 +1,7 @@
 mod blipbuf;
 mod channel;
 mod clock;
-mod length_timer;
+mod length_counter;
 mod utils;
 
 use channel::{NoiseChannel, PulseChannel, WaveChannel};
@@ -188,7 +188,6 @@ impl Memory for Apu {
 
     fn read(&self, addr: u16) -> u8 {
         const MASKS: [u8; 0x30] = [
-    
             0x80, 0x3F, 0x00, 0xFF, 0xBF, // NR1y
             0xFF, 0x3F, 0x00, 0xFF, 0xBF, // NR2y
             0x7F, 0xFF, 0x9F, 0xFF, 0xBF, // NR3y

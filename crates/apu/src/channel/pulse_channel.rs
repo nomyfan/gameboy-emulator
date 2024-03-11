@@ -1,7 +1,7 @@
 use gb_shared::{is_bit_set, Memory};
 
 use crate::{
-    blipbuf, clock::Clock, length_timer::PulseChannelLengthTimer as LengthTimer,
+    blipbuf, clock::Clock, length_counter::PulseChannelLengthCounter as LengthCounter,
     utils::freq_to_clock_cycles,
 };
 
@@ -97,7 +97,7 @@ pub(crate) struct PulseChannel {
     nrx4: u8,
     blipbuf: blipbuf::BlipBuf,
     channel_clock: PulseChannelClock,
-    length_timer: LengthTimer,
+    length_counter: LengthCounter,
     duty_cycle: DutyCycle,
     volume_envelope: VolumeEnvelope,
     period_sweep: Option<PeriodSweep>,
@@ -189,7 +189,7 @@ impl PulseChannel {
         Self {
             blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, volume_envelope.volume() as i32),
             channel_clock: PulseChannelClock::from_period(period_sweep.period_value()),
-            length_timer: LengthTimer::new_expired(),
+            length_counter: LengthCounter::new_expired(),
             nrx0,
             nrx1,
             nrx2,
@@ -233,9 +233,9 @@ impl PulseChannel {
         }
 
         self.volume_envelope.step(self.nrx2);
-        self.length_timer.step();
+        self.length_counter.step();
 
-        self.active &= self.length_timer.active()
+        self.active &= self.length_counter.active()
             && self.period_sweep.as_ref().map_or(true, |s| !s.overflow());
     }
 
@@ -261,7 +261,7 @@ impl Memory for PulseChannel {
                 self.nrx0 = value;
             }
             1 => {
-                self.length_timer.set_len(value & 0x3F);
+                self.length_counter.set_len(value & 0x3F);
                 self.nrx1 = value;
             }
             2 => {
@@ -308,19 +308,19 @@ impl Memory for PulseChannel {
                     if is_bit_set!(value, 6) { "enable" } else { "disable" },
                     if ch1 { 1 } else { 2 }
                 );
-                self.length_timer.set_enabled(value);
+                self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     log::debug!("CH{} trigger", if self.period_sweep.is_some() { 1 } else { 2 });
-                    self.length_timer.reset_len();
+                    self.length_counter.reset_len();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.blipbuf.clear();
 
                     // TODO: Should sweep get updated when trigger?
                 }
 
-                self.active = self.length_timer.active()
+                self.active = self.length_counter.active()
                     && self.period_sweep.as_ref().map_or(true, |s| !s.overflow());
                 self.active &= self.dac_on();
                 log::info!("CH{} active: {}", if ch1 { 1 } else { 2 }, self.active);

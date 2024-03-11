@@ -1,6 +1,6 @@
 use gb_shared::{is_bit_set, Memory};
 
-use crate::{blipbuf, clock::Clock, length_timer::WaveChannelLengthTimer as LengthTimer};
+use crate::{blipbuf, clock::Clock, length_counter::WaveChannelLengthCounter as LengthCounter};
 
 enum OutputLevel {
     Mute,
@@ -74,7 +74,7 @@ pub struct WaveChannel {
     nrx4: u8,
     blipbuf: blipbuf::BlipBuf,
     pub(crate) wave_ram: WaveRam,
-    length_timer: LengthTimer,
+    length_counter: LengthCounter,
     channel_clock: Clock,
     active: bool,
 }
@@ -104,7 +104,7 @@ impl WaveChannel {
             nrx3,
             nrx4,
             wave_ram: WaveRam::new(),
-            length_timer: LengthTimer::new_expired(),
+            length_counter: LengthCounter::new_expired(),
             channel_clock: Self::new_channel_clock(nrx3, nrx4),
             active: false,
         }
@@ -146,9 +146,9 @@ impl WaveChannel {
             }
         }
 
-        self.length_timer.step();
+        self.length_counter.step();
 
-        self.active &= self.length_timer.active();
+        self.active &= self.length_counter.active();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
@@ -173,7 +173,7 @@ impl Memory for WaveChannel {
                 self.active &= self.dac_on();
             }
             1 => {
-                self.length_timer.set_len(value);
+                self.length_counter.set_len(value);
                 self.nrx1 = value;
             }
             2 => {
@@ -191,17 +191,17 @@ impl Memory for WaveChannel {
                     "{} CH3 length",
                     if is_bit_set!(value, 6) { "enable" } else { "disable" }
                 );
-                self.length_timer.set_enabled(value);
+                self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     log::debug!("CH3 trigger");
-                    self.length_timer.reset_len();
+                    self.length_counter.reset_len();
                     self.wave_ram.reset();
                     self.blipbuf.clear();
                 }
 
-                self.active = self.length_timer.active();
+                self.active = self.length_counter.active();
                 self.active &= self.dac_on();
                 log::info!("CH3 active: {}", self.active);
 

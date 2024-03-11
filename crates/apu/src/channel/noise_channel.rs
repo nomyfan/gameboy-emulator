@@ -1,6 +1,6 @@
 use gb_shared::{is_bit_set, unset_bits, Memory};
 
-use crate::{blipbuf, clock::Clock, length_timer::NoiseChannelLengthTimer as LengthTimer};
+use crate::{blipbuf, clock::Clock, length_counter::NoiseChannelLengthCounter as LengthCounter};
 
 use super::volume_envelope::VolumeEnvelope;
 
@@ -75,7 +75,7 @@ pub(crate) struct NoiseChannel {
     /// Bit6, Length enable.
     nrx4: u8,
     blipbuf: blipbuf::BlipBuf,
-    length_timer: LengthTimer,
+    length_counter: LengthCounter,
     volume_envelope: VolumeEnvelope,
     lfsr: Lfsr,
     active: bool,
@@ -93,7 +93,7 @@ impl NoiseChannel {
             nrx2,
             nrx3,
             nrx4,
-            length_timer: LengthTimer::new_expired(),
+            length_counter: LengthCounter::new_expired(),
             volume_envelope: VolumeEnvelope::new(nrx2),
             lfsr: Lfsr::new(nrx3),
             active: false,
@@ -120,9 +120,9 @@ impl NoiseChannel {
 
         self.volume_envelope.step(self.nrx2);
 
-        self.length_timer.step();
+        self.length_counter.step();
 
-        self.active &= self.length_timer.active();
+        self.active &= self.length_counter.active();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
@@ -141,7 +141,7 @@ impl Memory for NoiseChannel {
         log::debug!("Write to NR4{}: {:#X}", addr, value);
         match addr {
             1 => {
-                self.length_timer.set_len(value & 0x3F);
+                self.length_counter.set_len(value & 0x3F);
                 self.nrx1 = value;
             }
             2 => {
@@ -159,17 +159,17 @@ impl Memory for NoiseChannel {
                     "{} CH4 length",
                     if is_bit_set!(value, 6) { "enable" } else { "disable" }
                 );
-                self.length_timer.set_enabled(value);
+                self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     log::debug!("CH4 trigger");
-                    self.length_timer.reset_len();
+                    self.length_counter.reset_len();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.lfsr = Lfsr::new(self.nrx3);
                     self.blipbuf.clear();
                 }
-                self.active = self.length_timer.active();
+                self.active = self.length_counter.active();
                 self.active &= self.dac_on();
                 log::info!("CH4 active: {}", self.active);
 
