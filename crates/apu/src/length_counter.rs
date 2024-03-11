@@ -1,20 +1,18 @@
 use gb_shared::is_bit_set;
 
-use crate::{clock::Clock, utils::freq_to_clock_cycles};
+use crate::frame_sequencer::FrameSequencer;
 
 pub(crate) struct LengthCounter<const MAX: u16> {
-    clock: Clock,
+    fs: FrameSequencer,
     /// When the length timer reaches MAX, the channel is turned off.
     pub(crate) len: u16,
     pub(crate) enabled: bool,
 }
 
-const LENGTH_TIMER_CYCLES: u32 = freq_to_clock_cycles(256);
-
 impl<const MAX: u16> LengthCounter<MAX> {
     pub(crate) fn new(init_value: u8) -> Self {
         let len = MAX.min(init_value as u16);
-        Self { clock: Clock::new(LENGTH_TIMER_CYCLES), len, enabled: false }
+        Self { fs: FrameSequencer::new(), len, enabled: false }
     }
 
     pub(crate) fn new_expired() -> Self {
@@ -28,21 +26,23 @@ impl<const MAX: u16> LengthCounter<MAX> {
         self.len == MAX
     }
 
-    /// Reset the length to to maximum when it's expired.
-    pub(crate) fn reset_len(&mut self) {
-        log::debug!("reset_len {} {}", self.len, MAX);
-        if self.expired() {
-            log::debug!("Reset OK");
-            self.len = 0;
-        }
-    }
-
     pub(crate) fn set_len(&mut self, len: u8) {
         self.len = len as u16;
     }
 
+    #[inline]
+    fn working(&mut self) -> bool {
+        (self.fs.current_step() & 1) == 0
+    }
+
     pub(crate) fn set_enabled(&mut self, nrx4: u8) {
+        let was_enabled = self.enabled;
         self.enabled = is_bit_set!(nrx4, 6);
+
+        // https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#:~:text=if%20the%20length%20counter%20was%20previously%20disabled%20and%20now%20enabled%20and%20the%20length%20counter%20is%20not%20zero
+        if !was_enabled && self.enabled && !self.expired() && self.working() {
+            self.len += 1;
+        }
     }
 
     #[inline]
@@ -50,13 +50,27 @@ impl<const MAX: u16> LengthCounter<MAX> {
         !self.expired()
     }
 
-    pub(crate) fn step(&mut self) {
-        if self.expired() || !self.enabled {
-            return;
-        }
+    pub(crate) fn trigger(&mut self) {
+        log::debug!("reset_len {} {}", self.len, MAX);
+        if self.expired() {
+            self.len = 0;
 
-        if self.clock.step() {
-            self.len += 1;
+            // https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#:~:text=it%20is%20set%20to%2063%20instead
+            if self.enabled && self.working() {
+                self.len += 1;
+            }
+        }
+    }
+
+    pub(crate) fn step(&mut self) {
+        if let Some(step) = self.fs.step() {
+            if self.expired() || !self.enabled {
+                return;
+            }
+
+            if (step & 1) == 0 {
+                self.len += 1;
+            }
         }
     }
 }

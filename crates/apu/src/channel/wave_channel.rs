@@ -196,7 +196,7 @@ impl Memory for WaveChannel {
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     log::debug!("CH3 trigger");
-                    self.length_counter.reset_len();
+                    self.length_counter.trigger();
                     self.wave_ram.reset();
                     self.blipbuf.clear();
                 }

@@ -1,6 +1,7 @@
 mod blipbuf;
 mod channel;
 mod clock;
+mod frame_sequencer;
 mod length_counter;
 mod utils;
 

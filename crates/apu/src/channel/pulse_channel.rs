@@ -232,7 +232,7 @@ impl PulseChannel {
             }
         }
 
-        self.volume_envelope.step(self.nrx2);
+        self.volume_envelope.step();
         self.length_counter.step();
 
         self.active &= self.length_counter.active()
@@ -266,6 +266,7 @@ impl Memory for PulseChannel {
             }
             2 => {
                 self.nrx2 = value;
+                self.volume_envelope.set_nrx2(value);
 
                 log::debug!(
                     "CH{} dac {}",
@@ -313,7 +314,7 @@ impl Memory for PulseChannel {
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     log::debug!("CH{} trigger", if self.period_sweep.is_some() { 1 } else { 2 });
-                    self.length_counter.reset_len();
+                    self.length_counter.trigger();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.blipbuf.clear();
 

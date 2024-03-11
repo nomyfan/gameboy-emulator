@@ -118,7 +118,7 @@ impl NoiseChannel {
             self.blipbuf.add_delta(self.lfsr.clock.div(), volume);
         }
 
-        self.volume_envelope.step(self.nrx2);
+        self.volume_envelope.step();
 
         self.length_counter.step();
 
@@ -146,6 +146,7 @@ impl Memory for NoiseChannel {
             }
             2 => {
                 self.nrx2 = value;
+                self.volume_envelope.set_nrx2(value);
 
                 log::debug!("CH4 dac {}", if self.dac_on() { "on" } else { "off" });
                 self.active &= self.dac_on();
@@ -164,7 +165,7 @@ impl Memory for NoiseChannel {
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     log::debug!("CH4 trigger");
-                    self.length_counter.reset_len();
+                    self.length_counter.trigger();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.lfsr = Lfsr::new(self.nrx3);
                     self.blipbuf.clear();

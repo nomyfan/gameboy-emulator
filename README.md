@@ -17,3 +17,5 @@ Game Boy emulator written in Rust.
 - [eZ80 Heaven](https://ez80.readthedocs.io/en/latest/index.html)
 
 - [電子音樂互動教材第二版本](https://pages.uoregon.edu/emi/chinese/index.php?id=15)
+
+- [Gameboy sound hardware](https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware)
