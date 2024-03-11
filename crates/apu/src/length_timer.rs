@@ -45,8 +45,9 @@ impl<const MAX: u16> LengthTimer<MAX> {
         self.enabled = is_bit_set!(nrx4, 6);
     }
 
+    #[inline]
     pub(crate) fn active(&self) -> bool {
-        self.enabled && !self.expired()
+        !self.expired()
     }
 
     pub(crate) fn step(&mut self) {
