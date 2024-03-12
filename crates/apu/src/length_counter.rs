@@ -5,8 +5,8 @@ use crate::frame_sequencer::FrameSequencer;
 pub(crate) struct LengthCounter<const MAX: u16> {
     fs: FrameSequencer,
     /// When the length timer reaches MAX, the channel is turned off.
-    pub(crate) len: u16,
-    pub(crate) enabled: bool,
+    len: u16,
+    enabled: bool,
 }
 
 impl<const MAX: u16> LengthCounter<MAX> {
@@ -17,6 +17,16 @@ impl<const MAX: u16> LengthCounter<MAX> {
 
     pub(crate) fn new_expired() -> Self {
         Self::new(MAX as u8)
+    }
+}
+
+impl<const MAX: u16> std::fmt::Debug for LengthCounter<MAX> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LengthCounter")
+            .field("MAX", &MAX)
+            .field("len", &self.len)
+            .field("enabled", &self.enabled)
+            .finish()
     }
 }
 
@@ -56,7 +66,6 @@ impl<const MAX: u16> LengthCounter<MAX> {
     }
 
     pub(crate) fn trigger(&mut self) {
-        log::debug!("reset_len {} {}", self.len, MAX);
         if self.expired() {
             self.len = 0;
 

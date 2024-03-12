@@ -164,12 +164,10 @@ impl WaveChannel {
 
 impl Memory for WaveChannel {
     fn write(&mut self, addr: u16, value: u8) {
-        log::debug!("Write to NR3{}: {:#X}", addr, value);
         match addr {
             0 => {
                 self.nrx0 = value;
 
-                log::debug!("CH3 dac {}", if self.dac_on() { "on" } else { "off" });
                 self.active &= self.dac_on();
             }
             1 => {
@@ -187,15 +185,10 @@ impl Memory for WaveChannel {
             4 => {
                 // TODO: update delay. After current sample ends.
                 self.channel_clock = Self::new_channel_clock(self.nrx3, value);
-                log::debug!(
-                    "{} CH3 length",
-                    if is_bit_set!(value, 6) { "enable" } else { "disable" }
-                );
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
-                    log::debug!("CH3 trigger");
                     self.length_counter.trigger();
                     self.wave_ram.reset();
                     self.blipbuf.clear();
@@ -203,7 +196,6 @@ impl Memory for WaveChannel {
 
                 self.active = self.length_counter.active();
                 self.active &= self.dac_on();
-                log::info!("CH3 active: {}", self.active);
 
                 self.nrx4 = value;
             }

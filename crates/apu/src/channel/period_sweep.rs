@@ -2,7 +2,7 @@ use gb_shared::is_bit_set;
 
 use crate::frame_sequencer::FrameSequencer;
 
-pub(crate) trait PeriodSweep {
+pub(crate) trait PeriodSweep: std::fmt::Debug {
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self;
     fn step(&mut self) -> Option<()>;
     fn trigger(&mut self);
@@ -33,6 +33,20 @@ pub(crate) struct SomePeriodSweep {
     /// Enabled if `pace` != 8 or `shift` != 0.
     enabled: bool,
     overflow: bool,
+}
+
+impl std::fmt::Debug for SomePeriodSweep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SomePeriodSweep")
+            .field("fs", &self.fs.current_step())
+            .field("steps", &self.steps)
+            .field("pace", &self.pace)
+            .field("shift", &self.shift)
+            .field("period_value", &self.period_value)
+            .field("enabled", &self.enabled)
+            .field("overflow", &self.overflow)
+            .finish()
+    }
 }
 
 impl SomePeriodSweep {
@@ -172,12 +186,19 @@ pub(crate) struct NonePeriodSweep {
     nrx4: u8,
 }
 
+impl std::fmt::Debug for NonePeriodSweep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NonePeriodSweep").finish()
+    }
+}
+
 impl PeriodSweep for NonePeriodSweep {
     fn new(_nrx0: u8, nrx3: u8, nrx4: u8) -> Self {
         Self { nrx3, nrx4 }
     }
 
     fn step(&mut self) -> Option<()> {
+        // FIXME: ?
         None
     }
 

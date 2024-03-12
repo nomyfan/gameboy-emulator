@@ -93,6 +93,17 @@ pub(crate) struct PulseChannel<SWEEP: PeriodSweep> {
     active: bool,
 }
 
+impl<SWEEP: PeriodSweep> std::fmt::Debug for PulseChannel<SWEEP> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PulseChannel")
+            .field("length_counter", &self.length_counter)
+            // .field("volume_envelope", &self.volume_envelope) // TODO: Implement Debug for VolumeEnvelope
+            .field("period_sweep", &self.period_sweep)
+            .field("active", &self.active)
+            .finish()
+    }
+}
+
 impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
     pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
         let nrx0 = 0;

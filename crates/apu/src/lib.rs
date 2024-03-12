@@ -42,6 +42,7 @@ pub struct Apu {
     audio_out_handle: Option<Box<AudioOutHandle>>,
     samples_buffer: Vec<i16>,
     mixed_samples_buffer: Vec<(f32, f32)>,
+    dbg_clocks: usize,
 }
 
 impl Apu {
@@ -66,6 +67,7 @@ impl Apu {
             audio_out_handle: None,
             samples_buffer: vec![0; buffer_size],
             mixed_samples_buffer: vec![(0.0, 0.0); buffer_size],
+            dbg_clocks: 0,
         }
     }
 
@@ -74,14 +76,19 @@ impl Apu {
     }
 
     fn turn_off(&mut self) {
+        log::debug!("turn of CH1");
         self.ch1.turn_off();
+        log::debug!("turn of CH2");
         self.ch2.turn_off();
+        log::debug!("turn of CH3");
         self.ch3.turn_off();
+        log::debug!("turn of CH4");
         self.ch4.turn_off();
         self.mixer_clock = Self::new_mixer_clock();
         self.nr50 = 0;
         self.nr51 = 0;
         self.nr52 = 0;
+        self.dbg_clocks = 0;
     }
 
     #[inline]
@@ -104,6 +111,7 @@ impl Apu {
             return;
         }
 
+        self.dbg_clocks = self.dbg_clocks.wrapping_add(1);
         self.ch1.step();
         self.ch2.step();
         self.ch3.step();
@@ -160,13 +168,25 @@ impl Memory for Apu {
         }
 
         match addr {
-            0xFF10..=0xFF14 => self.ch1.write(addr - 0xFF10, value),
+            0xFF10..=0xFF14 => {
+                self.ch1.write(addr - 0xFF10, value);
+                log::debug!("Write NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, &self,);
+            }
             0xFF15 => {}
-            0xFF16..=0xFF19 => self.ch2.write(addr - 0xFF15, value),
+            0xFF16..=0xFF19 => {
+                self.ch2.write(addr - 0xFF15, value);
+                log::debug!("Write NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, &self);
+            }
 
-            0xFF1A..=0xFF1E => self.ch3.write(addr - 0xFF1A, value),
+            0xFF1A..=0xFF1E => {
+                log::debug!("Write NR3{} value: {:#X}", addr - 0xFF1A, value,);
+                self.ch3.write(addr - 0xFF1A, value);
+            }
             0xFF1F => {}
-            0xFF20..=0xFF23 => self.ch4.write(addr - 0xFF1F, value),
+            0xFF20..=0xFF23 => {
+                log::debug!("Write NR4{} value: {:#X}", addr - 0xFF1F, value,);
+                self.ch4.write(addr - 0xFF1F, value);
+            }
 
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
@@ -215,7 +235,7 @@ impl Memory for Apu {
                 let ch3_on = (self.ch3.on() as u8) << 2;
                 let ch4_on = (self.ch4.on() as u8) << 3;
 
-                log::debug!("CH1: {}, CH2: {}, CH3: {}, CH4: {}", ch1_on, ch2_on, ch3_on, ch4_on);
+                log::debug!("Read NR52, {:?}", self);
 
                 (self.nr52 & 0x80) | ch1_on | ch2_on | ch3_on | ch4_on
             }
@@ -225,5 +245,23 @@ impl Memory for Apu {
         };
 
         value | MASKS[addr as usize - 0xFF10]
+    }
+}
+
+impl std::fmt::Debug for Apu {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ch1_on = self.ch1.on() as u8;
+        let ch2_on = (self.ch2.on() as u8) << 1;
+        let ch3_on = (self.ch3.on() as u8) << 2;
+        let ch4_on = (self.ch4.on() as u8) << 3;
+        let nrx52 = (self.nr52 & 0x80) | ch1_on | ch2_on | ch3_on | ch4_on;
+        f.debug_struct("Apu")
+            .field("ch1", &self.ch1)
+            .field("ch2", &self.ch2)
+            // .field("ch3", &self.ch3)
+            // .field("ch4", &self.ch4)
+            .field("NR52", &format!("{:#X}", nrx52))
+            .field("clocks", &self.dbg_clocks)
+            .finish()
     }
 }

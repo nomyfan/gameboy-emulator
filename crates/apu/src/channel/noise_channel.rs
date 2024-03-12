@@ -138,7 +138,6 @@ impl NoiseChannel {
 
 impl Memory for NoiseChannel {
     fn write(&mut self, addr: u16, value: u8) {
-        log::debug!("Write to NR4{}: {:#X}", addr, value);
         match addr {
             1 => {
                 self.length_counter.set_len(value & 0x3F);
@@ -148,7 +147,6 @@ impl Memory for NoiseChannel {
                 self.nrx2 = value;
                 self.volume_envelope.set_nrx2(value);
 
-                log::debug!("CH4 dac {}", if self.dac_on() { "on" } else { "off" });
                 self.active &= self.dac_on();
             }
             3 => {
@@ -156,15 +154,10 @@ impl Memory for NoiseChannel {
                 self.nrx3 = value;
             }
             4 => {
-                log::debug!(
-                    "{} CH4 length",
-                    if is_bit_set!(value, 6) { "enable" } else { "disable" }
-                );
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
-                    log::debug!("CH4 trigger");
                     self.length_counter.trigger();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.lfsr = Lfsr::new(self.nrx3);
@@ -172,7 +165,6 @@ impl Memory for NoiseChannel {
                 }
                 self.active = self.length_counter.active();
                 self.active &= self.dac_on();
-                log::info!("CH4 active: {}", self.active);
 
                 self.nrx4 = value;
             }
