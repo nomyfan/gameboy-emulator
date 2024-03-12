@@ -5,15 +5,15 @@ mod frame_sequencer;
 mod length_counter;
 mod utils;
 
-use channel::{NoiseChannel, PulseChannel, WaveChannel};
+use channel::{Channel1, Channel2, Channel3, Channel4};
 use clock::Clock;
 use gb_shared::{is_bit_set, AudioOutHandle, Memory, CPU_FREQ};
 
 pub struct Apu {
-    ch1: PulseChannel,
-    ch2: PulseChannel,
-    ch3: WaveChannel,
-    ch4: NoiseChannel,
+    ch1: Channel1,
+    ch2: Channel2,
+    ch3: Channel3,
+    ch4: Channel4,
     mixer_clock: Clock,
     /// Master volumn & VIN panning.
     /// Bit 7: VIN left.
@@ -55,10 +55,10 @@ impl Apu {
         let frequency = CPU_FREQ;
         let buffer_size = sample_rate.div_ceil(Self::MIXER_FREQ) as usize;
         Self {
-            ch1: PulseChannel::new(frequency, sample_rate, true),
-            ch2: PulseChannel::new(frequency, sample_rate, false),
-            ch3: WaveChannel::new(frequency, sample_rate),
-            ch4: NoiseChannel::new(frequency, sample_rate),
+            ch1: Channel1::new(frequency, sample_rate),
+            ch2: Channel2::new(frequency, sample_rate),
+            ch3: Channel3::new(frequency, sample_rate),
+            ch4: Channel4::new(frequency, sample_rate),
             mixer_clock: Self::new_mixer_clock(),
             nr50: 0x00,
             nr51: 0x00,
