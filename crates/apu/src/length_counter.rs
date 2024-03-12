@@ -35,6 +35,11 @@ impl<const MAX: u16> LengthCounter<MAX> {
         (self.fs.current_step() & 1) == 0
     }
 
+    #[inline]
+    pub(crate) fn enabled(&self) -> bool {
+        self.enabled
+    }
+
     pub(crate) fn set_enabled(&mut self, nrx4: u8) {
         let was_enabled = self.enabled;
         self.enabled = is_bit_set!(nrx4, 6);

@@ -16,13 +16,19 @@ pub(super) struct VolumeEnvelope {
 impl VolumeEnvelope {
     /// About `nrx2`, see https://gbdev.io/pandocs/Audio_Registers.html#ff12--nr12-channel-1-volume--envelope
     pub(super) fn new(nrx2: u8) -> Self {
-        let pace = nrx2 & 0b111;
+        let pace = {
+            let mut pace = nrx2 & 0b111;
+            if pace == 0 {
+                pace = 8;
+            }
+            pace
+        };
         let dir_increase = is_bit_set!(nrx2, 3);
         let volume = (nrx2 >> 4) & 0xF;
         Self { fs: FrameSequencer::new(), steps: pace, pace, dir_increase, volume, nrx2: None }
     }
 
-    pub(crate) fn set_nrx2(&mut self, nrx2: u8) {
+    pub(super) fn set_nrx2(&mut self, nrx2: u8) {
         self.nrx2 = Some(nrx2);
     }
 
@@ -39,7 +45,6 @@ impl VolumeEnvelope {
 
             if step == 7 {
                 self.steps = self.steps.saturating_sub(1);
-                // Complete one iteration.
                 if self.steps == 0 {
                     if self.dir_increase {
                         self.volume = self.volume.saturating_sub(1);
