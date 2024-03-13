@@ -162,7 +162,7 @@ impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
         self.length_counter.step();
 
         self.active &= self.length_counter.active();
-        self.active &= !self.period_sweep.overflow();
+        self.active &= self.period_sweep.active();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
@@ -195,11 +195,11 @@ impl<SWEEP: PeriodSweep> Memory for PulseChannel<SWEEP> {
             }
             3 => {
                 self.period_sweep.set_nrx3(value);
-                self.channel_clock.reload(self.period_sweep.period_value());
+                // self.channel_clock.reload(self.period_sweep.period_value());
             }
             4 => {
                 self.period_sweep.set_nrx4(value);
-                self.channel_clock.reload(self.period_sweep.period_value());
+                // self.channel_clock.reload(self.period_sweep.period_value());
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
@@ -215,7 +215,7 @@ impl<SWEEP: PeriodSweep> Memory for PulseChannel<SWEEP> {
 
                 self.active = self.dac_on();
                 self.active &= self.length_counter.active();
-                self.active &= !self.period_sweep.overflow();
+                self.active &= self.period_sweep.active();
             }
             _ => unreachable!("Invalid address for PulseChannel: {:#X}", addr),
         }

@@ -6,7 +6,7 @@ pub(crate) trait PeriodSweep: std::fmt::Debug {
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self;
     fn step(&mut self) -> Option<()>;
     fn trigger(&mut self);
-    fn overflow(&self) -> bool;
+    fn active(&self) -> bool;
     fn set_nrx0(&mut self, nrx0: u8);
     fn set_nrx3(&mut self, nrx3: u8);
     fn set_nrx4(&mut self, nrx4: u8);
@@ -24,15 +24,20 @@ pub(crate) struct SomePeriodSweep {
     dir_decrease: bool,
     /// Used to calculate next period value.
     shift: u8,
-    period_value: u16,
+    shadow_period_value: u16,
     /// Writes to NR13 and NR14 will be stored here and
     /// will be used to override `shadow_period_value` on
     /// triggered. And it can be overriden by `period_value`
     /// on next period sweep update.
     nrx34: u16,
     /// Enabled if `pace` != 8 or `shift` != 0.
+    /// Update on triggered.
     enabled: bool,
-    overflow: bool,
+    /// Control channel.
+    active: bool,
+    /// Set as `false` when writing to NR10.
+    /// Set as `true` when at least one calculation has been made.
+    occurred: bool,
 }
 
 impl std::fmt::Debug for SomePeriodSweep {
@@ -41,10 +46,12 @@ impl std::fmt::Debug for SomePeriodSweep {
             .field("fs", &self.fs.current_step())
             .field("steps", &self.steps)
             .field("pace", &self.pace)
+            .field("dir", &if self.dir_decrease { "-" } else { "+" })
             .field("shift", &self.shift)
-            .field("period_value", &self.period_value)
+            .field("shadow_period_value", &format!("{:#X}", self.shadow_period_value))
+            .field("nrx34", &format!("{:#X}", self.nrx34))
             .field("enabled", &self.enabled)
-            .field("overflow", &self.overflow)
+            .field("active", &self.active)
             .finish()
     }
 }
@@ -95,10 +102,11 @@ impl PeriodSweep for SomePeriodSweep {
             pace,
             dir_decrease,
             shift,
-            period_value,
+            shadow_period_value: period_value,
             nrx34: period_value,
-            enabled: false,
-            overflow: false,
+            enabled: pace != 8 || shift != 0,
+            active: true,
+            occurred: false,
         }
     }
 
@@ -107,16 +115,16 @@ impl PeriodSweep for SomePeriodSweep {
             if self.enabled && (step == 2 || step == 6) {
                 self.steps = self.steps.saturating_sub(1);
                 if self.steps == 0 {
+                    self.steps = self.pace;
                     if self.pace != 8 {
                         let new_period_value = Self::calculate_next_period_value(
-                            self.period_value,
+                            self.shadow_period_value,
                             self.dir_decrease,
                             self.shift,
                         );
-                        self.overflow = new_period_value > 2047;
-                        if !self.overflow && self.shift != 0 {
-                            // Writen back
-                            self.period_value = new_period_value;
+                        self.active = new_period_value <= 2047;
+                        if self.active && self.shift != 0 {
+                            self.shadow_period_value = new_period_value;
                             self.nrx34 = new_period_value;
 
                             // AGAIN
@@ -125,11 +133,13 @@ impl PeriodSweep for SomePeriodSweep {
                                 self.dir_decrease,
                                 self.shift,
                             );
-                            self.overflow = new_period_value > 2047;
+                            self.active = new_period_value <= 2047;
+                            log::debug!("reloaded {:?}", self);
                             return Some(());
                         }
+
+                        self.occurred = true;
                     }
-                    self.steps = self.pace;
                 }
             }
         }
@@ -138,32 +148,38 @@ impl PeriodSweep for SomePeriodSweep {
     }
 
     fn trigger(&mut self) {
-        self.period_value = self.nrx34;
+        self.shadow_period_value = self.nrx34;
         self.steps = self.pace;
         self.enabled = self.pace != 8 || self.shift != 0;
-        self.overflow = false;
+        self.active = true;
 
         if self.shift != 0 {
-            let new_period_value =
-                Self::calculate_next_period_value(self.period_value, self.dir_decrease, self.shift);
-            self.overflow = new_period_value > 2047;
-            if !self.overflow {
-                self.period_value = new_period_value;
-                self.nrx34 = new_period_value;
-            }
+            let new_period_value = Self::calculate_next_period_value(
+                self.shadow_period_value,
+                self.dir_decrease,
+                self.shift,
+            );
+
+            self.active = new_period_value <= 2047;
+            self.occurred = true;
         }
     }
 
     #[inline]
-    fn overflow(&self) -> bool {
-        self.overflow
+    fn active(&self) -> bool {
+        self.active
     }
 
     fn set_nrx0(&mut self, nrx0: u8) {
         let (pace, dir_decrease, shift) = Self::parse_nrx0(nrx0);
+        if self.dir_decrease && !dir_decrease && self.occurred {
+            self.active = false;
+        }
+
         self.pace = pace;
         self.dir_decrease = dir_decrease;
         self.shift = shift;
+        self.occurred = false;
     }
 
     fn set_nrx3(&mut self, nrx3: u8) {
@@ -177,7 +193,7 @@ impl PeriodSweep for SomePeriodSweep {
     }
 
     fn period_value(&self) -> u16 {
-        self.period_value
+        self.shadow_period_value
     }
 }
 
@@ -198,14 +214,13 @@ impl PeriodSweep for NonePeriodSweep {
     }
 
     fn step(&mut self) -> Option<()> {
-        // FIXME: ?
         None
     }
 
     fn trigger(&mut self) {}
 
-    fn overflow(&self) -> bool {
-        false
+    fn active(&self) -> bool {
+        true
     }
 
     fn set_nrx0(&mut self, _nrx0: u8) {}

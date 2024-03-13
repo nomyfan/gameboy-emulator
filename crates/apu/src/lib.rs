@@ -42,6 +42,7 @@ pub struct Apu {
     audio_out_handle: Option<Box<AudioOutHandle>>,
     samples_buffer: Vec<i16>,
     mixed_samples_buffer: Vec<(f32, f32)>,
+    // FIXME: delete me
     dbg_clocks: usize,
 }
 
@@ -76,19 +77,16 @@ impl Apu {
     }
 
     fn turn_off(&mut self) {
-        log::debug!("turn of CH1");
         self.ch1.turn_off();
-        log::debug!("turn of CH2");
         self.ch2.turn_off();
-        log::debug!("turn of CH3");
         self.ch3.turn_off();
-        log::debug!("turn of CH4");
         self.ch4.turn_off();
         self.mixer_clock = Self::new_mixer_clock();
         self.nr50 = 0;
         self.nr51 = 0;
         self.nr52 = 0;
         self.dbg_clocks = 0;
+        log::debug!("Apu is turned off");
     }
 
     #[inline]
@@ -169,23 +167,27 @@ impl Memory for Apu {
 
         match addr {
             0xFF10..=0xFF14 => {
+                log::debug!("Write(B) NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, self);
                 self.ch1.write(addr - 0xFF10, value);
-                log::debug!("Write NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, &self,);
+                log::debug!("Write(A) NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, self);
             }
             0xFF15 => {}
             0xFF16..=0xFF19 => {
+                log::debug!("Write(B) NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, self);
                 self.ch2.write(addr - 0xFF15, value);
-                log::debug!("Write NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, &self);
+                log::debug!("Write(A) NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, self);
             }
 
             0xFF1A..=0xFF1E => {
-                log::debug!("Write NR3{} value: {:#X}", addr - 0xFF1A, value,);
+                log::debug!("Write(B) NR3{} value: {:#X}, {:?}", addr - 0xFF1A, value, self);
                 self.ch3.write(addr - 0xFF1A, value);
+                log::debug!("Write(A) NR3{} value: {:#X}, {:?}", addr - 0xFF1A, value, self);
             }
             0xFF1F => {}
             0xFF20..=0xFF23 => {
-                log::debug!("Write NR4{} value: {:#X}", addr - 0xFF1F, value,);
+                log::debug!("Write(B) NR4{} value: {:#X}, {:?}", addr - 0xFF1F, value, self);
                 self.ch4.write(addr - 0xFF1F, value);
+                log::debug!("Write(A) NR4{} value: {:#X}, {:?}", addr - 0xFF1F, value, self);
             }
 
             0xFF24 => self.nr50 = value,
