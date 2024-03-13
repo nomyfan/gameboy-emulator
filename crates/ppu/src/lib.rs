@@ -421,15 +421,6 @@ impl Ppu {
                 // 2. If LCDC.0 is 0, then render the object.
                 // 3. If OAM attributes.7 is 0, then render the object.
                 // 4. Otherwise, render the BGW.
-                if self.lcd.ly >= 88 && self.lcd.ly < 114 {
-                    log::debug!(
-                        "Render object at ({}, {}), object len {}, object size {}",
-                        self.work_state.scanline_x,
-                        self.lcd.ly,
-                        self.work_state.scanline_objects.len(),
-                        obj_size,
-                    );
-                }
                 if color_id == 0 || !object.attrs.bgw_over_object() {
                     let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
                     let offset = obj_color_id * 2;
