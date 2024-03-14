@@ -1,6 +1,8 @@
 use gb_shared::{is_bit_set, Memory};
 
-use crate::{blipbuf, clock::Clock, length_counter::WaveChannelLengthCounter as LengthCounter};
+use crate::{blipbuf, clock::Clock};
+
+use super::WaveChannelLengthCounter as LengthCounter;
 
 enum OutputLevel {
     Mute,

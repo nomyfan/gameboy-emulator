@@ -1,6 +1,6 @@
 use gb_shared::is_bit_set;
 
-use crate::frame_sequencer::FrameSequencer;
+use super::FrameSequencer;
 
 pub(crate) trait PeriodSweep: std::fmt::Debug {
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self;

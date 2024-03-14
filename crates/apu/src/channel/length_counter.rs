@@ -1,6 +1,6 @@
 use gb_shared::is_bit_set;
 
-use crate::frame_sequencer::FrameSequencer;
+use super::FrameSequencer;
 
 pub(crate) struct LengthCounter<const MAX: u16> {
     fs: FrameSequencer,

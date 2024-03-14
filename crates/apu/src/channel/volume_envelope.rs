@@ -1,6 +1,6 @@
 use gb_shared::is_bit_set;
 
-use crate::frame_sequencer::FrameSequencer;
+use super::FrameSequencer;
 
 pub(super) struct VolumeEnvelope {
     fs: FrameSequencer,

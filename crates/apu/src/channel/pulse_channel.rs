@@ -1,8 +1,8 @@
 use gb_shared::{is_bit_set, Memory};
 
-use crate::{blipbuf, clock::Clock, length_counter::PulseChannelLengthCounter as LengthCounter};
+use crate::{blipbuf, clock::Clock};
 
-use super::{period_sweep::PeriodSweep, VolumeEnvelope};
+use super::{PeriodSweep, PulseChannelLengthCounter as LengthCounter, VolumeEnvelope};
 
 struct PulseChannelClock(Clock);
 

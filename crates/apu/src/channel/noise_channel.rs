@@ -1,8 +1,8 @@
 use gb_shared::{is_bit_set, unset_bits, Memory};
 
-use crate::{blipbuf, clock::Clock, length_counter::NoiseChannelLengthCounter as LengthCounter};
+use crate::{blipbuf, clock::Clock};
 
-use super::volume_envelope::VolumeEnvelope;
+use super::{NoiseChannelLengthCounter as LengthCounter, VolumeEnvelope};
 
 struct Lfsr {
     value: u16,

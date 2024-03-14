@@ -1,10 +1,17 @@
+mod frame_sequencer;
+mod length_counter;
 mod noise_channel;
 mod period_sweep;
 mod pulse_channel;
 mod volume_envelope;
 mod wave_channel;
 
+use frame_sequencer::FrameSequencer;
+use length_counter::{
+    NoiseChannelLengthCounter, PulseChannelLengthCounter, WaveChannelLengthCounter,
+};
 use noise_channel::NoiseChannel;
+use period_sweep::PeriodSweep;
 use pulse_channel::PulseChannel;
 use volume_envelope::VolumeEnvelope;
 use wave_channel::WaveChannel;
