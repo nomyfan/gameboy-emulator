@@ -2,7 +2,7 @@ use gb_shared::{is_bit_set, unset_bits, Memory};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::{NoiseChannelLengthCounter as LengthCounter, VolumeEnvelope};
+use super::{Frame, NoiseChannelLengthCounter as LengthCounter, VolumeEnvelope};
 
 struct Lfsr {
     value: u16,
@@ -111,16 +111,17 @@ impl NoiseChannel {
     }
 
     #[inline]
-    pub(crate) fn step(&mut self) {
+    pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if let Some(use_volume) = self.lfsr.step(self.nrx3) {
             let volume =
                 if use_volume && (self.on()) { self.volume_envelope.volume() as i32 } else { 0 };
             self.blipbuf.add_delta(self.lfsr.clock.div(), volume);
         }
 
-        self.volume_envelope.step();
-
-        self.length_counter.step();
+        if let Some(frame) = frame {
+            self.volume_envelope.step(frame);
+            self.length_counter.step(frame);
+        }
 
         self.active &= self.length_counter.active();
     }
@@ -129,10 +130,14 @@ impl NoiseChannel {
         self.blipbuf.end(buffer, duration)
     }
 
-    pub(crate) fn turn_off(&mut self) {
-        for addr in 1..=4 {
-            self.write(addr, 0);
-        }
+    pub(crate) fn power_off(&mut self) {
+        // FIXME: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=except%20on%20the%20dmg%2C%20where%20length%20counters%20are%20unaffected%20by%20power%20and%20can%20still%20be%20written%20while%20off
+        self.write(1, 0);
+        self.write(2, 0);
+        self.write(3, 0);
+        self.write(4, 0);
+
+        self.length_counter.frame = Default::default();
     }
 }
 

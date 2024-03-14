@@ -2,7 +2,7 @@ use gb_shared::{is_bit_set, Memory};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::{PeriodSweep, PulseChannelLengthCounter as LengthCounter, VolumeEnvelope};
+use super::{Frame, PeriodSweep, PulseChannelLengthCounter as LengthCounter, VolumeEnvelope};
 
 struct PulseChannelClock(Clock);
 
@@ -63,7 +63,10 @@ impl DutyCycle {
     }
 }
 
-pub(crate) struct PulseChannel<SWEEP: PeriodSweep> {
+pub(crate) struct PulseChannel<SWEEP>
+where
+    SWEEP: PeriodSweep,
+{
     /// Period sweep. Channel 2 lacks this feature.
     /// Bit0..=2, individual step. Used to calculate next period value.
     /// Bit3, direction. 0: increase, 1: decrease.
@@ -93,7 +96,10 @@ pub(crate) struct PulseChannel<SWEEP: PeriodSweep> {
     active: bool,
 }
 
-impl<SWEEP: PeriodSweep> std::fmt::Debug for PulseChannel<SWEEP> {
+impl<SWEEP> std::fmt::Debug for PulseChannel<SWEEP>
+where
+    SWEEP: PeriodSweep,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PulseChannel")
             .field("length_counter", &self.length_counter)
@@ -104,7 +110,10 @@ impl<SWEEP: PeriodSweep> std::fmt::Debug for PulseChannel<SWEEP> {
     }
 }
 
-impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
+impl<SWEEP> PulseChannel<SWEEP>
+where
+    SWEEP: PeriodSweep,
+{
     pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
         let nrx0 = 0;
         let nrx1 = 0;
@@ -131,7 +140,10 @@ impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
     }
 }
 
-impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
+impl<SWEEP> PulseChannel<SWEEP>
+where
+    SWEEP: PeriodSweep,
+{
     #[inline]
     pub(crate) fn on(&self) -> bool {
         self.active
@@ -142,7 +154,7 @@ impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
         (self.nrx2 & 0xF8) != 0
     }
 
-    pub(crate) fn step(&mut self) {
+    pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
             if self.on() {
                 let is_high_signal = self.duty_cycle.step(self.nrx1);
@@ -154,12 +166,14 @@ impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
             }
         }
 
-        if self.period_sweep.step().is_some() {
-            self.channel_clock.reload(self.period_sweep.period_value());
-        }
+        if let Some(frame) = frame {
+            if self.period_sweep.step(frame) {
+                self.channel_clock.reload(self.period_sweep.period_value());
+            }
 
-        self.volume_envelope.step();
-        self.length_counter.step();
+            self.volume_envelope.step(frame);
+            self.length_counter.step(frame);
+        }
 
         self.active &= self.length_counter.active();
         self.active &= self.period_sweep.active();
@@ -170,14 +184,22 @@ impl<SWEEP: PeriodSweep> PulseChannel<SWEEP> {
     }
 
     /// Called when the APU is turned off which resets all registers.
-    pub(crate) fn turn_off(&mut self) {
-        for addr in 0..=4 {
-            self.write(addr, 0);
-        }
+    pub(crate) fn power_off(&mut self) {
+        self.write(0, 0);
+        // FIXME: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=except%20on%20the%20dmg%2C%20where%20length%20counters%20are%20unaffected%20by%20power%20and%20can%20still%20be%20written%20while%20off
+        self.write(1, 0);
+        self.write(2, 0);
+        self.write(3, 0);
+        self.write(4, 0);
+
+        self.length_counter.frame = Default::default();
     }
 }
 
-impl<SWEEP: PeriodSweep> Memory for PulseChannel<SWEEP> {
+impl<SWEEP> Memory for PulseChannel<SWEEP>
+where
+    SWEEP: PeriodSweep,
+{
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0 => {

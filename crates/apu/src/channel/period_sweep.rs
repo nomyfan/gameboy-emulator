@@ -1,10 +1,10 @@
 use gb_shared::is_bit_set;
 
-use super::FrameSequencer;
+use super::Frame;
 
 pub(crate) trait PeriodSweep: std::fmt::Debug {
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self;
-    fn step(&mut self) -> Option<()>;
+    fn step(&mut self, frame: Frame) -> bool;
     fn trigger(&mut self);
     fn active(&self) -> bool;
     fn set_nrx0(&mut self, nrx0: u8);
@@ -14,7 +14,6 @@ pub(crate) trait PeriodSweep: std::fmt::Debug {
 }
 
 pub(crate) struct SomePeriodSweep {
-    fs: FrameSequencer,
     /// Complete one iteration when it reaches zero.
     /// Initialized and reset with `pace`.
     steps: u8,
@@ -43,7 +42,6 @@ pub(crate) struct SomePeriodSweep {
 impl std::fmt::Debug for SomePeriodSweep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SomePeriodSweep")
-            .field("fs", &self.fs.current_step())
             .field("steps", &self.steps)
             .field("pace", &self.pace)
             .field("dir", &if self.dir_decrease { "-" } else { "+" })
@@ -97,7 +95,6 @@ impl PeriodSweep for SomePeriodSweep {
 
         let period_value = period_value(nrx3, nrx4);
         Self {
-            fs: FrameSequencer::new(),
             steps: pace,
             pace,
             dir_decrease,
@@ -110,41 +107,39 @@ impl PeriodSweep for SomePeriodSweep {
         }
     }
 
-    fn step(&mut self) -> Option<()> {
-        if let Some(step) = self.fs.step() {
-            if self.enabled && (step == 2 || step == 6) {
-                self.steps = self.steps.saturating_sub(1);
-                if self.steps == 0 {
-                    self.steps = self.pace;
-                    if self.pace != 8 {
+    fn step(&mut self, frame: Frame) -> bool {
+        if self.enabled && frame.sweep_frame() {
+            self.steps = self.steps.saturating_sub(1);
+            if self.steps == 0 {
+                self.steps = self.pace;
+                if self.pace != 8 {
+                    let new_period_value = Self::calculate_next_period_value(
+                        self.shadow_period_value,
+                        self.dir_decrease,
+                        self.shift,
+                    );
+                    self.active = new_period_value <= 2047;
+                    if self.active && self.shift != 0 {
+                        self.shadow_period_value = new_period_value;
+                        self.nrx34 = new_period_value;
+
+                        // AGAIN
                         let new_period_value = Self::calculate_next_period_value(
-                            self.shadow_period_value,
+                            new_period_value,
                             self.dir_decrease,
                             self.shift,
                         );
                         self.active = new_period_value <= 2047;
-                        if self.active && self.shift != 0 {
-                            self.shadow_period_value = new_period_value;
-                            self.nrx34 = new_period_value;
+                        log::debug!("reloaded {:?}", self);
 
-                            // AGAIN
-                            let new_period_value = Self::calculate_next_period_value(
-                                new_period_value,
-                                self.dir_decrease,
-                                self.shift,
-                            );
-                            self.active = new_period_value <= 2047;
-                            log::debug!("reloaded {:?}", self);
-                            return Some(());
-                        }
-
-                        self.occurred = true;
+                        return true;
                     }
+
+                    self.occurred = true;
                 }
             }
         }
-
-        None
+        false
     }
 
     fn trigger(&mut self) {
@@ -213,8 +208,8 @@ impl PeriodSweep for NonePeriodSweep {
         Self { nrx3, nrx4 }
     }
 
-    fn step(&mut self) -> Option<()> {
-        None
+    fn step(&mut self, _frame: Frame) -> bool {
+        false
     }
 
     fn trigger(&mut self) {}

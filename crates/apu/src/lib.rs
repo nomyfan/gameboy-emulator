@@ -3,7 +3,7 @@ mod channel;
 mod clock;
 mod utils;
 
-use channel::{Channel1, Channel2, Channel3, Channel4};
+use channel::{Channel1, Channel2, Channel3, Channel4, FrameSequencer};
 use clock::Clock;
 use gb_shared::{is_bit_set, AudioOutHandle, Memory, CPU_FREQ};
 
@@ -42,6 +42,7 @@ pub struct Apu {
     mixed_samples_buffer: Vec<(f32, f32)>,
     // FIXME: delete me
     dbg_clocks: usize,
+    fs: FrameSequencer,
 }
 
 impl Apu {
@@ -54,7 +55,8 @@ impl Apu {
     pub fn new(sample_rate: u32) -> Self {
         let frequency = CPU_FREQ;
         let buffer_size = sample_rate.div_ceil(Self::MIXER_FREQ) as usize;
-        Self {
+        let fs = FrameSequencer::new();
+        let instance = Self {
             ch1: Channel1::new(frequency, sample_rate),
             ch2: Channel2::new(frequency, sample_rate),
             ch3: Channel3::new(frequency, sample_rate),
@@ -67,24 +69,30 @@ impl Apu {
             samples_buffer: vec![0; buffer_size],
             mixed_samples_buffer: vec![(0.0, 0.0); buffer_size],
             dbg_clocks: 0,
-        }
+            fs,
+        };
+
+        log::debug!("APU is created: {:?}", instance);
+
+        instance
     }
 
     pub fn set_audio_out_handle(&mut self, audio_out_handle: Option<Box<AudioOutHandle>>) {
         self.audio_out_handle = audio_out_handle;
     }
 
-    fn turn_off(&mut self) {
-        self.ch1.turn_off();
-        self.ch2.turn_off();
-        self.ch3.turn_off();
-        self.ch4.turn_off();
+    fn power_off(&mut self) {
+        self.ch1.power_off();
+        self.ch2.power_off();
+        self.ch3.power_off();
+        self.ch4.power_off();
+        self.fs.power_off();
         self.mixer_clock = Self::new_mixer_clock();
         self.nr50 = 0;
         self.nr51 = 0;
         self.nr52 = 0;
         self.dbg_clocks = 0;
-        log::debug!("Apu is turned off");
+        log::debug!("APU is turned off {:?}", self);
     }
 
     #[inline]
@@ -107,11 +115,12 @@ impl Apu {
             return;
         }
 
+        let frame = self.fs.step();
         self.dbg_clocks = self.dbg_clocks.wrapping_add(1);
-        self.ch1.step();
-        self.ch2.step();
-        self.ch3.step();
-        self.ch4.step();
+        self.ch1.step(frame);
+        self.ch2.step(frame);
+        self.ch3.step(frame);
+        self.ch4.step(frame);
 
         if self.mixer_clock.step() {
             let left_volume_coefficient =
@@ -191,10 +200,15 @@ impl Memory for Apu {
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
             0xFF26 => {
+                log::debug!("Write(B) NR52 value: {:#X}, {:?}", value, self);
+                let was_power_on = self.audio_on();
                 self.nr52 = value;
                 if !self.audio_on() {
-                    self.turn_off();
+                    self.power_off();
+                } else if !was_power_on {
+                    log::debug!("APU is turned on, {:?}", self);
                 }
+                log::debug!("Write(A) NR52 value: {:#X}, {:?}", value, self);
             }
             0xFF27..=0xFF2F => {}
             0xFF30..=0xFF3F => {
@@ -235,7 +249,7 @@ impl Memory for Apu {
                 let ch3_on = (self.ch3.on() as u8) << 2;
                 let ch4_on = (self.ch4.on() as u8) << 3;
 
-                log::debug!("Read NR52, {:?}", self);
+                // log::debug!("Read NR52, {:?}", self);
 
                 (self.nr52 & 0x80) | ch1_on | ch2_on | ch3_on | ch4_on
             }

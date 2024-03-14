@@ -1,9 +1,9 @@
 use gb_shared::is_bit_set;
 
-use super::FrameSequencer;
+use super::Frame;
 
 pub(crate) struct LengthCounter<const MAX: u16> {
-    fs: FrameSequencer,
+    pub(super) frame: Frame,
     /// When the length timer reaches MAX, the channel is turned off.
     len: u16,
     enabled: bool,
@@ -12,7 +12,7 @@ pub(crate) struct LengthCounter<const MAX: u16> {
 impl<const MAX: u16> LengthCounter<MAX> {
     pub(crate) fn new(init_value: u8) -> Self {
         let len = MAX.min(init_value as u16);
-        Self { fs: FrameSequencer::new(), len, enabled: false }
+        Self { frame: Default::default(), len, enabled: false }
     }
 
     pub(crate) fn new_expired() -> Self {
@@ -41,11 +41,6 @@ impl<const MAX: u16> LengthCounter<MAX> {
     }
 
     #[inline]
-    fn working(&mut self) -> bool {
-        (self.fs.current_step() & 1) == 0
-    }
-
-    #[inline]
     pub(crate) fn enabled(&self) -> bool {
         self.enabled
     }
@@ -55,7 +50,7 @@ impl<const MAX: u16> LengthCounter<MAX> {
         self.enabled = is_bit_set!(nrx4, 6);
 
         // https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#:~:text=if%20the%20length%20counter%20was%20previously%20disabled%20and%20now%20enabled%20and%20the%20length%20counter%20is%20not%20zero
-        if !was_enabled && self.enabled && !self.expired() && self.working() {
+        if !was_enabled && self.enabled && !self.expired() && self.frame.length_counter_frame() {
             self.len += 1;
         }
     }
@@ -70,21 +65,21 @@ impl<const MAX: u16> LengthCounter<MAX> {
             self.len = 0;
 
             // https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#:~:text=it%20is%20set%20to%2063%20instead
-            if self.enabled && self.working() {
+            if self.enabled && self.frame.length_counter_frame() {
                 self.len += 1;
             }
         }
     }
 
-    pub(crate) fn step(&mut self) {
-        if let Some(step) = self.fs.step() {
-            if self.expired() || !self.enabled {
-                return;
-            }
+    pub(crate) fn step(&mut self, frame: Frame) {
+        self.frame = frame;
 
-            if (step & 1) == 0 {
-                self.len += 1;
-            }
+        if self.expired() || !self.enabled {
+            return;
+        }
+
+        if frame.length_counter_frame() {
+            self.len += 1;
         }
     }
 }

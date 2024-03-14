@@ -6,7 +6,7 @@ mod pulse_channel;
 mod volume_envelope;
 mod wave_channel;
 
-use frame_sequencer::FrameSequencer;
+pub(crate) use frame_sequencer::{Frame, FrameSequencer};
 use length_counter::{
     NoiseChannelLengthCounter, PulseChannelLengthCounter, WaveChannelLengthCounter,
 };

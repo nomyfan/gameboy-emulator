@@ -2,7 +2,7 @@ use gb_shared::{is_bit_set, Memory};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::WaveChannelLengthCounter as LengthCounter;
+use super::{Frame, WaveChannelLengthCounter as LengthCounter};
 
 enum OutputLevel {
     Mute,
@@ -132,7 +132,7 @@ impl WaveChannel {
         }
     }
 
-    pub(crate) fn step(&mut self) {
+    pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
             if self.on() {
                 let volume = self.wave_ram.step();
@@ -148,7 +148,9 @@ impl WaveChannel {
             }
         }
 
-        self.length_counter.step();
+        if let Some(frame) = frame {
+            self.length_counter.step(frame);
+        }
 
         self.active &= self.length_counter.active();
     }
@@ -157,10 +159,16 @@ impl WaveChannel {
         self.blipbuf.end(buffer, duration)
     }
 
-    pub(crate) fn turn_off(&mut self) {
-        for addr in 0..=4 {
-            self.write(addr, 0);
-        }
+    pub(crate) fn power_off(&mut self) {
+        self.write(0, 0);
+        // FIXME: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=except%20on%20the%20dmg%2C%20where%20length%20counters%20are%20unaffected%20by%20power%20and%20can%20still%20be%20written%20while%20off
+        self.write(1, 0);
+        self.write(2, 0);
+        self.write(3, 0);
+        self.write(4, 0);
+
+        self.length_counter.frame = Default::default();
+        // TODO: reset wave index to 1
     }
 }
 

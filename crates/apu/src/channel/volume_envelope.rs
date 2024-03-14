@@ -1,9 +1,8 @@
 use gb_shared::is_bit_set;
 
-use super::FrameSequencer;
+use super::Frame;
 
 pub(super) struct VolumeEnvelope {
-    fs: FrameSequencer,
     /// Complete one iteration when it reaches zero.
     /// Initialized and reset with `pace`.
     steps: u8,
@@ -25,7 +24,7 @@ impl VolumeEnvelope {
         };
         let dir_increase = is_bit_set!(nrx2, 3);
         let volume = (nrx2 >> 4) & 0xF;
-        Self { fs: FrameSequencer::new(), steps: pace, pace, dir_increase, volume, nrx2: None }
+        Self { steps: pace, pace, dir_increase, volume, nrx2: None }
     }
 
     pub(super) fn set_nrx2(&mut self, nrx2: u8) {
@@ -37,29 +36,27 @@ impl VolumeEnvelope {
         self.volume
     }
 
-    pub(super) fn step(&mut self) {
-        if let Some(step) = self.fs.step() {
-            if self.pace == 0 {
-                return;
-            }
+    pub(super) fn step(&mut self, frame: Frame) {
+        if self.pace == 0 {
+            return;
+        }
 
-            if step == 7 {
-                self.steps = self.steps.saturating_sub(1);
-                if self.steps == 0 {
-                    if self.dir_increase {
-                        self.volume = self.volume.saturating_sub(1);
-                    } else {
-                        self.volume = self.volume.saturating_add(1) & 0xF;
-                    }
-
-                    if let Some(nrx2) = self.nrx2.take() {
-                        self.pace = nrx2 & 0b111;
-                        self.dir_increase = is_bit_set!(nrx2, 3);
-                        self.volume = (nrx2 >> 4) & 0xF;
-                    }
-
-                    self.steps = self.pace;
+        if frame.volume_envelope_frame() {
+            self.steps = self.steps.saturating_sub(1);
+            if self.steps == 0 {
+                if self.dir_increase {
+                    self.volume = self.volume.saturating_sub(1);
+                } else {
+                    self.volume = self.volume.saturating_add(1) & 0xF;
                 }
+
+                if let Some(nrx2) = self.nrx2.take() {
+                    self.pace = nrx2 & 0b111;
+                    self.dir_increase = is_bit_set!(nrx2, 3);
+                    self.volume = (nrx2 >> 4) & 0xF;
+                }
+
+                self.steps = self.pace;
             }
         }
     }
