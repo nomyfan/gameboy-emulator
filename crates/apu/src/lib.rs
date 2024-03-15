@@ -168,8 +168,37 @@ impl Memory for Apu {
     fn write(&mut self, addr: u16, value: u8) {
         // All registers except NR52 are read-only when APU is disabled.
         // @see https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-4--noise:~:text=makes%20them%20read-only%20until%20turned%20back%20on
-        if !self.audio_on() && addr != 0xFF26 && !(0xFF30..=0xFF3F).contains(&addr) {
-            return;
+        if !self.audio_on() {
+            if addr == 0xFF11 {
+                // On DMG, length counter are unaffected by power and can still be written while off.
+                self.ch1.set_length_counter(value & 0x3F);
+                return;
+            }
+
+            if addr == 0xFF16 {
+                // On DMG, length counter are unaffected by power and can still be written while off.
+                self.ch2.set_length_counter(value & 0x3F);
+                return;
+            }
+
+            if addr == 0xFF1B {
+                self.ch3.set_length_counter(value);
+                // On DMG, length counter are unaffected by power and can still be written while off.
+                return;
+            }
+
+            if addr == 0xFF20 {
+                // On DMG, length counter are unaffected by power and can still be written while off.
+                self.ch4.set_length_counter(value & 0x3F);
+                return;
+            }
+
+            if addr != 0xFF26 // NR52
+            && !(0xFF30..=0xFF3F).contains(&addr)
+            // Wave RAM
+            {
+                return;
+            }
         }
 
         match addr {

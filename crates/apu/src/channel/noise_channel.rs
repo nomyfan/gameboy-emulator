@@ -131,13 +131,17 @@ impl NoiseChannel {
     }
 
     pub(crate) fn power_off(&mut self) {
-        // FIXME: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=except%20on%20the%20dmg%2C%20where%20length%20counters%20are%20unaffected%20by%20power%20and%20can%20still%20be%20written%20while%20off
-        self.write(1, 0);
+        // On DMG, length counter are unaffected by power and can still be written while off.
+        self.nrx1 = 0;
         self.write(2, 0);
         self.write(3, 0);
         self.write(4, 0);
 
         self.length_counter.frame = Default::default();
+    }
+
+    pub(crate) fn set_length_counter(&mut self, value: u8) {
+        self.length_counter.set_len(value);
     }
 }
 
