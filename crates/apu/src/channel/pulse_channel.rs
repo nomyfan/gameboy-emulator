@@ -193,6 +193,7 @@ where
         self.write(4, 0);
 
         self.length_counter.frame = Default::default();
+        self.duty_cycle = DutyCycle::new();
     }
 
     pub(crate) fn set_length_counter(&mut self, value: u8) {
@@ -234,9 +235,7 @@ where
 
                     self.period_sweep.trigger();
                     self.channel_clock.reload(self.period_sweep.period_value());
-
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
-                    self.blipbuf.clear();
                 }
 
                 self.active = self.dac_on();

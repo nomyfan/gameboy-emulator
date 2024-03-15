@@ -21,28 +21,38 @@ impl WaveRam {
         Self { ram: Default::default(), index: 1 }
     }
 
-    fn reset(&mut self) {
+    fn reset_position(&mut self) {
         self.index = 1;
     }
 
-    fn step(&mut self) -> u8 {
+    fn next_position(&mut self) -> u8 {
         let value = self.ram[self.index / 2];
         let value = if self.index % 2 == 0 { value >> 4 } else { value & 0x0F };
 
         self.index = (self.index + 1) % 32;
         value
     }
+
+    fn step(&mut self) {
+        // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
+    }
 }
 
 impl Memory for WaveRam {
     #[inline]
     fn write(&mut self, addr: u16, value: u8) {
+        // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
+        log::debug!("Wave RAM write: {:#X} = {:#X}", addr, value);
         self.ram[(addr - 0xFF30) as usize] = value;
     }
 
     #[inline]
     fn read(&self, addr: u16) -> u8 {
-        self.ram[(addr - 0xFF30) as usize]
+        // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
+        let value = self.ram[(addr - 0xFF30) as usize];
+        log::debug!("Wave RAM read: {:#X} = {:#X}", addr, value);
+
+        value
     }
 }
 
@@ -135,7 +145,7 @@ impl WaveChannel {
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
             if self.on() {
-                let volume = self.wave_ram.step();
+                let volume = self.wave_ram.next_position();
                 let volume = match self.output_level() {
                     OutputLevel::Mute => 0,
                     OutputLevel::Full => volume,
@@ -168,7 +178,6 @@ impl WaveChannel {
         self.write(4, 0);
 
         self.length_counter.frame = Default::default();
-        // TODO: reset wave index to 1
     }
 
     pub(crate) fn set_length_counter(&mut self, value: u8) {
@@ -181,7 +190,6 @@ impl Memory for WaveChannel {
         match addr {
             0 => {
                 self.nrx0 = value;
-
                 self.active &= self.dac_on();
             }
             1 => {
@@ -193,19 +201,19 @@ impl Memory for WaveChannel {
             }
             3 => {
                 // TODO: update delay. After current sample ends.
-                self.channel_clock = Self::new_channel_clock(value, self.nrx4);
+                // self.channel_clock = Self::new_channel_clock(value, self.nrx4);
                 self.nrx3 = value;
             }
             4 => {
                 // TODO: update delay. After current sample ends.
-                self.channel_clock = Self::new_channel_clock(self.nrx3, value);
+                // self.channel_clock = Self::new_channel_clock(self.nrx3, value);
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
+                    self.channel_clock = Self::new_channel_clock(self.nrx3, value);
                     self.length_counter.trigger();
-                    self.wave_ram.reset();
-                    self.blipbuf.clear();
+                    self.wave_ram.reset_position();
                 }
 
                 self.active = self.length_counter.active();

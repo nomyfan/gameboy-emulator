@@ -170,7 +170,6 @@ impl Memory for NoiseChannel {
                     self.length_counter.trigger();
                     self.volume_envelope = VolumeEnvelope::new(self.nrx2);
                     self.lfsr = Lfsr::new(self.nrx3);
-                    self.blipbuf.clear();
                 }
                 self.active = self.length_counter.active();
                 self.active &= self.dac_on();
