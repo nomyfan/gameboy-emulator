@@ -40,8 +40,6 @@ pub struct Apu {
     audio_out_handle: Option<Box<AudioOutHandle>>,
     samples_buffer: Vec<i16>,
     mixed_samples_buffer: Vec<(f32, f32)>,
-    // FIXME: delete me
-    dbg_clocks: usize,
     fs: FrameSequencer,
 }
 
@@ -68,7 +66,6 @@ impl Apu {
             audio_out_handle: None,
             samples_buffer: vec![0; buffer_size],
             mixed_samples_buffer: vec![(0.0, 0.0); buffer_size],
-            dbg_clocks: 0,
             fs,
         };
 
@@ -91,7 +88,6 @@ impl Apu {
         self.nr50 = 0;
         self.nr51 = 0;
         self.nr52 = 0;
-        self.dbg_clocks = 0;
         log::debug!("APU is turned off {:?}", self);
     }
 
@@ -116,7 +112,6 @@ impl Apu {
         }
 
         let frame = self.fs.step();
-        self.dbg_clocks = self.dbg_clocks.wrapping_add(1);
         self.ch1.step(frame);
         self.ch2.step(frame);
         self.ch3.step(frame);
@@ -304,7 +299,6 @@ impl std::fmt::Debug for Apu {
             // .field("ch3", &self.ch3)
             // .field("ch4", &self.ch4)
             .field("NR52", &format!("{:#X}", nrx52))
-            .field("clocks", &self.dbg_clocks)
             .finish()
     }
 }
