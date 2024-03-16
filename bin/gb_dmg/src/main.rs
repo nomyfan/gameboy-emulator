@@ -168,7 +168,6 @@ fn main() -> anyhow::Result<()> {
                     })
                 },
                 Box::new(move |sample_data| {
-                    // TODO: measure consume speed vs. produce speed
                     samples_buf.lock().unwrap().extend_from_slice(sample_data);
                 }),
                 command_receiver,
