@@ -71,8 +71,7 @@ impl VolumeEnvelope {
         if self.active() {
             self.steps = self.pace;
             if self.frame.next_frame().volume_envelope_frame() {
-                // TODO: what if it reaches zero?
-                self.steps = self.steps.saturating_sub(1);
+                self.steps += 1;
             }
         }
     }
