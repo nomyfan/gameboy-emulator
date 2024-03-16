@@ -45,14 +45,20 @@ impl VolumeEnvelope {
     }
 
     pub(super) fn set_nrx2(&mut self, nrx2: u8) {
-        // TODO: zombie mode
         let (pace, dir_increase, volume) = Self::parse_nrx2(nrx2);
 
         self.pace = pace;
         self.dir_increase = dir_increase;
         self.initial_volume = volume;
+
         if self.active() {
             self.steps = self.pace;
+        }
+
+        // Zombie mode
+        if pace == 8 && dir_increase {
+            // DMG
+            self.volume = (self.volume + 1) & 0xF;
         }
     }
 
@@ -84,7 +90,7 @@ impl VolumeEnvelope {
             self.steps = self.steps.saturating_sub(1);
             if self.steps == 0 {
                 if self.dir_increase {
-                    self.volume = self.volume.saturating_add(1) & 0xF;
+                    self.volume = (self.volume + 1) & 0xF;
                 } else {
                     self.volume = self.volume.saturating_sub(1);
                 }
