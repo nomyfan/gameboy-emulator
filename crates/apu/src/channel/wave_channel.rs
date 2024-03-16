@@ -200,18 +200,15 @@ impl Memory for WaveChannel {
                 self.nrx2 = value;
             }
             3 => {
-                // TODO: update delay. After current sample ends.
-                // self.channel_clock = Self::new_channel_clock(value, self.nrx4);
+                self.channel_clock = Self::new_channel_clock(value, self.nrx4);
                 self.nrx3 = value;
             }
             4 => {
-                // TODO: update delay. After current sample ends.
-                // self.channel_clock = Self::new_channel_clock(self.nrx3, value);
+                self.channel_clock = Self::new_channel_clock(self.nrx3, value);
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
-                    self.channel_clock = Self::new_channel_clock(self.nrx3, value);
                     self.length_counter.trigger();
                     self.wave_ram.reset_position();
                 }

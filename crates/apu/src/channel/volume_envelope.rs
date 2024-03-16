@@ -13,6 +13,19 @@ pub(super) struct VolumeEnvelope {
     initial_volume: u8,
 }
 
+impl std::fmt::Debug for VolumeEnvelope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VolumeEnvelope")
+            .field("frame", &self.frame)
+            .field("steps", &self.steps)
+            .field("pace", &self.pace)
+            .field("dir_increase", &self.dir_increase)
+            .field("volume", &self.volume)
+            .field("initial_volume", &self.initial_volume)
+            .finish()
+    }
+}
+
 impl VolumeEnvelope {
     fn parse_nrx2(nrx2: u8) -> (u8, bool, u8) {
         let pace = {

@@ -193,7 +193,6 @@ where
     /// Get set in HALT instruction only.
     /// Get read in HALT mode only.
     handle_itr: bool,
-    // TODO
 }
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
@@ -233,7 +232,6 @@ where
     BUS: gb_shared::Memory + gb_shared::Component,
 {
     pub fn new(bus: BUS) -> Self {
-        // TODO init
         Self {
             reg_a: 0x01,
             reg_f: 0xB0,
