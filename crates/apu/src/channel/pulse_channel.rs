@@ -145,7 +145,7 @@ where
     SWEEP: PeriodSweep,
 {
     #[inline]
-    pub(crate) fn on(&self) -> bool {
+    pub(crate) fn active(&self) -> bool {
         self.active
     }
 
@@ -156,7 +156,7 @@ where
 
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
-            if self.on() {
+            if self.active() {
                 let is_high_signal = self.duty_cycle.step(self.nrx1);
                 let volume = self.volume_envelope.volume() as i32;
                 let volume = if is_high_signal { volume } else { -volume };

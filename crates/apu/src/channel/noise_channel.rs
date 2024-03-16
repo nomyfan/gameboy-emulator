@@ -101,7 +101,7 @@ impl NoiseChannel {
     }
 
     #[inline]
-    pub(crate) fn on(&self) -> bool {
+    pub(crate) fn active(&self) -> bool {
         self.active
     }
 
@@ -114,7 +114,7 @@ impl NoiseChannel {
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if let Some(use_volume) = self.lfsr.step(self.nrx3) {
             let volume =
-                if use_volume && (self.on()) { self.volume_envelope.volume() as i32 } else { 0 };
+                if use_volume && (self.active()) { self.volume_envelope.volume() as i32 } else { 0 };
             self.blipbuf.add_delta(self.lfsr.clock.div(), volume);
         }
 

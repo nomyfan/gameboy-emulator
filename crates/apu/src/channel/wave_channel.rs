@@ -123,7 +123,7 @@ impl WaveChannel {
     }
 
     #[inline]
-    pub(crate) fn on(&self) -> bool {
+    pub(crate) fn active(&self) -> bool {
         self.active
     }
 
@@ -144,7 +144,7 @@ impl WaveChannel {
 
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
-            if self.on() {
+            if self.active() {
                 let volume = self.wave_ram.next_position();
                 let volume = match self.output_level() {
                     OutputLevel::Mute => 0,

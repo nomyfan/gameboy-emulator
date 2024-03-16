@@ -231,7 +231,7 @@ impl Memory for Apu {
             0xFF26 => {
                 log::debug!("Write(B) NR52 value: {:#X}, {:?}", value, self);
                 let was_power_on = self.audio_on();
-                self.nr52 = value;
+                self.nr52 = value & 0x80;
                 if !self.audio_on() {
                     self.power_off();
                 } else if !was_power_on {
@@ -273,14 +273,14 @@ impl Memory for Apu {
             0xFF24 => self.nr50,
             0xFF25 => self.nr51,
             0xFF26 => {
-                let ch1_on = self.ch1.on() as u8;
-                let ch2_on = (self.ch2.on() as u8) << 1;
-                let ch3_on = (self.ch3.on() as u8) << 2;
-                let ch4_on = (self.ch4.on() as u8) << 3;
+                let ch1_active = self.ch1.active() as u8;
+                let ch2_active = (self.ch2.active() as u8) << 1;
+                let ch3_active = (self.ch3.active() as u8) << 2;
+                let ch4_active = (self.ch4.active() as u8) << 3;
 
                 // log::debug!("Read NR52, {:?}", self);
 
-                (self.nr52 & 0x80) | ch1_on | ch2_on | ch3_on | ch4_on
+                self.nr52 | ch1_active | ch2_active | ch3_active | ch4_active
             }
             0xFF27..=0xFF2F => 0,
             0xFF30..=0xFF3F => self.ch3.wave_ram.read(addr),
@@ -293,14 +293,14 @@ impl Memory for Apu {
 
 impl std::fmt::Debug for Apu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ch1_on = self.ch1.on() as u8;
-        let ch2_on = (self.ch2.on() as u8) << 1;
-        let ch3_on = (self.ch3.on() as u8) << 2;
-        let ch4_on = (self.ch4.on() as u8) << 3;
-        let nrx52 = (self.nr52 & 0x80) | ch1_on | ch2_on | ch3_on | ch4_on;
+        let ch1_active = self.ch1.active() as u8;
+        let ch2_active = (self.ch2.active() as u8) << 1;
+        let ch3_active = (self.ch3.active() as u8) << 2;
+        let ch4_active = (self.ch4.active() as u8) << 3;
+        let nrx52 = self.nr52 | ch1_active | ch2_active | ch3_active | ch4_active;
         f.debug_struct("Apu")
-            .field("ch1", &self.ch1)
-            .field("ch2", &self.ch2)
+            .field("CH1", &self.ch1)
+            .field("CH2", &self.ch2)
             // .field("ch3", &self.ch3)
             // .field("ch4", &self.ch4)
             .field("NR52", &format!("{:#X}", nrx52))
