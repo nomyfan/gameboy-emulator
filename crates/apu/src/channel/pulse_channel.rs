@@ -149,11 +149,6 @@ where
         self.active
     }
 
-    #[inline]
-    fn dac_on(&self) -> bool {
-        (self.nrx2 & 0xF8) != 0
-    }
-
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
             if self.active() {
@@ -171,7 +166,9 @@ where
                 self.channel_clock.reload(self.period_sweep.period_value());
             }
 
-            self.volume_envelope.step(frame);
+            if self.active {
+                self.volume_envelope.step(frame);
+            }
             self.length_counter.step(frame);
         }
 
@@ -217,16 +214,15 @@ where
             }
             2 => {
                 self.nrx2 = value;
+
                 self.volume_envelope.set_nrx2(value);
-                self.active &= self.dac_on();
+                self.active &= self.volume_envelope.dac_on();
             }
             3 => {
                 self.period_sweep.set_nrx3(value);
-                // self.channel_clock.reload(self.period_sweep.period_value());
             }
             4 => {
                 self.period_sweep.set_nrx4(value);
-                // self.channel_clock.reload(self.period_sweep.period_value());
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
@@ -235,10 +231,10 @@ where
 
                     self.period_sweep.trigger();
                     self.channel_clock.reload(self.period_sweep.period_value());
-                    self.volume_envelope = VolumeEnvelope::new(self.nrx2);
+                    self.volume_envelope.trigger();
                 }
 
-                self.active = self.dac_on();
+                self.active = self.volume_envelope.dac_on();
                 self.active &= self.length_counter.active();
                 self.active &= self.period_sweep.active();
             }

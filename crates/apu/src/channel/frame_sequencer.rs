@@ -69,4 +69,8 @@ impl Frame {
     pub(crate) fn sweep_frame(&self) -> bool {
         self.0 == 2 || self.0 == 6
     }
+
+    pub(crate) fn next_frame(&self) -> Self {
+        Self((self.0 + 1) & 0x7)
+    }
 }
