@@ -9,6 +9,6 @@ const ROMS: [&str; 2] = [
 #[test]
 fn test_load() {
     ROMS.iter().for_each(|rom| {
-        Cartridge::load(std::path::Path::new(rom)).unwrap();
+        Cartridge::try_from_path(std::path::Path::new(rom)).unwrap();
     })
 }

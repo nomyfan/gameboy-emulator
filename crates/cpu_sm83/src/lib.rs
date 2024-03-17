@@ -7,8 +7,6 @@ use cpu16::{Cpu16, Register16, Register8};
 use gb_shared::{is_bit_set, set_bits, unset_bits};
 use interrupt::INTERRUPTS;
 
-pub const CPU_PERIOD_NANOS: f64 = 238.418579;
-
 impl<BUS> Cpu16 for Cpu<BUS>
 where
     BUS: gb_shared::Memory + gb_shared::Component,
@@ -195,7 +193,6 @@ where
     /// Get set in HALT instruction only.
     /// Get read in HALT mode only.
     handle_itr: bool,
-    // TODO
 }
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
@@ -235,7 +232,6 @@ where
     BUS: gb_shared::Memory + gb_shared::Component,
 {
     pub fn new(bus: BUS) -> Self {
-        // TODO init
         Self {
             reg_a: 0x01,
             reg_f: 0xB0,

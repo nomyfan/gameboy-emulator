@@ -415,7 +415,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
 }
 
 impl Cartridge {
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn try_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let rom = std::fs::read(path.as_ref())?;
 
         let mut sav_file_name = PathBuf::new();
