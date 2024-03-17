@@ -40,7 +40,7 @@ impl Frame {
         (self.0 & 1) == 0
     }
 
-    pub(crate) fn volume_envelope_frame(&self) -> bool {
+    pub(crate) fn envelope_frame(&self) -> bool {
         self.0 == 7
     }
 

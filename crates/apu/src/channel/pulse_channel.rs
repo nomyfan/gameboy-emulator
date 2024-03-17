@@ -2,7 +2,7 @@ use gb_shared::{is_bit_set, Memory};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::{Frame, PeriodSweep, PulseChannelLengthCounter as LengthCounter, VolumeEnvelope};
+use super::{Frame, Sweep, PulseChannelLengthCounter as LengthCounter, Envelope};
 
 struct PulseChannelClock(Clock);
 
@@ -65,7 +65,7 @@ impl DutyCycle {
 
 pub(crate) struct PulseChannel<SWEEP>
 where
-    SWEEP: PeriodSweep,
+    SWEEP: Sweep,
 {
     /// Period sweep. Channel 2 lacks this feature.
     /// Bit0..=2, individual step. Used to calculate next period value.
@@ -86,8 +86,8 @@ where
     channel_clock: PulseChannelClock,
     length_counter: LengthCounter,
     duty_cycle: DutyCycle,
-    volume_envelope: VolumeEnvelope,
-    period_sweep: SWEEP,
+    envelope: Envelope,
+    sweep: SWEEP,
     /// Indicates if the channel is working.
     /// The only case where setting it to `true` is triggering the channel.
     /// When length timer expires, it is set to `false`.
@@ -98,13 +98,13 @@ where
 
 impl<SWEEP> std::fmt::Debug for PulseChannel<SWEEP>
 where
-    SWEEP: PeriodSweep,
+    SWEEP: Sweep,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PulseChannel")
             .field("length_counter", &self.length_counter)
-            .field("envelope", &self.volume_envelope)
-            .field("sweep", &self.period_sweep)
+            .field("envelope", &self.envelope)
+            .field("sweep", &self.sweep)
             .field("active", &self.active)
             .finish()
     }
@@ -112,7 +112,7 @@ where
 
 impl<SWEEP> PulseChannel<SWEEP>
 where
-    SWEEP: PeriodSweep,
+    SWEEP: Sweep,
 {
     pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
         let nrx0 = 0;
@@ -121,20 +121,20 @@ where
         let nrx3 = 0;
         let nrx4 = 0;
 
-        let period_sweep = SWEEP::new(nrx0, nrx3, nrx4);
-        let volume_envelope = VolumeEnvelope::new(nrx2);
-        let channel_clock = PulseChannelClock::from_period(period_sweep.period_value());
+        let sweep = SWEEP::new(nrx0, nrx3, nrx4);
+        let envelope = Envelope::new(nrx2);
+        let channel_clock = PulseChannelClock::from_period(sweep.period_value());
 
         Self {
-            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, volume_envelope.volume() as i32),
+            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, envelope.volume() as i32),
             channel_clock,
             length_counter: LengthCounter::new_expired(),
             nrx0,
             nrx1,
             nrx2,
             duty_cycle: DutyCycle::new(),
-            volume_envelope,
-            period_sweep,
+            envelope,
+            sweep,
             active: false,
         }
     }
@@ -142,7 +142,7 @@ where
 
 impl<SWEEP> PulseChannel<SWEEP>
 where
-    SWEEP: PeriodSweep,
+    SWEEP: Sweep,
 {
     #[inline]
     pub(crate) fn active(&self) -> bool {
@@ -153,7 +153,7 @@ where
         if self.channel_clock.step() {
             if self.active() {
                 let is_high_signal = self.duty_cycle.step(self.nrx1);
-                let volume = self.volume_envelope.volume() as i32;
+                let volume = self.envelope.volume() as i32;
                 let volume = if is_high_signal { volume } else { -volume };
                 self.blipbuf.add_delta(self.channel_clock.div(), volume);
             } else {
@@ -162,18 +162,18 @@ where
         }
 
         if let Some(frame) = frame {
-            if self.period_sweep.step(frame) {
-                self.channel_clock.reload(self.period_sweep.period_value());
+            if self.sweep.step(frame) {
+                self.channel_clock.reload(self.sweep.period_value());
             }
 
             if self.active {
-                self.volume_envelope.step(frame);
+                self.envelope.step(frame);
             }
             self.length_counter.step(frame);
         }
 
         self.active &= self.length_counter.active();
-        self.active &= self.period_sweep.active();
+        self.active &= self.sweep.active();
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) -> usize {
@@ -200,13 +200,13 @@ where
 
 impl<SWEEP> Memory for PulseChannel<SWEEP>
 where
-    SWEEP: PeriodSweep,
+    SWEEP: Sweep,
 {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0 => {
                 self.nrx0 = value;
-                self.period_sweep.set_nrx0(value);
+                self.sweep.set_nrx0(value);
             }
             1 => {
                 self.length_counter.set_len(value & 0x3F);
@@ -215,28 +215,28 @@ where
             2 => {
                 self.nrx2 = value;
 
-                self.volume_envelope.set_nrx2(value);
-                self.active &= self.volume_envelope.dac_on();
+                self.envelope.set_nrx2(value);
+                self.active &= self.envelope.dac_on();
             }
             3 => {
-                self.period_sweep.set_nrx3(value);
+                self.sweep.set_nrx3(value);
             }
             4 => {
-                self.period_sweep.set_nrx4(value);
+                self.sweep.set_nrx4(value);
                 self.length_counter.set_enabled(value);
 
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     self.length_counter.trigger();
 
-                    self.period_sweep.trigger();
-                    self.channel_clock.reload(self.period_sweep.period_value());
-                    self.volume_envelope.trigger();
+                    self.sweep.trigger();
+                    self.channel_clock.reload(self.sweep.period_value());
+                    self.envelope.trigger();
                 }
 
-                self.active = self.volume_envelope.dac_on();
+                self.active = self.envelope.dac_on();
                 self.active &= self.length_counter.active();
-                self.active &= self.period_sweep.active();
+                self.active &= self.sweep.active();
             }
             _ => unreachable!("Invalid address for PulseChannel: {:#X}", addr),
         }

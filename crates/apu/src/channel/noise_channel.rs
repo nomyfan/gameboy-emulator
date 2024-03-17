@@ -2,7 +2,7 @@ use gb_shared::{is_bit_set, unset_bits, Memory};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::{Frame, NoiseChannelLengthCounter as LengthCounter, VolumeEnvelope};
+use super::{Frame, NoiseChannelLengthCounter as LengthCounter, Envelope};
 
 struct Lfsr {
     value: u16,
@@ -82,7 +82,7 @@ pub(crate) struct NoiseChannel {
     nrx4: u8,
     blipbuf: blipbuf::BlipBuf,
     length_counter: LengthCounter,
-    volume_envelope: VolumeEnvelope,
+    envelope: Envelope,
     lfsr: Lfsr,
     active: bool,
 }
@@ -91,7 +91,7 @@ impl std::fmt::Debug for NoiseChannel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NoiseChannel")
             .field("length_counter", &self.length_counter)
-            .field("envelope", &self.volume_envelope)
+            .field("envelope", &self.envelope)
             .field("lfsr", &self.lfsr)
             .field("active", &self.active)
             .finish()
@@ -111,7 +111,7 @@ impl NoiseChannel {
             nrx3,
             nrx4,
             length_counter: LengthCounter::new_expired(),
-            volume_envelope: VolumeEnvelope::new(nrx2),
+            envelope: Envelope::new(nrx2),
             lfsr: Lfsr::new(nrx3),
             active: false,
         }
@@ -126,7 +126,7 @@ impl NoiseChannel {
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if let Some(use_volume) = self.lfsr.step(self.nrx3) {
             let volume = if use_volume && (self.active()) {
-                self.volume_envelope.volume() as i32
+                self.envelope.volume() as i32
             } else {
                 0
             };
@@ -135,7 +135,7 @@ impl NoiseChannel {
 
         if let Some(frame) = frame {
             if self.active {
-                self.volume_envelope.step(frame);
+                self.envelope.step(frame);
             }
             self.length_counter.step(frame);
         }
@@ -172,8 +172,8 @@ impl Memory for NoiseChannel {
             2 => {
                 self.nrx2 = value;
 
-                self.volume_envelope.set_nrx2(value);
-                self.active &= self.volume_envelope.dac_on();
+                self.envelope.set_nrx2(value);
+                self.active &= self.envelope.dac_on();
             }
             3 => {
                 self.lfsr.set_clock(value);
@@ -185,11 +185,11 @@ impl Memory for NoiseChannel {
                 // Trigger the channel
                 if is_bit_set!(value, 7) {
                     self.length_counter.trigger();
-                    self.volume_envelope.trigger();
+                    self.envelope.trigger();
                     self.lfsr = Lfsr::new(self.nrx3);
                 }
                 self.active = self.length_counter.active();
-                self.active &= self.volume_envelope.dac_on();
+                self.active &= self.envelope.dac_on();
 
                 self.nrx4 = value;
             }

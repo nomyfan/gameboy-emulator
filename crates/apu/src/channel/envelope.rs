@@ -2,7 +2,7 @@ use gb_shared::is_bit_set;
 
 use super::Frame;
 
-pub(super) struct VolumeEnvelope {
+pub(super) struct Envelope {
     frame: Frame,
     /// Complete one iteration when it reaches zero.
     /// Initialized and reset with `pace`.
@@ -13,9 +13,9 @@ pub(super) struct VolumeEnvelope {
     initial_volume: u8,
 }
 
-impl std::fmt::Debug for VolumeEnvelope {
+impl std::fmt::Debug for Envelope {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("VolumeEnvelope")
+        f.debug_struct("Envelope")
             .field("frame", &self.frame)
             .field("steps", &self.steps)
             .field("pace", &self.pace)
@@ -27,7 +27,7 @@ impl std::fmt::Debug for VolumeEnvelope {
     }
 }
 
-impl VolumeEnvelope {
+impl Envelope {
     fn parse_nrx2(nrx2: u8) -> (u8, bool, u8) {
         let pace = {
             let mut pace = nrx2 & 0b111;
@@ -90,7 +90,7 @@ impl VolumeEnvelope {
         self.volume = self.initial_volume;
         if self.active() {
             self.steps = self.pace;
-            if self.frame.next_frame().volume_envelope_frame() {
+            if self.frame.next_frame().envelope_frame() {
                 self.steps += 1;
             }
         }
@@ -100,7 +100,7 @@ impl VolumeEnvelope {
     pub(super) fn step(&mut self, frame: Frame) {
         self.frame = frame;
 
-        if frame.volume_envelope_frame() && self.active() {
+        if frame.envelope_frame() && self.active() {
             self.steps = self.steps.saturating_sub(1);
             if self.steps == 0 {
                 if self.dir_increase {

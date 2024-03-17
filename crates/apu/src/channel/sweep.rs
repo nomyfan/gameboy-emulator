@@ -2,7 +2,7 @@ use gb_shared::is_bit_set;
 
 use super::Frame;
 
-pub(crate) trait PeriodSweep: std::fmt::Debug {
+pub(crate) trait Sweep: std::fmt::Debug {
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self;
     fn step(&mut self, frame: Frame) -> bool;
     fn trigger(&mut self);
@@ -13,7 +13,7 @@ pub(crate) trait PeriodSweep: std::fmt::Debug {
     fn period_value(&self) -> u16;
 }
 
-pub(crate) struct SomePeriodSweep {
+pub(crate) struct SomeSweep {
     /// Complete one iteration when it reaches zero.
     /// Initialized and reset with `pace`.
     steps: u8,
@@ -39,9 +39,9 @@ pub(crate) struct SomePeriodSweep {
     occurred: bool,
 }
 
-impl std::fmt::Debug for SomePeriodSweep {
+impl std::fmt::Debug for SomeSweep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SomePeriodSweep")
+        f.debug_struct("SomeSweep")
             .field("steps", &self.steps)
             .field("pace", &self.pace)
             .field("dir", &if self.dir_decrease { "-" } else { "+" })
@@ -54,7 +54,7 @@ impl std::fmt::Debug for SomePeriodSweep {
     }
 }
 
-impl SomePeriodSweep {
+impl SomeSweep {
     fn parse_nrx0(nrx0: u8) -> (u8, bool, u8) {
         let pace = {
             let mut pace = (nrx0 >> 4) & 0b111;
@@ -89,7 +89,7 @@ fn period_value(nrx3: u8, nrx4: u8) -> u16 {
     ((nrx4 as u16 & 0b111) << 8) | (nrx3 as u16)
 }
 
-impl PeriodSweep for SomePeriodSweep {
+impl Sweep for SomeSweep {
     fn new(nrx0: u8, nrx3: u8, nrx4: u8) -> Self {
         let (pace, dir_decrease, shift) = Self::parse_nrx0(nrx0);
 
@@ -194,18 +194,18 @@ impl PeriodSweep for SomePeriodSweep {
     }
 }
 
-pub(crate) struct NonePeriodSweep {
+pub(crate) struct NoneSweep {
     nrx3: u8,
     nrx4: u8,
 }
 
-impl std::fmt::Debug for NonePeriodSweep {
+impl std::fmt::Debug for NoneSweep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NonePeriodSweep").finish()
+        f.debug_struct("NoneSweep").finish()
     }
 }
 
-impl PeriodSweep for NonePeriodSweep {
+impl Sweep for NoneSweep {
     fn new(_nrx0: u8, nrx3: u8, nrx4: u8) -> Self {
         Self { nrx3, nrx4 }
     }
