@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::{clock::Clock, utils::freq_to_clock_cycles};
+use crate::{clock::Clock, utils::freq_to_period};
 
 pub(crate) struct FrameSequencer {
     clock: Clock,
@@ -8,7 +8,7 @@ pub(crate) struct FrameSequencer {
 }
 
 impl FrameSequencer {
-    const FRAME_SEQUENCY_PERIOD: u32 = freq_to_clock_cycles(512);
+    const FRAME_SEQUENCY_PERIOD: u32 = freq_to_period(512);
 
     pub(crate) fn new() -> Self {
         Self { clock: Clock::new(Self::FRAME_SEQUENCY_PERIOD), frame: Default::default() }
