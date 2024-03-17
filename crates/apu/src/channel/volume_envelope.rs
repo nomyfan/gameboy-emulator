@@ -19,9 +19,10 @@ impl std::fmt::Debug for VolumeEnvelope {
             .field("frame", &self.frame)
             .field("steps", &self.steps)
             .field("pace", &self.pace)
-            .field("dir_increase", &self.dir_increase)
+            .field("dir", &if self.dir_increase { "+" } else { "-" })
             .field("volume", &self.volume)
             .field("initial_volume", &self.initial_volume)
+            .field("active", &self.active())
             .finish()
     }
 }

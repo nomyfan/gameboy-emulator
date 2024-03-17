@@ -16,6 +16,12 @@ pub(crate) struct WaveRam {
     index: usize,
 }
 
+impl std::fmt::Debug for WaveRam {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WaveRam").field("index", &self.index).finish()
+    }
+}
+
 impl WaveRam {
     fn new() -> Self {
         Self { ram: Default::default(), index: 1 }
@@ -33,9 +39,9 @@ impl WaveRam {
         value
     }
 
-    fn step(&mut self) {
-        // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
-    }
+    // fn step(&mut self) {
+    //     // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
+    // }
 }
 
 impl Memory for WaveRam {
@@ -89,6 +95,16 @@ pub struct WaveChannel {
     length_counter: LengthCounter,
     channel_clock: Clock,
     active: bool,
+}
+
+impl std::fmt::Debug for WaveChannel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WaveChannel")
+            .field("wave_ram", &self.wave_ram)
+            .field("length_counter", &self.length_counter)
+            .field("active", &self.active)
+            .finish()
+    }
 }
 
 impl WaveChannel {

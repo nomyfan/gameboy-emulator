@@ -273,8 +273,6 @@ impl Memory for Apu {
                 let ch3_active = (self.ch3.active() as u8) << 2;
                 let ch4_active = (self.ch4.active() as u8) << 3;
 
-                // log::debug!("Read NR52, {:?}", self);
-
                 self.nr52 | ch1_active | ch2_active | ch3_active | ch4_active
             }
             0xFF27..=0xFF2F => 0,
@@ -296,9 +294,9 @@ impl std::fmt::Debug for Apu {
         f.debug_struct("Apu")
             .field("CH1", &self.ch1)
             .field("CH2", &self.ch2)
-            // .field("ch3", &self.ch3)
-            // .field("ch4", &self.ch4)
-            .field("NR52", &format!("{:#X}", nrx52))
+            .field("CH3", &self.ch3)
+            .field("CH4", &self.ch4)
+            .field("NR52", &format_args!("{:#X}", nrx52))
             .finish()
     }
 }

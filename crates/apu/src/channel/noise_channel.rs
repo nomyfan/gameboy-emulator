@@ -9,6 +9,12 @@ struct Lfsr {
     clock: Clock,
 }
 
+impl std::fmt::Debug for Lfsr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:#018b}", self.value))
+    }
+}
+
 impl Lfsr {
     fn new_lfsr_clock(nrx3: u8) -> Clock {
         let shift = (nrx3 >> 4) & 0xF;
@@ -79,6 +85,17 @@ pub(crate) struct NoiseChannel {
     volume_envelope: VolumeEnvelope,
     lfsr: Lfsr,
     active: bool,
+}
+
+impl std::fmt::Debug for NoiseChannel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NoiseChannel")
+            .field("length_counter", &self.length_counter)
+            .field("volume_envelope", &self.volume_envelope)
+            .field("lfsr", &self.lfsr)
+            .field("active", &self.active)
+            .finish()
+    }
 }
 
 impl NoiseChannel {
