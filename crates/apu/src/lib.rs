@@ -123,10 +123,7 @@ impl Apu {
             let right_volume_coefficient =
                 ((self.master_right_volume() + 1) as f32 / 8.0) * (1.0 / 15.0) * 0.25;
 
-            self.mixed_samples_buffer.iter_mut().for_each(|(l, r)| {
-                *l = 0.0;
-                *r = 0.0;
-            });
+            self.mixed_samples_buffer.fill_with(Default::default);
             self.samples_buffer.fill(0);
 
             let mut mix = |left: bool, right: bool, samples: &[i16]| {
@@ -142,7 +139,7 @@ impl Apu {
 
             let ch1_samples =
                 self.ch1.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
-            
+
             mix(is_bit_set!(self.nr51, 4), is_bit_set!(self.nr51, 0), &mut self.samples_buffer);
 
             let ch2_samples =
