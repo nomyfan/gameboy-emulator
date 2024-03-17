@@ -108,37 +108,39 @@ impl PeriodSweep for SomePeriodSweep {
     }
 
     fn step(&mut self, frame: Frame) -> bool {
-        if self.enabled && frame.sweep_frame() {
-            self.steps = self.steps.saturating_sub(1);
-            if self.steps == 0 {
-                self.steps = self.pace;
-                if self.pace != 8 {
+        if !self.enabled || !frame.sweep_frame() {
+            return false;
+        }
+
+        self.steps = self.steps.saturating_sub(1);
+        if self.steps == 0 {
+            self.steps = self.pace;
+            if self.pace != 8 {
+                let new_period_value = Self::calculate_next_period_value(
+                    self.shadow_period_value,
+                    self.dir_decrease,
+                    self.shift,
+                );
+                self.active = new_period_value <= 2047;
+                if self.active && self.shift != 0 {
+                    self.shadow_period_value = new_period_value;
+                    self.nrx34 = new_period_value;
+
+                    // AGAIN
                     let new_period_value = Self::calculate_next_period_value(
-                        self.shadow_period_value,
+                        new_period_value,
                         self.dir_decrease,
                         self.shift,
                     );
                     self.active = new_period_value <= 2047;
-                    if self.active && self.shift != 0 {
-                        self.shadow_period_value = new_period_value;
-                        self.nrx34 = new_period_value;
 
-                        // AGAIN
-                        let new_period_value = Self::calculate_next_period_value(
-                            new_period_value,
-                            self.dir_decrease,
-                            self.shift,
-                        );
-                        self.active = new_period_value <= 2047;
-                        log::debug!("reloaded {:?}", self);
-
-                        return true;
-                    }
-
-                    self.occurred = true;
+                    return true;
                 }
+
+                self.occurred = true;
             }
         }
+
         false
     }
 
