@@ -63,11 +63,11 @@ impl GameBoy {
     pub fn play(
         mut self,
         frame_out_handle: Box<FrameOutHandle>,
-        audio_out_handle: Box<AudioOutHandle>,
+        audio_out_handle: Option<Box<AudioOutHandle>>,
         command_receiver: CommandReceiver,
     ) -> anyhow::Result<()> {
         self.bus.set_frame_out_handle(Some(frame_out_handle));
-        self.bus.set_audio_out_handle(Some(audio_out_handle));
+        self.bus.set_audio_out_handle(audio_out_handle);
         self.command_receiver = Some(command_receiver);
 
         self.ts = Instant::now();

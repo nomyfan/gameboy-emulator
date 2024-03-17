@@ -85,11 +85,17 @@ pub const fn mib(m: usize) -> usize {
     kib(m) * 1024
 }
 
-#[cfg(debug_assertions)]
-pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>, Vec<(u32, Vec<[[u8; 8]; 8]>)>);
-#[cfg(not(debug_assertions))]
-pub type FrameOutHandle = dyn FnMut(&BoxedMatrix<u8, 160, 144>);
+pub type VideoFrame = BoxedMatrix<u8, 160, 144>;
 
-pub type AudioOutHandle = dyn FnMut(&[(f32, f32)]);
+pub type DebugVideoFrame = Vec<(u32, Vec<[[u8; 8]; 8]>)>;
+
+pub type AudioSamples = [(f32, f32)];
+
+#[cfg(debug_assertions)]
+pub type FrameOutHandle = dyn FnMut(&VideoFrame, DebugVideoFrame);
+#[cfg(not(debug_assertions))]
+pub type FrameOutHandle = dyn FnMut(&VideoFrame);
+
+pub type AudioOutHandle = dyn FnMut(&AudioSamples);
 
 pub const CPU_FREQ: u32 = 4_194_304;

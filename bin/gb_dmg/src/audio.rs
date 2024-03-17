@@ -23,19 +23,18 @@ where
     );
 }
 
-pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
-    let samples_buf: Arc<Mutex<AudioSamplesBuffer>> = Arc::new(Mutex::new(Vec::new()));
+pub(crate) fn init_audio() -> anyhow::Result<(Stream, Arc<Mutex<AudioSamplesBuffer>>, u32)> {
     let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-    log::debug!("Audio device: {}", device.name().unwrap());
-    let config = device.default_output_config().unwrap();
+    let device = host
+        .default_output_device()
+        .ok_or_else(|| anyhow::anyhow!("No output device available"))?;
+    let config = device.default_output_config()?;
     let sample_format = config.sample_format();
-    log::debug!("Sample format: {}", sample_format);
     let config: cpal::StreamConfig = config.into();
-    log::debug!("Stream config: {:?}", config);
     let sample_rate = config.sample_rate.0 as u32;
     let channel_count = config.channels;
 
+    let samples_buf: Arc<Mutex<AudioSamplesBuffer>> = Arc::new(Mutex::new(Vec::new()));
     let stream = {
         let samples_buf = samples_buf.clone();
         let stream = match sample_format {
@@ -65,5 +64,5 @@ pub(crate) fn init_audio() -> (Stream, Arc<Mutex<AudioSamplesBuffer>>, u32) {
         stream
     };
 
-    (stream, samples_buf, sample_rate)
+    Ok((stream, samples_buf, sample_rate))
 }

@@ -12,6 +12,7 @@ use crate::config::{HEIGHT, SCALE, WIDTH};
 use cpal::traits::StreamTrait;
 use gb::GameBoy;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
+use gb_shared::{DebugVideoFrame, VideoFrame};
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -130,48 +131,62 @@ fn main() -> anyhow::Result<()> {
     let main_window_id = main_window.id();
     let main_frame = Arc::new(Mutex::new(frame::Frame::default()));
 
-    let (audio_stream, samples_buf, sample_rate) = audio::init_audio();
-    audio_stream.play()?;
+    let (stream, samples_buf, sample_rate) = audio::init_audio()
+        .map(|(stream, buf, sample_rate)| (Some(stream), Some(buf), Some(sample_rate)))
+        .unwrap_or_default();
+
+    if let Some(stream) = &stream {
+        stream.play()?;
+    }
 
     let gameboy_handle = thread::spawn({
         let window = main_window.clone();
         let frame = main_frame.clone();
 
-        move || -> anyhow::Result<()> {
-            let gb = GameBoy::try_from_path(rom_path, Some(sample_rate))?;
-            gb.play(
+        let video_handle = Box::new(
+            move |buffer: &VideoFrame, #[cfg(debug_assertions)] dbg_buffers: DebugVideoFrame| {
+                frame.lock().unwrap().update(buffer);
+                window.request_redraw();
+                #[cfg(debug_assertions)]
                 {
-                    Box::new(move |buffer, #[cfg(debug_assertions)] dbg_buffers| {
-                        frame.lock().unwrap().update(buffer);
-                        window.request_redraw();
-                        #[cfg(debug_assertions)]
-                        {
-                            for buf in dbg_buffers {
-                                if buf.0 == 1 {
-                                    if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
-                                        frame.lock().unwrap().update(&buf.1);
-                                        window.request_redraw();
-                                    }
-                                } else if buf.0 == 2 {
-                                    if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
-                                        frame.lock().unwrap().update(&buf.1);
-                                        window.request_redraw();
-                                    }
-                                } else if buf.0 == 0 {
-                                    if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
-                                        frame.lock().unwrap().update(&buf.1);
-                                        window.request_redraw();
-                                    }
-                                }
+                    for buf in dbg_buffers {
+                        if buf.0 == 1 {
+                            if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
+                                frame.lock().unwrap().update(&buf.1);
+                                window.request_redraw();
+                            }
+                        } else if buf.0 == 2 {
+                            if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
+                                frame.lock().unwrap().update(&buf.1);
+                                window.request_redraw();
+                            }
+                        } else if buf.0 == 0 {
+                            if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
+                                frame.lock().unwrap().update(&buf.1);
+                                window.request_redraw();
                             }
                         }
-                    })
-                },
-                Box::new(move |sample_data| {
-                    samples_buf.lock().unwrap().extend_from_slice(sample_data);
-                }),
-                command_receiver,
-            )?;
+                    }
+                }
+            },
+        );
+
+        move || -> anyhow::Result<()> {
+            let gb = GameBoy::try_from_path(rom_path, sample_rate)?;
+            match samples_buf {
+                Some(samples_buf) => {
+                    gb.play(
+                        video_handle,
+                        Some(Box::new(move |sample_data| {
+                            samples_buf.lock().unwrap().extend_from_slice(sample_data);
+                        })),
+                        command_receiver,
+                    )?;
+                }
+                None => {
+                    gb.play(video_handle, None, command_receiver)?;
+                }
+            }
             Ok(())
         }
     });
