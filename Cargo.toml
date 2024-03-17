@@ -17,6 +17,6 @@ gb_ppu = { path = "crates/ppu" }
 gb_apu = { path = "crates/apu" }
 gb_shared = { path = "crates/shared" }
 gb = { path = "crates/gb" }
-log = "0.4.17"
+log = { version = "0.4.17", features = ["release_max_level_info"] }
 anyhow = "1.0.66"
 mockall = "0.12.0"
