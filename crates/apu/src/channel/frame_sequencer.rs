@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::{clock::Clock, utils::freq_to_period};
 
 pub(crate) struct FrameSequencer {
@@ -34,26 +32,6 @@ pub(crate) struct Frame(u8);
 impl Default for Frame {
     fn default() -> Self {
         Self(7)
-    }
-}
-
-impl From<u8> for Frame {
-    fn from(frame: u8) -> Self {
-        Self(frame & 0x7)
-    }
-}
-
-impl From<&Frame> for u8 {
-    fn from(value: &Frame) -> Self {
-        value.0
-    }
-}
-
-impl Deref for Frame {
-    type Target = u8;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
