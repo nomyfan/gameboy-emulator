@@ -1,11 +1,11 @@
 pub(crate) struct Clock {
     div: u32,
-    ticks: u32,
+    clocks: u32,
 }
 
 impl Clock {
     pub(crate) fn new(div: u32) -> Self {
-        Self { div, ticks: 0 }
+        Self { div, clocks: 0 }
     }
 
     pub(crate) fn div(&self) -> u32 {
@@ -17,9 +17,9 @@ impl Clock {
             return false;
         }
 
-        self.ticks += 1;
-        let should_tick = (self.ticks / self.div) != 0;
-        self.ticks %= self.div;
-        should_tick
+        self.clocks += 1;
+        let emit = (self.clocks / self.div) != 0;
+        self.clocks %= self.div;
+        emit
     }
 }
