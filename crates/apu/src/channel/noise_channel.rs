@@ -91,7 +91,7 @@ impl std::fmt::Debug for NoiseChannel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NoiseChannel")
             .field("length_counter", &self.length_counter)
-            .field("volume_envelope", &self.volume_envelope)
+            .field("envelope", &self.volume_envelope)
             .field("lfsr", &self.lfsr)
             .field("active", &self.active)
             .finish()

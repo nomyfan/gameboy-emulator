@@ -103,8 +103,8 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PulseChannel")
             .field("length_counter", &self.length_counter)
-            .field("volume_envelope", &self.volume_envelope)
-            .field("period_sweep", &self.period_sweep)
+            .field("envelope", &self.volume_envelope)
+            .field("sweep", &self.period_sweep)
             .field("active", &self.active)
             .finish()
     }
