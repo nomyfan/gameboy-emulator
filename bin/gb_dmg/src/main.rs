@@ -12,7 +12,9 @@ use crate::config::{HEIGHT, SCALE, WIDTH};
 use cpal::traits::StreamTrait;
 use gb::GameBoy;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
-use gb_shared::{DebugVideoFrame, VideoFrame};
+#[cfg(debug_assertions)]
+use gb_shared::DebugVideoFrame;
+use gb_shared::VideoFrame;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;

@@ -19,12 +19,12 @@ impl BlipBuf {
         self.volume = volume;
     }
 
-    pub(crate) fn end(&mut self, buffer: &mut [i16], duration: u32) {
+    pub(crate) fn end(&mut self, buffer: &mut [i16], duration: u32) -> usize {
         self.buf.end_frame(duration);
 
         let samples_avail = self.buf.samples_avail();
-        debug_assert_eq!(samples_avail as usize, buffer.len());
-        self.buf.read_samples(buffer, false);
+        debug_assert!(samples_avail <= buffer.len() as u32);
         self.clock_time = 0;
+        self.buf.read_samples(buffer, false)
     }
 }

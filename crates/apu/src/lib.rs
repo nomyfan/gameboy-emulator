@@ -140,20 +140,31 @@ impl Apu {
                 }
             };
 
-            self.ch1.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            let ch1_samples =
+                self.ch1.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            
             mix(is_bit_set!(self.nr51, 4), is_bit_set!(self.nr51, 0), &mut self.samples_buffer);
 
-            self.ch2.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            let ch2_samples =
+                self.ch2.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            debug_assert_eq!(ch1_samples, ch2_samples);
+
             mix(is_bit_set!(self.nr51, 5), is_bit_set!(self.nr51, 1), &mut self.samples_buffer);
 
-            self.ch3.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            let ch3_samples =
+                self.ch3.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            debug_assert_eq!(ch2_samples, ch3_samples);
+
             mix(is_bit_set!(self.nr51, 6), is_bit_set!(self.nr51, 2), &mut self.samples_buffer);
 
-            self.ch4.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            let ch4_samples =
+                self.ch4.read_samples(&mut self.samples_buffer, self.mixer_clock.div());
+            debug_assert_eq!(ch3_samples, ch4_samples);
+
             mix(is_bit_set!(self.nr51, 7), is_bit_set!(self.nr51, 3), &mut self.samples_buffer);
 
             if let Some(handle) = self.audio_out_handle.as_mut() {
-                handle(&self.mixed_samples_buffer);
+                handle(&self.mixed_samples_buffer[..ch1_samples]);
             }
         }
     }

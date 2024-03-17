@@ -181,7 +181,7 @@ impl WaveChannel {
         self.active &= self.length_counter.active();
     }
 
-    pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) {
+    pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) -> usize {
         self.blipbuf.end(buffer, duration)
     }
 
