@@ -168,6 +168,7 @@ impl Ppu {
 
     fn push_frame(&mut self) {
         if let Some(handle) = self.frame_out_handle.as_mut() {
+            // FIXME: reuse buffer
             #[cfg(debug_assertions)]
             let dbg_buffers = {
                 let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
@@ -374,47 +375,49 @@ impl Ppu {
 
         if self.lcd.is_object_enabled() {
             let obj_size = self.lcd.object_size();
-            let objects = self
-                .work_state
-                .scanline_objects
-                .iter()
-                .filter(|object| {
-                    // overlap
-                    let sx = self.work_state.scanline_x + 8;
-                    sx >= object.x && sx < object.x + 8
-                })
-                .map(|object| {
-                    let object = *object;
 
-                    let ty = (self.lcd.ly + 16) - object.y;
-                    let tx = (self.work_state.scanline_x + 8) - object.x;
+            let mut opaque_object: Option<(u8, Object)> = None;
 
-                    let index = if obj_size == 16 {
-                        let mut top = object.tile_index & 0xFE;
-                        let mut bottom = object.tile_index | 0x01;
+            for object in &self.work_state.scanline_objects {
+                let sx = self.work_state.scanline_x + 8;
+                if sx < object.x || sx >= object.x + 8 {
+                    continue;
+                }
 
-                        if object.attrs.y_flip() {
-                            std::mem::swap(&mut top, &mut bottom);
-                        }
+                let object = *object;
 
-                        if ty < 8 {
-                            top
-                        } else {
-                            bottom
-                        }
+                let ty = (self.lcd.ly + 16) - object.y;
+                let tx = (self.work_state.scanline_x + 8) - object.x;
+
+                let index = if obj_size == 16 {
+                    let mut top = object.tile_index & 0xFE;
+                    let mut bottom = object.tile_index | 0x01;
+
+                    if object.attrs.y_flip() {
+                        std::mem::swap(&mut top, &mut bottom);
+                    }
+
+                    if ty < 8 {
+                        top
                     } else {
-                        object.tile_index
-                    };
+                        bottom
+                    }
+                } else {
+                    object.tile_index
+                };
 
-                    let tile_data = self.read_tile_data(index, true);
-                    let mut tile_data = tile::mix_colors_16(&tile_data);
-                    tile::apply_object_attrs(&mut tile_data, &object.attrs);
-                    let color_id = tile::get_color_id(&tile_data, tx, ty % 8);
+                // FIXME: quick way to get color ID without constructing data.
+                let tile_data = self.read_tile_data(index, true);
+                let mut tile_data = tile::mix_colors_16(&tile_data);
+                tile::apply_object_attrs(&mut tile_data, &object.attrs);
+                let color_id = tile::get_color_id(&tile_data, tx, ty % 8);
 
-                    (color_id, object)
-                })
-                .collect::<Vec<_>>();
-            let opaque_object = objects.into_iter().find(|(obj_color_id, _)| obj_color_id != &0);
+                if color_id != 0 {
+                    opaque_object = Some((color_id, object));
+                    break;
+                }
+            }
+
             if let Some((obj_color_id, object)) = opaque_object {
                 // Priority definition(the object below is opaque)
                 // 1. If BGW' color ID is 0, then render the object.

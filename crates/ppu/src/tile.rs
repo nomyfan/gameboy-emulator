@@ -11,6 +11,7 @@ pub(crate) fn get_color_id(data: &[u16; 8], x: u8, y: u8) -> u8 {
     color_id as u8
 }
 
+/// FIXME: it's slow.
 pub(crate) fn mix_colors(low: &[u8; 8], high: &[u8; 8]) -> [u16; 8] {
     let mut colors: [u16; 8] = Default::default();
 
