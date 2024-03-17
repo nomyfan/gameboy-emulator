@@ -1,5 +1,15 @@
 use crate::object::ObjectAttrs;
 
+pub(crate) fn get_color_id_new(data: &[u8; 16], x: u8, y: u8, x_flip: bool, y_flip: bool) -> u8 {
+    let nth = (if y_flip { 7 - y } else { y } << 1) as usize;
+    let offset = if x_flip { x } else { 7 - x } as usize;
+
+    let low = (data[nth] >> offset) & 1;
+    let high = (data[nth + 1] >> offset) & 1;
+
+    (high << 1) | low
+}
+
 /// Return color ID in range of 0..4.
 pub(crate) fn get_color_id(data: &[u16; 8], x: u8, y: u8) -> u8 {
     assert!(x < 8 && y < 8);
@@ -11,7 +21,7 @@ pub(crate) fn get_color_id(data: &[u16; 8], x: u8, y: u8) -> u8 {
     color_id as u8
 }
 
-/// FIXME: it's slow.
+#[deprecated(note = "Low performance")]
 pub(crate) fn mix_colors(low: &[u8; 8], high: &[u8; 8]) -> [u16; 8] {
     let mut colors: [u16; 8] = Default::default();
 
@@ -40,6 +50,7 @@ pub(crate) fn mix_colors(low: &[u8; 8], high: &[u8; 8]) -> [u16; 8] {
     colors
 }
 
+#[deprecated(note = "Low performance")]
 pub(crate) fn mix_colors_16(data: &[u8; 16]) -> [u16; 8] {
     mix_colors(data[0..8].try_into().unwrap(), data[8..16].try_into().unwrap())
 }

@@ -128,7 +128,7 @@ impl Ppu {
         self.vram[vram_offset as usize]
     }
 
-    fn read_tile_data(&self, index: u8, for_object: bool) -> [u8; 16] {
+    fn read_tile_data(&self, index: u8, for_object: bool) -> &[u8; 16] {
         let index = if for_object || is_bit_set!(self.lcd.lcdc, 4) {
             index as usize
         } else {
@@ -367,9 +367,7 @@ impl Ppu {
             }
 
             let tile_data = self.read_tile_data(index, false);
-            let tile_data = tile::mix_colors_16(&tile_data);
-
-            color_id = tile::get_color_id(&tile_data, tx, ty);
+            color_id = tile::get_color_id_new(tile_data, tx, ty, false, false);
             color_palette = (self.bgp >> (color_id * 2)) & 0b11;
         }
 
@@ -406,12 +404,14 @@ impl Ppu {
                     object.tile_index
                 };
 
-                // FIXME: quick way to get color ID without constructing data.
                 let tile_data = self.read_tile_data(index, true);
-                let mut tile_data = tile::mix_colors_16(&tile_data);
-                tile::apply_object_attrs(&mut tile_data, &object.attrs);
-                let color_id = tile::get_color_id(&tile_data, tx, ty % 8);
-
+                let color_id = tile::get_color_id_new(
+                    tile_data,
+                    tx,
+                    ty % 8,
+                    object.attrs.x_flip(),
+                    object.attrs.y_flip(),
+                );
                 if color_id != 0 {
                     opaque_object = Some((color_id, object));
                     break;
