@@ -316,8 +316,6 @@ impl Ppu {
                     continue;
                 }
 
-                let object = *object;
-
                 let ty = (self.lcd.ly + 16) - object.y;
                 let tx = (self.work_state.scanline_x + 8) - object.x;
 
@@ -347,7 +345,7 @@ impl Ppu {
                     object.attrs.y_flip(),
                 );
                 if color_id != 0 {
-                    opaque_object = Some((color_id, object));
+                    opaque_object = Some((color_id, *object));
                     break;
                 }
             }
