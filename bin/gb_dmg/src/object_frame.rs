@@ -15,7 +15,7 @@ const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 type Buffer = BoxedArray<u8, 0x1800>;
 
 #[derive(Debug, Default)]
-pub(crate) struct OamFrame {
+pub(crate) struct ObjectFrame {
     buffer: Buffer,
 }
 
@@ -44,7 +44,7 @@ pub(super) fn read_pixel(buffer: &[u8], i: usize, width: usize) -> [u8; 4] {
     [(color >> 16) as u8, (color >> 8) as u8, color as u8, 0xFF]
 }
 
-impl OamFrame {
+impl ObjectFrame {
     pub(crate) fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let rgba = read_pixel(&self.buffer[..], i, 16);
@@ -64,7 +64,7 @@ pub fn new_window(
     let window = {
         let size = LogicalSize::new(128.0 * SCALE, 192.0 * SCALE);
         WindowBuilder::new()
-            .with_title("OAM")
+            .with_title("Object")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .with_position(position)

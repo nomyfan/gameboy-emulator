@@ -1,6 +1,6 @@
 #![cfg(debug_assertions)]
 
-use super::oam_frame::read_pixel;
+use super::object_frame::read_pixel;
 use crate::config::SCALE;
 use gb_shared::boxed::BoxedArray;
 use pixels::{Pixels, SurfaceTexture};

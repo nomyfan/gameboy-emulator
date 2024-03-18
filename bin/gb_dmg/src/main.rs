@@ -4,7 +4,7 @@ mod frame;
 mod gamepad;
 mod logger;
 #[cfg(debug_assertions)]
-mod oam_frame;
+mod object_frame;
 #[cfg(debug_assertions)]
 mod tile_map_frame;
 
@@ -112,15 +112,15 @@ fn main() -> anyhow::Result<()> {
     .unwrap_or_default();
 
     #[cfg(debug_assertions)]
-    let (mut oam_dbg_handle1, mut oam_dbg_handle2) = {
-        if !dbg_windows_flag.contains(&"oam") {
+    let (mut obj_dbg_handle, mut obj_dbg_handle2) = {
+        if !dbg_windows_flag.contains(&"obj") {
             None
         } else {
-            let (window, pixels) = oam_frame::new_window(
+            let (window, pixels) = object_frame::new_window(
                 &event_loop,
                 Position::Logical(LogicalPosition::new(450.0, 100.0)),
             )?;
-            let frame = Arc::new(Mutex::new(oam_frame::OamFrame::default()));
+            let frame = Arc::new(Mutex::new(object_frame::ObjectFrame::default()));
 
             Some((frame, pixels, Arc::new(window)))
         }
@@ -157,7 +157,7 @@ fn main() -> anyhow::Result<()> {
                     #[cfg(debug_assertions)]
                     {
                         if let Some((vram_data, lcdc4)) = vram_data {
-                            if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
+                            if let Some((frame, window)) = obj_dbg_handle.as_mut() {
                                 frame.lock().unwrap().update(&vram_data[..0x1800]);
                                 window.request_redraw();
                             }
@@ -226,7 +226,7 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         #[cfg(debug_assertions)]
                         {
-                            if let Some((frame, pixels, window)) = oam_dbg_handle2.as_mut() {
+                            if let Some((frame, pixels, window)) = obj_dbg_handle2.as_mut() {
                                 if window_id == &window.id() {
                                     frame.lock().unwrap().draw(pixels.frame_mut());
                                     pixels.render().unwrap();
