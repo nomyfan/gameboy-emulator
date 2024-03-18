@@ -1,4 +1,5 @@
 mod config;
+mod fps;
 mod lcd;
 mod object;
 mod tile;
@@ -6,6 +7,7 @@ mod tile;
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
+use fps::Fps;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
 use gb_shared::{
     is_bit_set, set_bits, unset_bits, FrameOutHandle, Interrupt, InterruptRequest, Memory,
@@ -32,6 +34,7 @@ pub(crate) struct PpuWorkState {
     /// Whether window is used in current scanline.
     /// Used for incrementing window_line.
     window_used: bool,
+    fps: Fps,
 }
 
 pub struct Ppu {
@@ -265,6 +268,7 @@ impl Ppu {
                     *color_palette = 0;
                 })
             });
+            self.work_state.fps.stop();
             self.push_frame();
         }
     }
@@ -484,6 +488,9 @@ impl Ppu {
                 // https://gbdev.io/pandocs/Rendering.html#obj-penalty-algorithm:~:text=one%20frame%20takes%20~-,16.74,-ms%20instead%20of
                 // (456 * 154) * (1/(2**22)) * 1000 = 16.74ms
                 // Notify that a frame is rendered.
+                if let Some(fps) = self.work_state.fps.update() {
+                    log::info!("Render FPS: {:.2}", fps);
+                }
                 self.push_frame();
             }
         }
