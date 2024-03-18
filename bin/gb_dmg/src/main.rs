@@ -62,7 +62,11 @@ fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
 fn main() -> anyhow::Result<()> {
     logger::init();
 
-    let rom_path = std::path::PathBuf::from(std::env::args().nth(1).unwrap());
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+
+    let with_gameboy = args.iter().any(|x| x == "--gamepad");
+
+    let rom_path = std::path::PathBuf::from(args.first().unwrap());
 
     let (command_sender, command_receiver) = mpsc::channel();
 
@@ -195,19 +199,21 @@ fn main() -> anyhow::Result<()> {
     });
 
     // Optional Gamepad event loop
-    std::thread::spawn({
-        let command_sender = command_sender.clone();
-        move || {
-            gamepad::run_event_loop(|key, is_pressed| {
-                let joypad_cmd = if is_pressed {
-                    JoypadCommand::PressKey(key)
-                } else {
-                    JoypadCommand::ReleaseKey(key)
-                };
-                command_sender.send(Command::Joypad(joypad_cmd)).unwrap();
-            })
-        }
-    });
+    if with_gameboy {
+        std::thread::spawn({
+            let command_sender = command_sender.clone();
+            move || {
+                gamepad::run_event_loop(|key, is_pressed| {
+                    let joypad_cmd = if is_pressed {
+                        JoypadCommand::PressKey(key)
+                    } else {
+                        JoypadCommand::ReleaseKey(key)
+                    };
+                    command_sender.send(Command::Joypad(joypad_cmd)).unwrap();
+                })
+            }
+        });
+    }
 
     event_loop.run(move |event, elwt| {
         // Draw the current frame
