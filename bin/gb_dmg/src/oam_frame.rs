@@ -12,14 +12,14 @@ use crate::config::SCALE;
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
-type Buffer = BoxedArray<u8, 0x2000>;
+type Buffer = BoxedArray<u8, 0x1800>;
 
 #[derive(Debug, Default)]
 pub(crate) struct OamFrame {
     buffer: Buffer,
 }
 
-fn get_color_id(data: &[u8; 16], x: u8, y: u8) -> u8 {
+pub(super) fn get_color_id(data: &[u8; 16], x: u8, y: u8) -> u8 {
     let nth = (y << 1) as usize;
     let offset = (7 - x) as usize;
 
@@ -50,14 +50,8 @@ impl OamFrame {
         }
     }
 
-    pub(crate) fn update(&mut self, buffer: &Buffer) {
-        if self.buffer.is_empty() {
-            self.buffer = buffer.clone();
-        } else {
-            for (i, tile) in buffer.iter().enumerate() {
-                self.buffer[i] = *tile;
-            }
-        }
+    pub(crate) fn update(&mut self, buffer: &[u8]) {
+        self.buffer.copy_from_slice(buffer);
     }
 }
 

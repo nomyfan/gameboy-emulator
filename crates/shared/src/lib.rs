@@ -90,11 +90,7 @@ pub type VideoFrame = BoxedMatrix<u8, 160, 144>;
 pub type AudioSamples = [(f32, f32)];
 
 #[cfg(debug_assertions)]
-pub type FrameOutHandle = dyn FnMut(
-    &VideoFrame,
-    Option<&BoxedArray<u8, 0x2000>>,
-    Option<(Vec<[[u8; 8]; 8]>, Vec<[[u8; 8]; 8]>)>,
-);
+pub type FrameOutHandle = dyn FnMut(&VideoFrame, Option<(&BoxedArray<u8, 0x2000>, bool)>);
 #[cfg(not(debug_assertions))]
 pub type FrameOutHandle = dyn FnMut(&VideoFrame);
 

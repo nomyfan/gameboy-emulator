@@ -11,6 +11,7 @@ mod tile_map_frame;
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use cpal::traits::StreamTrait;
 use gb::GameBoy;
+#[cfg(debug_assertions)]
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use gb_shared::VideoFrame;
@@ -144,37 +145,34 @@ fn main() -> anyhow::Result<()> {
         let window = main_window.clone();
         let frame = main_frame.clone();
 
-        let video_handle = Box::new(
-            move |buffer: &VideoFrame,
-                  #[cfg(debug_assertions)] oam_data: Option<&BoxedArray<u8, 0x2000>>,
-                  #[cfg(debug_assertions)] map_data: Option<(
-                Vec<[[u8; 8]; 8]>,
-                Vec<[[u8; 8]; 8]>,
-            )>| {
-                frame.lock().unwrap().update(buffer);
-                window.request_redraw();
-                #[cfg(debug_assertions)]
-                {
-                    if let Some(oam_data) = oam_data {
-                        if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
-                            frame.lock().unwrap().update(oam_data);
-                            window.request_redraw();
+        let video_handle =
+            Box::new(
+                move |buffer: &VideoFrame,
+                      #[cfg(debug_assertions)] vram_data: Option<(
+                    &BoxedArray<u8, 0x2000>,
+                    bool,
+                )>| {
+                    frame.lock().unwrap().update(buffer);
+                    window.request_redraw();
+                    #[cfg(debug_assertions)]
+                    {
+                        if let Some((vram_data, lcdc4)) = vram_data {
+                            if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
+                                frame.lock().unwrap().update(&vram_data[..0x1800]);
+                                window.request_redraw();
+                            }
+                            if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
+                                frame.lock().unwrap().update(&vram_data[..], 0x1800, lcdc4);
+                                window.request_redraw();
+                            }
+                            if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
+                                frame.lock().unwrap().update(&vram_data[..], 0x1C00, lcdc4);
+                                window.request_redraw();
+                            }
                         }
                     }
-
-                    if let Some((map1_data, map2_data)) = map_data {
-                        if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
-                            frame.lock().unwrap().update(&map1_data);
-                            window.request_redraw();
-                        }
-                        if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
-                            frame.lock().unwrap().update(&map2_data);
-                            window.request_redraw();
-                        }
-                    }
-                }
-            },
-        );
+                },
+            );
 
         move || -> anyhow::Result<()> {
             let gb = GameBoy::try_from_path(rom_path, sample_rate)?;

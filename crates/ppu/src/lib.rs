@@ -171,71 +171,16 @@ impl Ppu {
 
     fn push_frame(&mut self) {
         if let Some(handle) = self.frame_out_handle.as_mut() {
-            // FIXME: reuse buffer
             #[cfg(debug_assertions)]
-            let (oam_data, map_data) = {
-                let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
-                let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
-
-                let mut oam_data: Option<&BoxedArray<u8, 0x2000>> = None;
-                let mut map_data: Option<(Vec<[[u8; 8]; 8]>, Vec<[[u8; 8]; 8]>)> = None;
-
-                // OAM frame.
-                if dbg_windows_flag.contains(&"oam") {
-                    oam_data = Some(&self.vram);
-                }
-
-                // Two tile map frames.
-                if dbg_windows_flag.contains(&"map") {
-                    let get_map = |indexes: &[u8], index_fn: fn(u8) -> u8| {
-                        let mut map_data = Vec::with_capacity(32 * 32);
-                        for index in indexes {
-                            let index = index_fn(*index) as usize;
-
-                            let tile = {
-                                let tile: [u8; 16] =
-                                    self.vram[(index * 16)..(index * 16 + 16)].try_into().unwrap();
-
-                                let data = tile::mix_colors_16(&tile);
-
-                                let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                                for (y, yd) in data.into_iter().enumerate() {
-                                    for x in (0..16u8).step_by(2) {
-                                        let offset = 14 - x;
-                                        let value = (yd >> offset) & 0b11;
-                                        matrix_8_by_8[y][x as usize / 2] = value as u8;
-                                    }
-                                }
-                                matrix_8_by_8
-                            };
-
-                            map_data.push(tile);
-                        }
-
-                        map_data
-                    };
-                    let index_fn = if is_bit_set!(self.lcd.lcdc, 4) {
-                        |index: u8| index
-                    } else {
-                        |index: u8| (index as i8 as i16 + 256) as u8
-                    };
-                    let map1 = get_map(&self.vram[0x1800..(0x1800 + 1024)], index_fn);
-                    let map2 = get_map(&self.vram[0x1C00..(0x1C00 + 1024)], index_fn);
-                    debug_assert_eq!(map1.len(), 1024);
-                    debug_assert_eq!(map2.len(), 1024);
-
-                    map_data = Some((map1, map2));
-                }
-
-                (oam_data, map_data)
+            let vram_data = match std::env::var("GB_DBG_WIN") {
+                Ok(_) => Some((&self.vram, is_bit_set!(self.lcd.lcdc, 4))),
+                Err(_) => None,
             };
 
             handle(
                 &self.video_buffer,
                 #[cfg(debug_assertions)]
-                oam_data,
-                #[cfg(debug_assertions)]
-                map_data,
+                vram_data,
             );
         }
     }

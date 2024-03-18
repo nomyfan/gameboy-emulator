@@ -1,6 +1,8 @@
 #![cfg(debug_assertions)]
 
+use super::oam_frame::get_color_id;
 use crate::config::SCALE;
+use gb_shared::boxed::BoxedArray;
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::{LogicalSize, Position};
 use winit::event_loop::EventLoop;
@@ -8,10 +10,8 @@ use winit::window::{Window, WindowBuilder};
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
-type Tile = [[u8; 8]; 8];
-
-// 32x32 tiles
-type Buffer = Vec<Tile>;
+const BUFFER_SIZE: usize = 32 * 32 * 16; // 32x32 tiles
+type Buffer = BoxedArray<u8, BUFFER_SIZE>;
 
 #[derive(Debug, Default)]
 pub(crate) struct TileMapFrame {
@@ -25,27 +25,28 @@ impl TileMapFrame {
         }
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             debug_assert!(i < 65536);
-            let ty = i / (32 * 8 * 8);
-            let tx = i % (32 * 8) / 8;
+            let tile_y = i / (32 * 8 * 8);
+            let tile_x = i % (32 * 8) / 8;
 
-            let nth = ty * 32 + tx;
-            let tile = self.buffer.get(nth).unwrap();
+            let nth = tile_y * 32 + tile_x;
+            let offset = nth * 16;
+            let tile = self.buffer[offset..(offset + 16)].try_into().unwrap();
             let y = i / (32 * 8) % 8;
             let x = i % 8;
-            let palette = tile[y][x];
-            let color = COLOR_PALETTES[palette as usize];
+            let color_id = get_color_id(&tile, x as u8, y as u8);
+            let color = COLOR_PALETTES[color_id as usize];
             let rgba = [(color >> 16) as u8, (color >> 8) as u8, color as u8, 0xFF];
             pixel.copy_from_slice(&rgba);
         }
     }
 
-    pub(crate) fn update(&mut self, buffer: &Buffer) {
-        if self.buffer.is_empty() {
-            self.buffer = buffer.clone();
-        } else {
-            for (i, tile) in buffer.iter().enumerate() {
-                self.buffer[i] = *tile;
-            }
+    pub(crate) fn update(&mut self, vram: &[u8], base_addr: usize, lcdc4: bool) {
+        for (i, tile_index) in vram[base_addr..(base_addr + 0x400)].iter().enumerate() {
+            let tile_index =
+                if lcdc4 { *tile_index } else { ((*tile_index) as i8 as i16 + 256) as u8 } as usize;
+            let offset = tile_index * 16;
+            let tile = &vram[offset..(offset + 16)];
+            self.buffer[i * 16..(i * 16 + 16)].copy_from_slice(tile);
         }
     }
 }
