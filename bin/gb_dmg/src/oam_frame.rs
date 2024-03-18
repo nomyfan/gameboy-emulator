@@ -19,7 +19,7 @@ pub(crate) struct OamFrame {
     buffer: Buffer,
 }
 
-pub(super) fn get_color_id(data: &[u8; 16], x: u8, y: u8) -> u8 {
+pub(super) fn get_color_id(data: &[u8], x: u8, y: u8) -> u8 {
     let nth = (y << 1) as usize;
     let offset = (7 - x) as usize;
 
@@ -29,23 +29,25 @@ pub(super) fn get_color_id(data: &[u8; 16], x: u8, y: u8) -> u8 {
     (high << 1) | low
 }
 
+pub(super) fn read_pixel(buffer: &[u8], i: usize, width: usize) -> [u8; 4] {
+    let tile_y = i / (width * 8 * 8);
+    let tile_x = i % (width * 8) / 8;
+
+    let nth = tile_y * width + tile_x;
+    let offset = nth * 16;
+    let tile = &buffer[offset..(offset + 16)];
+    let y = i / (width * 8) % 8;
+    let x = i % 8;
+    let color_id = get_color_id(tile, x as u8, y as u8);
+    let color = COLOR_PALETTES[color_id as usize];
+
+    [(color >> 16) as u8, (color >> 8) as u8, color as u8, 0xFF]
+}
+
 impl OamFrame {
     pub(crate) fn draw(&self, frame: &mut [u8]) {
-        if self.buffer.is_empty() {
-            return;
-        }
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let tile_y = i / (16 * 8 * 8);
-            let tile_x = i % (16 * 8) / 8;
-
-            let nth = tile_y * 16 + tile_x;
-            let offset = nth * 16;
-            let tile_data = self.buffer[offset..(offset + 16)].try_into().unwrap();
-            let y = i / (16 * 8) % 8;
-            let x = i % 8;
-            let color_id = get_color_id(tile_data, x as u8, y as u8);
-            let color = COLOR_PALETTES[color_id as usize];
-            let rgba = [(color >> 16) as u8, (color >> 8) as u8, color as u8, 0xFF];
+            let rgba = read_pixel(&self.buffer[..], i, 16);
             pixel.copy_from_slice(&rgba);
         }
     }

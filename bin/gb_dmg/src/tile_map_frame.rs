@@ -1,14 +1,12 @@
 #![cfg(debug_assertions)]
 
-use super::oam_frame::get_color_id;
+use super::oam_frame::read_pixel;
 use crate::config::SCALE;
 use gb_shared::boxed::BoxedArray;
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::{LogicalSize, Position};
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
-
-const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
 const BUFFER_SIZE: usize = 32 * 32 * 16; // 32x32 tiles
 type Buffer = BoxedArray<u8, BUFFER_SIZE>;
@@ -19,23 +17,9 @@ pub(crate) struct TileMapFrame {
 }
 
 impl TileMapFrame {
-    pub(crate) fn draw(&self, frame: &mut [u8]) {
-        if self.buffer.is_empty() {
-            return;
-        }
+    pub(crate) fn draw(&mut self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            debug_assert!(i < 65536);
-            let tile_y = i / (32 * 8 * 8);
-            let tile_x = i % (32 * 8) / 8;
-
-            let nth = tile_y * 32 + tile_x;
-            let offset = nth * 16;
-            let tile = self.buffer[offset..(offset + 16)].try_into().unwrap();
-            let y = i / (32 * 8) % 8;
-            let x = i % 8;
-            let color_id = get_color_id(&tile, x as u8, y as u8);
-            let color = COLOR_PALETTES[color_id as usize];
-            let rgba = [(color >> 16) as u8, (color >> 8) as u8, color as u8, 0xFF];
+            let rgba = read_pixel(&self.buffer[..], i, 32);
             pixel.copy_from_slice(&rgba);
         }
     }
