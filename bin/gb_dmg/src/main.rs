@@ -11,9 +11,8 @@ mod tile_map_frame;
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use cpal::traits::StreamTrait;
 use gb::GameBoy;
+use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
-#[cfg(debug_assertions)]
-use gb_shared::DebugVideoFrame;
 use gb_shared::VideoFrame;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{mpsc, Arc, Mutex};
@@ -146,27 +145,31 @@ fn main() -> anyhow::Result<()> {
         let frame = main_frame.clone();
 
         let video_handle = Box::new(
-            move |buffer: &VideoFrame, #[cfg(debug_assertions)] dbg_buffers: DebugVideoFrame| {
+            move |buffer: &VideoFrame,
+                  #[cfg(debug_assertions)] oam_data: Option<&BoxedArray<u8, 0x2000>>,
+                  #[cfg(debug_assertions)] map_data: Option<(
+                Vec<[[u8; 8]; 8]>,
+                Vec<[[u8; 8]; 8]>,
+            )>| {
                 frame.lock().unwrap().update(buffer);
                 window.request_redraw();
                 #[cfg(debug_assertions)]
                 {
-                    for buf in dbg_buffers {
-                        if buf.0 == 1 {
-                            if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
-                                frame.lock().unwrap().update(&buf.1);
-                                window.request_redraw();
-                            }
-                        } else if buf.0 == 2 {
-                            if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
-                                frame.lock().unwrap().update(&buf.1);
-                                window.request_redraw();
-                            }
-                        } else if buf.0 == 0 {
-                            if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
-                                frame.lock().unwrap().update(&buf.1);
-                                window.request_redraw();
-                            }
+                    if let Some(oam_data) = oam_data {
+                        if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
+                            frame.lock().unwrap().update(oam_data);
+                            window.request_redraw();
+                        }
+                    }
+
+                    if let Some((map1_data, map2_data)) = map_data {
+                        if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
+                            frame.lock().unwrap().update(&map1_data);
+                            window.request_redraw();
+                        }
+                        if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
+                            frame.lock().unwrap().update(&map2_data);
+                            window.request_redraw();
                         }
                     }
                 }

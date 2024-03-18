@@ -173,32 +173,16 @@ impl Ppu {
         if let Some(handle) = self.frame_out_handle.as_mut() {
             // FIXME: reuse buffer
             #[cfg(debug_assertions)]
-            let dbg_buffers = {
+            let (oam_data, map_data) = {
                 let dbg_windows_flag = std::env::var("GB_DBG_WIN").unwrap_or_default();
                 let dbg_windows_flag = dbg_windows_flag.split(',').collect::<Vec<_>>();
 
-                let mut dbg_buffers = vec![];
+                let mut oam_data: Option<&BoxedArray<u8, 0x2000>> = None;
+                let mut map_data: Option<(Vec<[[u8; 8]; 8]>, Vec<[[u8; 8]; 8]>)> = None;
 
                 // OAM frame.
                 if dbg_windows_flag.contains(&"oam") {
-                    let data = self
-                        .vram
-                        .chunks(16)
-                        .map(|chunk| tile::mix_colors_16(chunk.try_into().unwrap()))
-                        .map(|ti| {
-                            let mut matrix_8_by_8: [[u8; 8]; 8] = Default::default();
-                            for (y, yd) in ti.into_iter().enumerate() {
-                                for x in (0..16u8).step_by(2) {
-                                    let offset = 14 - x;
-                                    let value = (yd >> offset) & 0b11;
-                                    matrix_8_by_8[y][x as usize / 2] = value as u8;
-                                }
-                            }
-                            matrix_8_by_8
-                        })
-                        .collect::<Vec<_>>();
-
-                    dbg_buffers.push((0, data));
+                    oam_data = Some(&self.vram);
                 }
 
                 // Two tile map frames.
@@ -240,17 +224,18 @@ impl Ppu {
                     debug_assert_eq!(map1.len(), 1024);
                     debug_assert_eq!(map2.len(), 1024);
 
-                    dbg_buffers.push((1, map1));
-                    dbg_buffers.push((2, map2));
+                    map_data = Some((map1, map2));
                 }
 
-                dbg_buffers
+                (oam_data, map_data)
             };
 
             handle(
                 &self.video_buffer,
                 #[cfg(debug_assertions)]
-                dbg_buffers,
+                oam_data,
+                #[cfg(debug_assertions)]
+                map_data,
             );
         }
     }

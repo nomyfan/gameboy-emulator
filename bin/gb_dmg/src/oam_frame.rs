@@ -1,5 +1,6 @@
 #![cfg(debug_assertions)]
 
+use gb_shared::boxed::BoxedArray;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalSize, Position},
@@ -11,11 +12,21 @@ use crate::config::SCALE;
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
-type Buffer = Vec<[[u8; 8]; 8]>;
+type Buffer = BoxedArray<u8, 0x2000>;
 
 #[derive(Debug, Default)]
 pub(crate) struct OamFrame {
     buffer: Buffer,
+}
+
+fn get_color_id(data: &[u8; 16], x: u8, y: u8) -> u8 {
+    let nth = (y << 1) as usize;
+    let offset = (7 - x) as usize;
+
+    let low = (data[nth] >> offset) & 1;
+    let high = (data[nth + 1] >> offset) & 1;
+
+    (high << 1) | low
 }
 
 impl OamFrame {
@@ -24,15 +35,16 @@ impl OamFrame {
             return;
         }
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let ty = i / (16 * 8 * 8);
-            let tx = i % (16 * 8) / 8;
+            let tile_y = i / (16 * 8 * 8);
+            let tile_x = i % (16 * 8) / 8;
 
-            let nth = ty * 16 + tx;
-            let tile = self.buffer.get(nth).unwrap();
+            let nth = tile_y * 16 + tile_x;
+            let offset = nth * 16;
+            let tile_data = self.buffer[offset..(offset + 16)].try_into().unwrap();
             let y = i / (16 * 8) % 8;
             let x = i % 8;
-            let palette = tile[y][x];
-            let color = COLOR_PALETTES[palette as usize];
+            let color_id = get_color_id(tile_data, x as u8, y as u8);
+            let color = COLOR_PALETTES[color_id as usize];
             let rgba = [(color >> 16) as u8, (color >> 8) as u8, color as u8, 0xFF];
             pixel.copy_from_slice(&rgba);
         }

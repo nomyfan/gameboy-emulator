@@ -1,5 +1,6 @@
 use crate::object::ObjectAttrs;
 
+/// TODO: Remove `_new` suffix and add tests.
 pub(crate) fn get_color_id_new(data: &[u8; 16], x: u8, y: u8, x_flip: bool, y_flip: bool) -> u8 {
     let nth = (if y_flip { 7 - y } else { y } << 1) as usize;
     let offset = if x_flip { x } else { 7 - x } as usize;
