@@ -2,7 +2,6 @@ use std::sync::mpsc::Receiver;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
-    Exit,
     Joypad(JoypadCommand),
 }
 

@@ -145,7 +145,7 @@ fn main() -> anyhow::Result<()> {
         stream.play()?;
     }
 
-    let gameboy_handle = thread::spawn({
+    thread::spawn({
         let window = main_window.clone();
         let frame = main_frame.clone();
 
@@ -220,9 +220,6 @@ fn main() -> anyhow::Result<()> {
         if let Event::WindowEvent { event, window_id } = &event {
             match event {
                 WindowEvent::CloseRequested => {
-                    // Once GB instance exits, the GB event handling event thread will exit due to closed channel,
-                    // then the whole application will exit.
-                    command_sender.send(Command::Exit).unwrap();
                     elwt.exit();
                 }
                 WindowEvent::RedrawRequested => {
@@ -273,8 +270,6 @@ fn main() -> anyhow::Result<()> {
             }
         }
     })?;
-
-    let _ = gameboy_handle.join().unwrap();
 
     Ok(())
 }

@@ -254,11 +254,10 @@ impl Bus {
     }
 
     pub(crate) fn handle_command(&mut self, command: Command) {
-        if let Command::Joypad(joypad_command) = command {
-            self.joypad.handle_command(joypad_command);
-            let irq = self.joypad.take_irq();
-            self.set_irq(irq);
-        }
+        let Command::Joypad(joypad_command) = command;
+        self.joypad.handle_command(joypad_command);
+        let irq = self.joypad.take_irq();
+        self.set_irq(irq);
     }
 }
 
