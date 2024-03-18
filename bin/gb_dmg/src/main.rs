@@ -4,16 +4,16 @@ mod frame;
 mod gamepad;
 mod logger;
 #[cfg(debug_assertions)]
-mod oam_frame;
+mod object_frame;
 #[cfg(debug_assertions)]
 mod tile_map_frame;
 
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use cpal::traits::StreamTrait;
 use gb::GameBoy;
-use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 #[cfg(debug_assertions)]
-use gb_shared::DebugVideoFrame;
+use gb_shared::boxed::BoxedArray;
+use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use gb_shared::VideoFrame;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{mpsc, Arc, Mutex};
@@ -62,7 +62,11 @@ fn main_window(event_loop: &EventLoop<()>) -> anyhow::Result<(Window, Pixels)> {
 fn main() -> anyhow::Result<()> {
     logger::init();
 
-    let rom_path = std::path::PathBuf::from(std::env::args().nth(1).unwrap());
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+
+    let with_gameboy = args.iter().any(|x| x == "--gamepad");
+
+    let rom_path = std::path::PathBuf::from(args.first().unwrap());
 
     let (command_sender, command_receiver) = mpsc::channel();
 
@@ -112,15 +116,15 @@ fn main() -> anyhow::Result<()> {
     .unwrap_or_default();
 
     #[cfg(debug_assertions)]
-    let (mut oam_dbg_handle1, mut oam_dbg_handle2) = {
-        if !dbg_windows_flag.contains(&"oam") {
+    let (mut obj_dbg_handle, mut obj_dbg_handle2) = {
+        if !dbg_windows_flag.contains(&"obj") {
             None
         } else {
-            let (window, pixels) = oam_frame::new_window(
+            let (window, pixels) = object_frame::new_window(
                 &event_loop,
                 Position::Logical(LogicalPosition::new(450.0, 100.0)),
             )?;
-            let frame = Arc::new(Mutex::new(oam_frame::OamFrame::default()));
+            let frame = Arc::new(Mutex::new(object_frame::ObjectFrame::default()));
 
             Some((frame, pixels, Arc::new(window)))
         }
@@ -145,33 +149,34 @@ fn main() -> anyhow::Result<()> {
         let window = main_window.clone();
         let frame = main_frame.clone();
 
-        let video_handle = Box::new(
-            move |buffer: &VideoFrame, #[cfg(debug_assertions)] dbg_buffers: DebugVideoFrame| {
-                frame.lock().unwrap().update(buffer);
-                window.request_redraw();
-                #[cfg(debug_assertions)]
-                {
-                    for buf in dbg_buffers {
-                        if buf.0 == 1 {
+        let video_handle =
+            Box::new(
+                move |buffer: &VideoFrame,
+                      #[cfg(debug_assertions)] vram_data: Option<(
+                    &BoxedArray<u8, 0x2000>,
+                    bool,
+                )>| {
+                    frame.lock().unwrap().update(buffer);
+                    window.request_redraw();
+                    #[cfg(debug_assertions)]
+                    {
+                        if let Some((vram_data, lcdc4)) = vram_data {
+                            if let Some((frame, window)) = obj_dbg_handle.as_mut() {
+                                frame.lock().unwrap().update(&vram_data[..0x1800]);
+                                window.request_redraw();
+                            }
                             if let Some((frame, window)) = map1_dbg_handle1.as_mut() {
-                                frame.lock().unwrap().update(&buf.1);
+                                frame.lock().unwrap().update(&vram_data[..], 0x1800, lcdc4);
                                 window.request_redraw();
                             }
-                        } else if buf.0 == 2 {
                             if let Some((frame, window)) = map2_dbg_handle1.as_mut() {
-                                frame.lock().unwrap().update(&buf.1);
-                                window.request_redraw();
-                            }
-                        } else if buf.0 == 0 {
-                            if let Some((frame, window)) = oam_dbg_handle1.as_mut() {
-                                frame.lock().unwrap().update(&buf.1);
+                                frame.lock().unwrap().update(&vram_data[..], 0x1C00, lcdc4);
                                 window.request_redraw();
                             }
                         }
                     }
-                }
-            },
-        );
+                },
+            );
 
         move || -> anyhow::Result<()> {
             let gb = GameBoy::try_from_path(rom_path, sample_rate)?;
@@ -194,19 +199,21 @@ fn main() -> anyhow::Result<()> {
     });
 
     // Optional Gamepad event loop
-    std::thread::spawn({
-        let command_sender = command_sender.clone();
-        move || {
-            gamepad::run_event_loop(|key, is_pressed| {
-                let joypad_cmd = if is_pressed {
-                    JoypadCommand::PressKey(key)
-                } else {
-                    JoypadCommand::ReleaseKey(key)
-                };
-                command_sender.send(Command::Joypad(joypad_cmd)).unwrap();
-            })
-        }
-    });
+    if with_gameboy {
+        std::thread::spawn({
+            let command_sender = command_sender.clone();
+            move || {
+                gamepad::run_event_loop(|key, is_pressed| {
+                    let joypad_cmd = if is_pressed {
+                        JoypadCommand::PressKey(key)
+                    } else {
+                        JoypadCommand::ReleaseKey(key)
+                    };
+                    command_sender.send(Command::Joypad(joypad_cmd)).unwrap();
+                })
+            }
+        });
+    }
 
     event_loop.run(move |event, elwt| {
         // Draw the current frame
@@ -225,7 +232,7 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         #[cfg(debug_assertions)]
                         {
-                            if let Some((frame, pixels, window)) = oam_dbg_handle2.as_mut() {
+                            if let Some((frame, pixels, window)) = obj_dbg_handle2.as_mut() {
                                 if window_id == &window.id() {
                                     frame.lock().unwrap().draw(pixels.frame_mut());
                                     pixels.render().unwrap();

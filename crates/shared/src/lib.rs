@@ -1,3 +1,5 @@
+#[cfg(debug_assertions)]
+use boxed::BoxedArray;
 use boxed::BoxedMatrix;
 
 pub mod bitwise;
@@ -87,12 +89,10 @@ pub const fn mib(m: usize) -> usize {
 
 pub type VideoFrame = BoxedMatrix<u8, 160, 144>;
 
-pub type DebugVideoFrame = Vec<(u32, Vec<[[u8; 8]; 8]>)>;
-
 pub type AudioSamples = [(f32, f32)];
 
 #[cfg(debug_assertions)]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame, DebugVideoFrame);
+pub type FrameOutHandle = dyn FnMut(&VideoFrame, Option<(&BoxedArray<u8, 0x2000>, bool)>);
 #[cfg(not(debug_assertions))]
 pub type FrameOutHandle = dyn FnMut(&VideoFrame);
 
