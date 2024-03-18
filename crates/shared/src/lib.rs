@@ -1,4 +1,6 @@
-use boxed::{BoxedArray, BoxedMatrix};
+#[cfg(debug_assertions)]
+use boxed::BoxedArray;
+use boxed::BoxedMatrix;
 
 pub mod bitwise;
 pub mod boxed;

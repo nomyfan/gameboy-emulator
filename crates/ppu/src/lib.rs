@@ -301,7 +301,7 @@ impl Ppu {
             }
 
             let tile_data = self.read_tile_data(index, false);
-            color_id = tile::get_color_id_new(tile_data, tx, ty, false, false);
+            color_id = tile::get_color_id(tile_data, tx, ty, false, false);
             color_palette = (self.bgp >> (color_id * 2)) & 0b11;
         }
 
@@ -339,7 +339,7 @@ impl Ppu {
                 };
 
                 let tile_data = self.read_tile_data(index, true);
-                let color_id = tile::get_color_id_new(
+                let color_id = tile::get_color_id(
                     tile_data,
                     tx,
                     ty % 8,
