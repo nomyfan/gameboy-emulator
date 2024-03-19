@@ -65,8 +65,7 @@ impl Mbc for Mbc3 {
                 self.rom_bank = value & 0x7F;
             }
             0x4000..=0x5FFF => {
-                assert!((0x00..=0x03).contains(&value) || (0x08..=0x0C).contains(&value));
-                self.reg_ram_bank_rtc = value;
+                self.reg_ram_bank_rtc = value & 0xF;
             }
             0x6000..=0x7FFF => {
                 if self.reg_latch_clock == 0x00 && value == 0x01 {
