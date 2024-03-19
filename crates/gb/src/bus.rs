@@ -2,7 +2,6 @@ use gb_apu::Apu;
 use gb_cartridge::Cartridge;
 use gb_ppu::Ppu;
 use gb_shared::{command::Command, Memory};
-use log::debug;
 use std::ops::{Deref, DerefMut};
 
 use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
@@ -44,8 +43,6 @@ pub(crate) struct BusInner {
 
 impl Memory for BusInner {
     fn write(&mut self, addr: u16, value: u8) {
-        debug!("bus write at {:#04X}, value: {:#02X}", addr, value);
-
         match addr {
             0x0000..=0x7FFF => {
                 // ROM data
@@ -63,7 +60,7 @@ impl Memory for BusInner {
                 // WRAM
                 self.wram.write(addr, value);
             }
-            0xE000..=0xFDFF => debug!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
+            0xE000..=0xFDFF => log::warn!("Unusable ECHO RAM [0xE000, 0xFDFF]"),
             0xFE00..=0xFE9F => {
                 if self.dma.active() {
                     return;
@@ -71,7 +68,7 @@ impl Memory for BusInner {
                 // OAM
                 self.ppu.write(addr, value);
             }
-            0xFEA0..=0xFEFF => debug!("Unusable memory [0xFEA0, 0xFEFF]"),
+            0xFEA0..=0xFEFF => log::warn!("Unusable memory [0xFEA0, 0xFEFF]"),
             0xFF00..=0xFF7F => {
                 match addr {
                     0xFF00 => self.joypad.write(addr, value),
@@ -95,7 +92,7 @@ impl Memory for BusInner {
                         self.ppu.write(addr, value);
                     }
                     _ => {
-                        debug!("Unsupported");
+                        log::error!("Unsupported");
                     }
                 }
             }
@@ -111,7 +108,7 @@ impl Memory for BusInner {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        let value = match addr {
+        match addr {
             0x0000..=0x7FFF => {
                 // ROM data
                 self.cart.read(addr)
@@ -129,7 +126,7 @@ impl Memory for BusInner {
                 self.wram.read(addr)
             }
             0xE000..=0xFDFF => {
-                debug!("Unusable ECHO RAM [0xE000, 0xFDFF]");
+                log::warn!("Unusable ECHO RAM [0xE000, 0xFDFF]");
                 0
             }
             0xFE00..=0xFE9F => {
@@ -141,7 +138,7 @@ impl Memory for BusInner {
                 self.ppu.read(addr)
             }
             0xFEA0..=0xFEFF => {
-                debug!("Unusable memory [0xFEA0, 0xFEFF]");
+                log::warn!("Unusable memory [0xFEA0, 0xFEFF]");
                 0
             }
             0xFF00..=0xFF7F => {
@@ -163,7 +160,7 @@ impl Memory for BusInner {
                     0xFF46 => self.dma.read(addr),
                     0xFF40..=0xFF4B => self.ppu.read(addr),
                     _ => {
-                        debug!("Unsupported");
+                        log::error!("Unsupported");
                         0
                     }
                 }
@@ -177,10 +174,7 @@ impl Memory for BusInner {
                 // IE
                 self.interrupt_enable
             }
-        };
-
-        debug!("bus read at {:#04X}, value: {:#04X}", addr, value);
-        value
+        }
     }
 }
 
