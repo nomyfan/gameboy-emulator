@@ -316,7 +316,12 @@ pub struct CartridgeHeader {
 
 impl Display for CartridgeHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let title = std::str::from_utf8(&self.title).unwrap();
+        let title = {
+            let mut title = self.title;
+            title[15] = 0;
+            title
+        };
+        let title = std::str::from_utf8(&title).unwrap();
         let licensee_code = match self.licensee_code {
             0x33 => {
                 OLD_LICENSEE_CODE.iter().find(|c| c.0 as u16 == self.new_licensee_code).map(|c| c.1)
@@ -378,13 +383,11 @@ impl TryFrom<Vec<u8>> for Cartridge {
     type Error = anyhow::Error;
 
     fn try_from(rom: Vec<u8>) -> std::result::Result<Self, Self::Error> {
-        let mut header = unsafe {
+        let header = unsafe {
             std::mem::transmute_copy::<[u8; 0x50], CartridgeHeader>(
                 &rom[0x0100..0x0150].try_into().unwrap(),
             )
         };
-        // Ignore CGB flag
-        header.title[15] = 0;
 
         let checksum = rom[0x0134..0x014D]
             .iter()
