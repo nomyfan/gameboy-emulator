@@ -6,9 +6,11 @@ mod serial;
 mod timer;
 mod wram;
 
+pub use gb_apu::AudioOutHandle;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
-use gb_shared::{command::CommandReceiver, AudioOutHandle, FrameOutHandle, CPU_FREQ};
+pub use gb_ppu::{FrameOutHandle, VideoFrame};
+use gb_shared::{command::CommandReceiver, CPU_FREQ};
 use std::{
     path::Path,
     sync::mpsc::TryRecvError,

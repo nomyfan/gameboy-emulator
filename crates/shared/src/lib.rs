@@ -1,7 +1,3 @@
-#[cfg(debug_assertions)]
-use boxed::BoxedArray;
-use boxed::BoxedMatrix;
-
 pub mod bitwise;
 pub mod boxed;
 pub mod command;
@@ -86,16 +82,5 @@ pub const fn kib(k: usize) -> usize {
 pub const fn mib(m: usize) -> usize {
     kib(m) * 1024
 }
-
-pub type VideoFrame = BoxedMatrix<u8, 160, 144>;
-
-pub type AudioSamples = [(f32, f32)];
-
-#[cfg(debug_assertions)]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame, Option<(&BoxedArray<u8, 0x2000>, bool)>);
-#[cfg(not(debug_assertions))]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame);
-
-pub type AudioOutHandle = dyn FnMut(&AudioSamples);
 
 pub const CPU_FREQ: u32 = 4_194_304;

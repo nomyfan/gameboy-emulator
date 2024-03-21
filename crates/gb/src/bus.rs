@@ -1,5 +1,6 @@
-use gb_apu::Apu;
+use gb_apu::{Apu, AudioOutHandle};
 use gb_cartridge::Cartridge;
+use gb_ppu::FrameOutHandle;
 use gb_ppu::Ppu;
 use gb_shared::{command::Command, Memory};
 use std::ops::{Deref, DerefMut};
@@ -231,17 +232,11 @@ impl Bus {
         self.timer.step();
     }
 
-    pub(crate) fn set_frame_out_handle(
-        &mut self,
-        frame_out_handle: Option<Box<gb_shared::FrameOutHandle>>,
-    ) {
+    pub(crate) fn set_frame_out_handle(&mut self, frame_out_handle: Option<Box<FrameOutHandle>>) {
         self.ppu.set_frame_out_handle(frame_out_handle);
     }
 
-    pub(crate) fn set_audio_out_handle(
-        &mut self,
-        audio_out_handle: Option<Box<gb_shared::AudioOutHandle>>,
-    ) {
+    pub(crate) fn set_audio_out_handle(&mut self, audio_out_handle: Option<Box<AudioOutHandle>>) {
         if let Some(apu) = self.apu.as_mut() {
             apu.set_audio_out_handle(audio_out_handle);
         }

@@ -9,9 +9,14 @@ use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use fps::Fps;
 use gb_shared::boxed::{BoxedArray, BoxedMatrix};
-use gb_shared::{
-    is_bit_set, set_bits, unset_bits, FrameOutHandle, Interrupt, InterruptRequest, Memory,
-};
+use gb_shared::{is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory};
+
+pub type VideoFrame = BoxedMatrix<u8, 160, 144>;
+
+#[cfg(debug_assertions)]
+pub type FrameOutHandle = dyn FnMut(&VideoFrame, Option<(&BoxedArray<u8, 0x2000>, bool)>);
+#[cfg(not(debug_assertions))]
+pub type FrameOutHandle = dyn FnMut(&VideoFrame);
 
 #[derive(Debug, Default)]
 pub(crate) struct PpuWorkState {
