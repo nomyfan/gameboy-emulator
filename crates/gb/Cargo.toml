@@ -3,8 +3,6 @@ name = "gb"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 gb_apu = { workspace = true }
 gb_ppu = { workspace = true }
@@ -16,3 +14,10 @@ anyhow = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
+
+# [target.'cfg(target_family = "wasm")'.lib]
+[lib]
+crate-type = ["cdylib"]
+
+[target.'cfg(target_family = "wasm")'.dependencies.'wasm-bindgen']
+version = "0.2"

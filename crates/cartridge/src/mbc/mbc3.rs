@@ -1,12 +1,7 @@
 use super::{real_ram_size, Mbc, RamBank};
 use crate::CartridgeHeader;
 use gb_shared::{boxed_array, kib};
-use std::{
-    fs::File,
-    io::{Read, Write},
-    path::Path,
-    time::SystemTime,
-};
+use std::{path::Path, time::SystemTime};
 
 pub(crate) struct Mbc3 {
     ram_banks: Vec<Box<RamBank>>,
@@ -129,7 +124,8 @@ impl Mbc for Mbc3 {
 
     fn store(&self, path: &Path) -> anyhow::Result<()> {
         if self.with_battery {
-            let mut file = File::create(path)?;
+            use std::io::Write;
+            let mut file = std::fs::File::create(path)?;
             for bank in &self.ram_banks {
                 file.write_all(bank.as_ref())?;
             }
@@ -143,7 +139,8 @@ impl Mbc for Mbc3 {
 
     fn restore(&mut self, path: &Path) -> anyhow::Result<()> {
         if self.with_battery {
-            let mut file = File::open(path)?;
+            use std::io::Read;
+            let mut file = std::fs::File::open(path)?;
             if file.metadata()?.len() as usize != self.ram_banks.len() * kib(8) {
                 // Ignore invalid file.
                 return Ok(());
@@ -201,23 +198,32 @@ impl RealTimeClock {
     }
 
     pub(crate) fn store<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
-        let mut file = File::create(path)?;
-        file.write_all(self.epoch.to_be_bytes().as_ref())?;
-        file.flush()?;
+        #[cfg(not(target_family = "wasm"))]
+        {
+            use std::io::Write;
+            let mut file = std::fs::File::create(path)?;
+            file.write_all(self.epoch.to_be_bytes().as_ref())?;
+            file.flush()?;
+        }
 
         Ok(())
     }
 
     pub(crate) fn restore<P: AsRef<Path>>(&mut self, path: P) -> anyhow::Result<()> {
-        self.epoch = match std::fs::read(path) {
-            Ok(value) => {
-                let mut bytes: [u8; 8] = Default::default();
-                debug_assert!(value.len() == 8);
-                bytes.copy_from_slice(&value);
-                u64::from_be_bytes(bytes)
-            }
-            Err(_) => SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
-        };
+        #[cfg(not(target_family = "wasm"))]
+        {
+            self.epoch = match std::fs::read(path) {
+                Ok(value) => {
+                    let mut bytes: [u8; 8] = Default::default();
+                    debug_assert!(value.len() == 8);
+                    bytes.copy_from_slice(&value);
+                    u64::from_be_bytes(bytes)
+                }
+                Err(_) => {
+                    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+                }
+            };
+        }
 
         Ok(())
     }

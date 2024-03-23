@@ -1,3 +1,4 @@
+use wasm_bindgen::prelude::*;
 mod bus;
 mod dma;
 mod hram;
@@ -93,4 +94,9 @@ impl GameBoy {
             }
         }
     }
+}
+
+// #[cfg(target_family = "wasm")]
+pub fn new(manifest: Manifest) -> GameBoy {
+    GameBoy::new(manifest)
 }

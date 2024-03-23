@@ -13,11 +13,13 @@ type RamBank = [u8; 0x2000];
 pub(crate) trait Mbc {
     fn write(&mut self, addr: u16, value: u8);
     fn read(&self, addr: u16, rom: &[u8]) -> u8;
+    // TODO: rename as `suspend`
     #[allow(unused_variables)]
     /// For battery-backed cartridge.
     fn store(&self, path: &Path) -> anyhow::Result<()> {
         Ok(())
     }
+    // TODO: rename as `resume`
     #[allow(unused_variables)]
     /// For battery-backed cartridge.
     fn restore(&mut self, path: &Path) -> anyhow::Result<()> {

@@ -1,10 +1,6 @@
 use super::Mbc;
 use crate::CartridgeHeader;
 use gb_shared::{boxed::BoxedArray, is_bit_set, kib};
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
 
 /// Max 256 KiB ROM, 512x4 bits RAM
 pub(crate) struct Mbc2 {
@@ -70,8 +66,10 @@ impl Mbc for Mbc2 {
     }
 
     fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
+        #[cfg(not(target_family = "wasm"))]
         if self.with_battery {
-            let mut file = File::create(path)?;
+            use std::io::Write;
+            let mut file = std::fs::File::create(path)?;
             file.write_all(self.ram.as_ref())?;
             file.flush()?;
         }
@@ -80,8 +78,10 @@ impl Mbc for Mbc2 {
     }
 
     fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
+        #[cfg(not(target_family = "wasm"))]
         if self.with_battery {
-            let mut file = File::open(path)?;
+            use std::io::Read;
+            let mut file = std::fs::File::open(path)?;
             if file.metadata()?.len() as usize != self.ram.len() {
                 // Ignore invalid file.
                 return Ok(());

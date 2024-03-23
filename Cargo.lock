@@ -251,8 +251,6 @@ checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
 [[package]]
 name = "blip_buf"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45c136cf50e8d0c47fe415008a6be8b50a9a56a6741fffbe2e580e007eda417d"
 dependencies = [
  "blip_buf-sys",
  "libc",
@@ -261,8 +259,6 @@ dependencies = [
 [[package]]
 name = "blip_buf-sys"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b84654178cd24117082f5cb10dbc0580425fc06aa02ae209171fe070cd4522e"
 dependencies = [
  "cc",
  "libc",
@@ -677,6 +673,7 @@ dependencies = [
  "gb_shared",
  "log",
  "mockall",
+ "wasm-bindgen",
 ]
 
 [[package]]
