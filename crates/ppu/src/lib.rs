@@ -136,7 +136,7 @@ impl Ppu {
         self.work_state.scanline_dots = 0;
         self.work_state.scanline_x = 0;
         self.work_state.scanline_objects.clear();
-        self.lcd.ly += 1;
+        self.lcd.ly = (self.lcd.ly + 1) % SCANLINES_PER_FRAME;
 
         if self.work_state.window_used {
             self.work_state.window_line += 1;
@@ -394,8 +394,7 @@ impl Ppu {
         if self.work_state.scanline_dots >= DOTS_PER_SCANLINE {
             self.move_to_next_scanline();
 
-            if self.lcd.ly >= SCANLINES_PER_FRAME {
-                self.lcd.ly = 0;
+            if self.lcd.ly == 0 {
                 self.work_state.window_line = 0;
                 self.set_lcd_mode(LCDMode::OamScan);
 
