@@ -298,8 +298,6 @@ impl Ppu {
         if self.lcd.is_object_enabled() {
             let obj_size = self.lcd.object_size();
 
-            let mut opaque_object: Option<(u8, Object)> = None;
-
             for object in &self.work_state.scanline_objects {
                 let sx = self.work_state.scanline_x + 8;
                 if sx < object.x || sx >= object.x + 8 {
@@ -327,29 +325,27 @@ impl Ppu {
                 };
 
                 let tile_data = self.read_tile_data(index, true);
-                let color_id = tile::get_color_id(
+                let object_color_id = tile::get_color_id(
                     tile_data,
                     tx,
                     ty % 8,
                     object.attrs.x_flip(),
                     object.attrs.y_flip(),
                 );
-                if color_id != 0 {
-                    opaque_object = Some((color_id, *object));
-                    break;
-                }
-            }
+                if object_color_id != 0 {
+                    // Priority definition(the object below is opaque)
+                    // 1. If BGW' color ID is 0, then render the object.
+                    // 2. If LCDC.0 is 0, then render the object.
+                    // 3. If OAM attributes.7 is 0, then render the object.
+                    // 4. Otherwise, render the BGW.
+                    if color_id == 0 || !object.attrs.bgw_over_object() {
+                        let obp =
+                            if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
+                        let offset = object_color_id * 2;
+                        color_palette = (obp >> offset) & 0b11;
+                    }
 
-            if let Some((obj_color_id, object)) = opaque_object {
-                // Priority definition(the object below is opaque)
-                // 1. If BGW' color ID is 0, then render the object.
-                // 2. If LCDC.0 is 0, then render the object.
-                // 3. If OAM attributes.7 is 0, then render the object.
-                // 4. Otherwise, render the BGW.
-                if color_id == 0 || !object.attrs.bgw_over_object() {
-                    let obp = if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
-                    let offset = obj_color_id * 2;
-                    color_palette = (obp >> offset) & 0b11;
+                    break;
                 }
             }
         }
