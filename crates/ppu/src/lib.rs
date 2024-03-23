@@ -37,6 +37,7 @@ pub(crate) struct PpuWorkState {
     fps: Fps,
 }
 
+#[derive(Default)]
 pub struct Ppu {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
@@ -84,18 +85,7 @@ pub struct Ppu {
 
 impl Ppu {
     pub fn new() -> Self {
-        Self {
-            vram: BoxedArray::default(),
-            oam: BoxedArray::default(),
-            lcd: LCD::default(),
-            bgp: 0xFC,
-            obp0: 0,
-            obp1: 0,
-            work_state: PpuWorkState::default(),
-            video_buffer: BoxedMatrix::default(),
-            irq: Interrupt::default(),
-            frame_out_handle: None,
-        }
+        Self { bgp: 0xFC, ..Default::default() }
     }
 
     pub fn set_frame_out_handle(&mut self, handle: Option<Box<FrameOutHandle>>) {
