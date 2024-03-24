@@ -13,7 +13,7 @@ pub struct Apu {
     ch3: Channel3,
     ch4: Channel4,
     mixer_clock: Clock,
-    /// Master volumn & VIN panning.
+    /// Master volume & VIN panning.
     /// Bit 7: VIN left.
     /// Bit 6..=4: Volume left.
     /// Bit 3: VIN right.
