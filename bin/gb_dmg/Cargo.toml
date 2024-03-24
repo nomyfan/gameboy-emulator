@@ -23,7 +23,7 @@ winit_input_helper = "0.15.1"
 chrono = "0.4.31"
 # use xinput for fixing no events on Windows
 # https://gitlab.com/gilrs-project/gilrs/-/issues/136
-gilrs = { version = "0.10.4", default-features = false, features = ["xinput"] }
+gilrs = { version = "0.10.6", default-features = false, features = ["xinput"] }
 cpal = "0.15.2"
 
 [[bin]]
