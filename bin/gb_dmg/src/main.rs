@@ -177,6 +177,12 @@ fn main() -> anyhow::Result<()> {
                 },
             );
 
+        let pull_command = Box::new(move || match command_receiver.try_recv() {
+            Ok(command) => Ok(Some(command)),
+            Err(mpsc::TryRecvError::Disconnected) => Ok(Some(Command::Exit)),
+            Err(mpsc::TryRecvError::Empty) => Ok(None),
+        });
+
         move || -> anyhow::Result<()> {
             let gb = GameBoy::try_from_path(rom_path, sample_rate)?;
             match samples_buf {
@@ -186,11 +192,11 @@ fn main() -> anyhow::Result<()> {
                         Some(Box::new(move |sample_data| {
                             samples_buf.lock().unwrap().extend_from_slice(sample_data);
                         })),
-                        command_receiver,
+                        pull_command,
                     )?;
                 }
                 None => {
-                    gb.play(video_handle, None, command_receiver)?;
+                    gb.play(video_handle, None, pull_command)?;
                 }
             }
             Ok(())

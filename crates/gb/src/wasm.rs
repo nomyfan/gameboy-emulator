@@ -1,3 +1,3 @@
 #![cfg(feature = "wasm")]
 
-struct GameBoy {}
+pub use super::GameBoy;
