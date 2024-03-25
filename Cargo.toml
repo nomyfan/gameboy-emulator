@@ -9,6 +9,7 @@ members = [
   "crates/apu",
   "crates/blip_buf",
 ]
+exclude = ["app/gb_wasm"]
 resolver = "2"
 
 [workspace.dependencies]

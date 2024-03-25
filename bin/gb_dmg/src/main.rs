@@ -10,7 +10,7 @@ mod tile_map_frame;
 
 use crate::config::{HEIGHT, SCALE, WIDTH};
 use cpal::traits::StreamTrait;
-use gb::{GameBoy, VideoFrame};
+use gb::native::{GameBoy, VideoFrame};
 #[cfg(debug_assertions)]
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
