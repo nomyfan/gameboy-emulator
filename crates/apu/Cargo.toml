@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-blip_buf = "0.1.4"
 gb_shared = { workspace = true }
 log = { workspace = true }
+blip_buf = { workspace = true }

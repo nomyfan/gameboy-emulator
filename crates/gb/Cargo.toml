@@ -14,10 +14,3 @@ anyhow = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
-
-# [target.'cfg(target_family = "wasm")'.lib]
-[lib]
-crate-type = ["cdylib"]
-
-[target.'cfg(target_family = "wasm")'.dependencies.'wasm-bindgen']
-version = "0.2"

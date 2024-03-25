@@ -250,19 +250,7 @@ checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
 
 [[package]]
 name = "blip_buf"
-version = "0.1.4"
-dependencies = [
- "blip_buf-sys",
- "libc",
-]
-
-[[package]]
-name = "blip_buf-sys"
-version = "0.1.4"
-dependencies = [
- "cc",
- "libc",
-]
+version = "0.1.0"
 
 [[package]]
 name = "block"
@@ -673,7 +661,6 @@ dependencies = [
  "gb_shared",
  "log",
  "mockall",
- "wasm-bindgen",
 ]
 
 [[package]]

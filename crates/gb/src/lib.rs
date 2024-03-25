@@ -1,4 +1,3 @@
-use wasm_bindgen::prelude::*;
 mod bus;
 mod dma;
 mod hram;
