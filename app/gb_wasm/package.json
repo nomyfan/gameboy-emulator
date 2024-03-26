@@ -6,7 +6,7 @@
   "scripts": {
     "dev:web": "vite",
     "dev:wasm": "wasm-pack build --dev --out-dir gb_wasm_bindings --target bundler --mode no-install",
-    "build:web": "tsc && vite build",
+    "build:web": "tsc && vite build --emptyOutDir",
     "build:wasm": "wasm-pack build --release --out-dir gb_wasm_bindings --target bundler --mode no-install",
     "preview": "vite preview"
   },
