@@ -11,12 +11,14 @@ impl GameBoy {
         frame_out_handle: Box<FrameOutHandle>,
         audio_out_handle: Option<Box<AudioOutHandle>>,
     ) {
-        self.bus.set_frame_out_handle(Some(frame_out_handle));
-        self.bus.set_audio_out_handle(audio_out_handle);
+        self.bus.ppu.set_frame_out_handle(Some(frame_out_handle));
+        if let Some(apu) = self.bus.apu.as_mut() {
+            apu.set_audio_out_handle(audio_out_handle);
+        }
     }
 
     pub fn pull_frame(&self) -> (&VideoFrame, u32) {
-        self.bus.pull_frame()
+        self.bus.ppu.pull_frame()
     }
 
     pub fn play_with_clocks(&mut self) -> u64 {

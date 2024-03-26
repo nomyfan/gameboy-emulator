@@ -1,8 +1,6 @@
-use gb_apu::{Apu, AudioOutHandle};
+use gb_apu::Apu;
 use gb_cartridge::Cartridge;
-use gb_ppu::FrameOutHandle;
 use gb_ppu::Ppu;
-use gb_ppu::VideoFrame;
 use gb_shared::{command::Command, Memory};
 use std::ops::{Deref, DerefMut};
 
@@ -38,8 +36,8 @@ pub(crate) struct BusInner {
     serial: Serial,
     joypad: Joypad,
     timer: Timer,
-    ppu: Ppu,
-    apu: Option<Apu>,
+    pub(crate) ppu: Ppu,
+    pub(crate) apu: Option<Apu>,
     ref_count: usize,
 }
 
@@ -231,20 +229,6 @@ impl Bus {
 
     pub(crate) fn step_timer(&mut self) {
         self.timer.step();
-    }
-
-    pub(crate) fn set_frame_out_handle(&mut self, frame_out_handle: Option<Box<FrameOutHandle>>) {
-        self.ppu.set_frame_out_handle(frame_out_handle);
-    }
-
-    pub(crate) fn pull_frame(&self) -> (&VideoFrame, u32) {
-        self.ppu.pull_frame()
-    }
-
-    pub(crate) fn set_audio_out_handle(&mut self, audio_out_handle: Option<Box<AudioOutHandle>>) {
-        if let Some(apu) = self.apu.as_mut() {
-            apu.set_audio_out_handle(audio_out_handle);
-        }
     }
 
     pub(crate) fn handle_command(&mut self, command: Command) {

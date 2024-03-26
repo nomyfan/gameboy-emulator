@@ -57,8 +57,7 @@ impl GameBoy {
         audio_out_handle: Option<Box<AudioOutHandle>>,
         pull_command: Box<dyn Fn() -> anyhow::Result<Option<Command>>>,
     ) -> anyhow::Result<()> {
-        self.bus.set_frame_out_handle(Some(frame_out_handle));
-        self.bus.set_audio_out_handle(audio_out_handle);
+        self.set_handles(frame_out_handle, audio_out_handle);
 
         self.ts = Instant::now();
         loop {
