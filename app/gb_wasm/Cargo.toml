@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-wasm-bindgen = "0.2.84"
+wasm-bindgen = "0.2.92"
 gb = { path = "../../crates/gb", features = ["wasm"] }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
@@ -18,6 +18,22 @@ gb = { path = "../../crates/gb", features = ["wasm"] }
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.7", optional = true }
+web-sys = { version = "0.3.69", features = [
+  "Blob",
+  "console",
+  "Window",
+  "Document",
+  "Element",
+  "HtmlCanvasElement",
+  "OffscreenCanvas",
+  "OffscreenCanvasRenderingContext2d",
+  "CanvasRenderingContext2d",
+  "Performance",
+  "WorkerGlobalScope",
+  "DedicatedWorkerGlobalScope",
+] }
+anyhow = "1.0.81"
+wasm-bindgen-futures = "0.4.42"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"

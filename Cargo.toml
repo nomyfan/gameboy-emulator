@@ -5,11 +5,12 @@ members = [
   "crates/cartridge",
   "crates/shared",
   "crates/ppu",
-  "bin/gb_dmg",
+  # "bin/gb_dmg",
   "crates/apu",
   "crates/blip_buf",
+  "app/gb_wasm",
 ]
-exclude = ["app/gb_wasm"]
+exclude = ["bin/gb_dmg"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -23,3 +24,4 @@ blip_buf = { path = "crates/blip_buf" }
 log = { version = "0.4.17", features = ["release_max_level_info"] }
 anyhow = "1.0.66"
 mockall = "0.12.0"
+web-time = "1.1.0"

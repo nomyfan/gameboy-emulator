@@ -1,7 +1,7 @@
 #![cfg(feature = "native")]
 
 pub use gb_apu::AudioOutHandle;
-use gb_cartridge::Cartridge;
+pub use gb_cartridge::Cartridge;
 pub use gb_ppu::{FrameOutHandle, VideoFrame};
 
 pub use super::{GameBoy, Manifest};

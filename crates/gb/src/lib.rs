@@ -10,13 +10,13 @@ mod timer;
 pub mod wasm;
 mod wram;
 
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use bus::Bus;
 use gb_apu::AudioOutHandle;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
-pub use gb_ppu::{FrameOutHandle, VideoFrame};
+pub use gb_ppu::FrameOutHandle;
 use gb_shared::{command::Command, CPU_FREQ};
 
 pub struct Manifest {

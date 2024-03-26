@@ -83,6 +83,7 @@ pub struct Ppu {
     work_state: PpuWorkState,
     /// Storing palettes.
     video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
+    frame_id: u32,
 
     irq: Interrupt,
     frame_out_handle: Option<Box<FrameOutHandle>>,
@@ -194,8 +195,13 @@ impl Ppu {
                 })
             });
             self.work_state.fps.stop();
+            self.frame_id = 0;
             self.push_frame();
         }
+    }
+
+    pub fn pull_frame(&self) -> (&VideoFrame, u32) {
+        (&self.video_buffer, self.frame_id)
     }
 
     pub fn step(&mut self) {
@@ -409,6 +415,7 @@ impl Ppu {
                 if let Some(fps) = self.work_state.fps.update() {
                     log::info!("Render FPS: {:.2}", fps);
                 }
+                self.frame_id = self.frame_id.wrapping_add(1);
                 self.push_frame();
             }
         }

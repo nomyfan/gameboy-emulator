@@ -11,11 +11,12 @@ gb_cartridge = { workspace = true }
 gb_shared = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
+web-time = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
 
 [features]
-default = []
+default = ["native", "wasm"]
 native = []
 wasm = []

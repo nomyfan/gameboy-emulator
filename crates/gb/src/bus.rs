@@ -2,6 +2,7 @@ use gb_apu::{Apu, AudioOutHandle};
 use gb_cartridge::Cartridge;
 use gb_ppu::FrameOutHandle;
 use gb_ppu::Ppu;
+use gb_ppu::VideoFrame;
 use gb_shared::{command::Command, Memory};
 use std::ops::{Deref, DerefMut};
 
@@ -234,6 +235,10 @@ impl Bus {
 
     pub(crate) fn set_frame_out_handle(&mut self, frame_out_handle: Option<Box<FrameOutHandle>>) {
         self.ppu.set_frame_out_handle(frame_out_handle);
+    }
+
+    pub(crate) fn pull_frame(&self) -> (&VideoFrame, u32) {
+        self.ppu.pull_frame()
     }
 
     pub(crate) fn set_audio_out_handle(&mut self, audio_out_handle: Option<Box<AudioOutHandle>>) {
