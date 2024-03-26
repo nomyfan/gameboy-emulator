@@ -11,5 +11,5 @@ gb_shared = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
-strum = "0.25"
+strum = "0.26"
 strum_macros = "0.25"
