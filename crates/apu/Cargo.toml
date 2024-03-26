@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 gb_shared = { workspace = true }
 log = { workspace = true }
-blip_buf = { workspace = true }
+blip_buf-rs = "0.1.0"

@@ -1,4 +1,4 @@
-use blip_buf::Blip;
+use blip_buf_rs::Blip;
 
 pub(crate) struct BlipBuf {
     buf: Blip,
