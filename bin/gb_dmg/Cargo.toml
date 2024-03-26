@@ -12,7 +12,7 @@ log = { workspace = true }
 anyhow = { workspace = true }
 env_logger = "0.9.1"
 pixels = "0.13.0"
-winit = { version = "0.29.4", default-features = false, features = [
+winit = { version = "0.29.15", default-features = false, features = [
   "rwh_05",
   "x11",
   "wayland",
