@@ -1,23 +1,11 @@
 #![cfg(feature = "wasm")]
 
 pub use super::{GameBoy, Manifest};
-use gb_apu::AudioOutHandle;
 pub use gb_cartridge::Cartridge;
-use gb_ppu::{FrameOutHandle, VideoFrame};
+use gb_ppu::VideoFrame;
 use gb_shared::command::Command;
 
 impl GameBoy {
-    pub fn set_handles(
-        &mut self,
-        frame_out_handle: Box<FrameOutHandle>,
-        audio_out_handle: Option<Box<AudioOutHandle>>,
-    ) {
-        self.bus.ppu.set_frame_out_handle(Some(frame_out_handle));
-        if let Some(apu) = self.bus.apu.as_mut() {
-            apu.set_audio_out_handle(audio_out_handle);
-        }
-    }
-
     pub fn pull_frame(&self) -> (&VideoFrame, u32) {
         self.bus.ppu.pull_frame()
     }

@@ -116,6 +116,7 @@ class GameBoy {
 
     this.store_.setState({ status: "playing" });
 
+    // TODO: can we just do this in the Rust side?
     const drawCallback = () => {
       if (this.state.status !== "playing" || !this.instance_) {
         if (this.drawCallbackId_) {

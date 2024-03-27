@@ -51,13 +51,24 @@ impl GameBoy {
         Self { cpu, bus, clocks: 0, ts: Instant::now() }
     }
 
+    pub fn set_handles(
+        &mut self,
+        frame_out_handle: Option<Box<FrameOutHandle>>,
+        audio_out_handle: Option<Box<AudioOutHandle>>,
+    ) {
+        self.bus.ppu.set_frame_out_handle(frame_out_handle);
+        if let Some(apu) = self.bus.apu.as_mut() {
+            apu.set_audio_out_handle(audio_out_handle);
+        }
+    }
+
     pub fn play(
         mut self,
         frame_out_handle: Box<FrameOutHandle>,
         audio_out_handle: Option<Box<AudioOutHandle>>,
         pull_command: Box<dyn Fn() -> anyhow::Result<Option<Command>>>,
     ) -> anyhow::Result<()> {
-        self.set_handles(frame_out_handle, audio_out_handle);
+        self.set_handles(Some(frame_out_handle), audio_out_handle);
 
         self.ts = Instant::now();
         loop {

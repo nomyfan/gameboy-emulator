@@ -1,5 +1,8 @@
+mod audio;
 mod utils;
 
+use audio::init_audio;
+use cpal::{traits::StreamTrait, Stream};
 use gb::wasm::{Cartridge, GameBoy, Manifest};
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use wasm_bindgen::prelude::*;
@@ -11,6 +14,7 @@ const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 pub struct GameBoyHandle {
     gb: GameBoy,
     frame_id: u32,
+    _audio_stream: Option<Stream>,
 }
 
 #[wasm_bindgen(js_class = GameBoy)]
@@ -22,10 +26,28 @@ impl GameBoyHandle {
     pub fn from_uint8_clamped_array(rom: Uint8ClampedArray) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).expect("TODO:");
-        // TODO: audio
-        let gb = GameBoy::new(Manifest { cart, sample_rate: None });
 
-        GameBoyHandle { gb, frame_id: 0 }
+        // TODO: what about default device changes?
+        let (stream, samples_buf, sample_rate) = init_audio()
+            .map(|(stream, buf, sample_rate)| (Some(stream), Some(buf), Some(sample_rate)))
+            .unwrap_or_default();
+
+        let mut gb = GameBoy::new(Manifest { cart, sample_rate });
+
+        if let Some(samples_buf) = samples_buf {
+            gb.set_handles(
+                None,
+                Some(Box::new(move |sample_data| {
+                    samples_buf.lock().unwrap().extend_from_slice(sample_data);
+                })),
+            );
+        }
+
+        if let Some(stream) = &stream {
+            let _ = stream.play();
+        }
+
+        GameBoyHandle { gb, frame_id: 0, _audio_stream: stream }
     }
 
     #[wasm_bindgen(js_name = continue)]
