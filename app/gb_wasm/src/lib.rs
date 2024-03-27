@@ -13,29 +13,30 @@ pub struct GameBoyHandle {
     frame_id: u32,
 }
 
-#[wasm_bindgen(js_name = newGameBoy)]
-pub fn new_gameboy(rom: Uint8ClampedArray) -> GameBoyHandle {
-    let rom = rom.to_vec();
-    let cart = Cartridge::try_from(rom).expect("TODO:");
-    // TODO: audio
-    let gb = GameBoy::new(Manifest { cart, sample_rate: None });
-
-    GameBoyHandle { gb, frame_id: 0 }
-}
-
 #[wasm_bindgen(js_class = GameBoy)]
 impl GameBoyHandle {
+    #[wasm_bindgen]
+    pub fn __for_emitting_types_only__(_: JoypadKey) {}
+
+    #[wasm_bindgen(js_name = fromUint8ClampedArray)]
+    pub fn from_uint8_clamped_array(rom: Uint8ClampedArray) -> GameBoyHandle {
+        let rom = rom.to_vec();
+        let cart = Cartridge::try_from(rom).expect("TODO:");
+        // TODO: audio
+        let gb = GameBoy::new(Manifest { cart, sample_rate: None });
+
+        GameBoyHandle { gb, frame_id: 0 }
+    }
+
     // TODO: rename to `continue`?
     #[wasm_bindgen(js_name = playWithClocks)]
     pub fn play_with_clocks(&mut self) {
         self.gb.play_with_clocks();
     }
 
-    #[wasm_bindgen(js_name = changeKey)]
-    pub fn change_key(&mut self, key: JoypadKey, pressed: bool) {
-        let command =
-            if pressed { JoypadCommand::PressKey(key) } else { JoypadCommand::ReleaseKey(key) };
-        self.gb.exec_command(Command::Joypad(command));
+    #[wasm_bindgen(js_name = changeKeyState)]
+    pub fn change_key_state(&mut self, state: u8) {
+        self.gb.exec_command(Command::Joypad(JoypadCommand::State(state)));
     }
 
     #[wasm_bindgen]

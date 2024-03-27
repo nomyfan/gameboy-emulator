@@ -3,6 +3,7 @@ import { GameBoy } from "./gameboy";
 import { useStore } from "zustand";
 import { JoypadKey } from "gb_wasm_bindings";
 import { fromEvent, map, filter, distinctUntilChanged, merge } from "rxjs";
+import { useGamepadController } from "./gamepad";
 
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
@@ -39,7 +40,7 @@ function Monitor() {
   return <div>FPS: {fps}</div>;
 }
 
-const keysMap: Record<string, JoypadKey> = {
+const keyMapping: Record<string, JoypadKey> = {
   ArrowRight: JoypadKey.Right,
   ArrowLeft: JoypadKey.Left,
   ArrowUp: JoypadKey.Up,
@@ -50,9 +51,11 @@ const keysMap: Record<string, JoypadKey> = {
   Shift: JoypadKey.Select,
 };
 
-function useGameBoyControl() {
+function useKeyboardController(props: { gameboy: GameBoy }) {
+  const gameboy = props.gameboy;
+
   useEffect(() => {
-    const isKeyWanted = (key: string) => Object.keys(keysMap).includes(key);
+    const isKeyWanted = (key: string) => Object.keys(keyMapping).includes(key);
 
     const keydown$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
       map((evt) => evt.key)
@@ -79,20 +82,21 @@ function useGameBoyControl() {
         )
       )
       .subscribe(({ key, pressed }) => {
-        gameboyHandle.changeKey(keysMap[key], pressed);
+        gameboy.changeKey(keyMapping[key], pressed);
       });
 
     return () => {
       keysSub.unsubscribe();
     };
-  }, []);
+  }, [gameboy]);
 }
 
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [scale, setScale] = useState(2);
+  const [scale, setScale] = useState(3);
 
-  useGameBoyControl();
+  useKeyboardController({ gameboy: gameboyHandle });
+  useGamepadController({ gameboy: gameboyHandle });
 
   return (
     <div>

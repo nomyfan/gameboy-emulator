@@ -12,19 +12,20 @@ pub enum Command {
 pub enum JoypadCommand {
     PressKey(JoypadKey),
     ReleaseKey(JoypadKey),
+    State(u8),
 }
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
 pub enum JoypadKey {
-    Start = 7,
-    Select = 6,
-    B = 5,
-    A = 4,
-    Down = 3,
-    Up = 2,
-    Left = 1,
-    Right = 0,
+    Start = 0x80,
+    Select = 0x40,
+    B = 0x20,
+    A = 0x10,
+    Down = 0x08,
+    Up = 0x04,
+    Left = 0x02,
+    Right = 0x01,
 }
 
 pub type CommandReceiver = Receiver<Command>;

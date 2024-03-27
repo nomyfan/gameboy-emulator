@@ -1,5 +1,4 @@
-import type { GameBoy as GameBoyHandle, JoypadKey } from "gb_wasm_bindings";
-import { newGameBoy } from "gb_wasm_bindings";
+import { GameBoy as GameBoyHandle, JoypadKey } from "gb_wasm_bindings";
 import { createStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
@@ -70,7 +69,7 @@ class GameBoy {
   private playCallbackId_?: number;
   private drawCallbackId_?: number;
 
-  private keyQueue_: { key: JoypadKey; pressed: boolean }[] = [];
+  private newKeyState_?: number;
 
   constructor() {
     this.store_ = createGameBoyStore();
@@ -94,7 +93,7 @@ class GameBoy {
   }
 
   install(rom: Uint8ClampedArray) {
-    this.instance_ = newGameBoy(rom);
+    this.instance_ = GameBoyHandle.fromUint8ClampedArray(rom);
     this.store_.setState({ status: "installed" });
   }
 
@@ -140,11 +139,12 @@ class GameBoy {
       }
 
       const start = performance.now();
-      this.keyQueue_
-        .splice(0, this.keyQueue_.length)
-        .forEach(({ key, pressed }) => {
-          this.instance_!.changeKey(key, pressed);
-        });
+
+      if (this.newKeyState_ !== undefined) {
+        this.instance_!.changeKeyState(this.newKeyState_);
+        this.newKeyState_ = undefined;
+      }
+
       this.instance_!.playWithClocks();
 
       const duration = performance.now() - start;
@@ -172,7 +172,19 @@ class GameBoy {
 
   changeKey(key: JoypadKey, pressed: boolean) {
     if (this.state.status === "playing") {
-      this.keyQueue_.push({ key, pressed });
+      let newState = this.newKeyState_ ?? 0;
+      if (pressed) {
+        newState |= key;
+      } else {
+        newState &= ~key;
+      }
+      this.newKeyState_ = newState;
+    }
+  }
+
+  changeKeyState(state: number) {
+    if (this.state.status === "playing") {
+      this.newKeyState_ = state;
     }
   }
 }
