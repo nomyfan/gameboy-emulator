@@ -1,5 +1,5 @@
 import type { GameBoy as GameBoyHandle } from "gb_wasm_bindings";
-import { new_gameboy } from "gb_wasm_bindings";
+import { newGameBoy } from "gb_wasm_bindings";
 
 class Fps {
   frameCount = 0;
@@ -56,7 +56,7 @@ class GameBoy {
   }
 
   install(rom: Uint8ClampedArray) {
-    this.instance_ = new_gameboy(rom);
+    this.instance_ = newGameBoy(rom);
     this.status_ = "installed";
   }
 

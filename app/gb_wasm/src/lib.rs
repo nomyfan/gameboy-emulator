@@ -13,7 +13,7 @@ pub struct GameBoyHandle {
     frame_id: u32,
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = newGameBoy)]
 pub fn new_gameboy(rom: Uint8ClampedArray) -> GameBoyHandle {
     let rom = rom.to_vec();
     let cart = Cartridge::try_from(rom).expect("TODO:");
