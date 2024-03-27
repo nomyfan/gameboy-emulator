@@ -118,6 +118,9 @@ dependencies = [
 [[package]]
 name = "gb_shared"
 version = "0.1.0"
+dependencies = [
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "gb_wasm"
@@ -126,6 +129,7 @@ dependencies = [
  "anyhow",
  "console_error_panic_hook",
  "gb",
+ "gb_shared",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",

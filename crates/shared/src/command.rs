@@ -1,4 +1,6 @@
 use std::sync::mpsc::Receiver;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
@@ -12,6 +14,7 @@ pub enum JoypadCommand {
     ReleaseKey(JoypadKey),
 }
 
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
 pub enum JoypadKey {
     Start = 7,

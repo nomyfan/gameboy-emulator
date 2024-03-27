@@ -1,9 +1,9 @@
 mod utils;
 
 use gb::wasm::{Cartridge, GameBoy, Manifest};
+use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use wasm_bindgen::prelude::*;
-use web_sys::js_sys::Uint8ClampedArray;
-use web_sys::CanvasRenderingContext2d;
+use web_sys::{js_sys::Uint8ClampedArray, CanvasRenderingContext2d};
 
 const COLOR_PALETTES: [u32; 4] = [0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
@@ -25,9 +25,17 @@ pub fn new_gameboy(rom: Uint8ClampedArray) -> GameBoyHandle {
 
 #[wasm_bindgen(js_class = GameBoy)]
 impl GameBoyHandle {
-    #[wasm_bindgen]
+    // TODO: rename to `continue`?
+    #[wasm_bindgen(js_name = playWithClocks)]
     pub fn play_with_clocks(&mut self) {
-        let _ = self.gb.play_with_clocks();
+        self.gb.play_with_clocks();
+    }
+
+    #[wasm_bindgen(js_name = changeKey)]
+    pub fn change_key(&mut self, key: JoypadKey, pressed: bool) {
+        let command =
+            if pressed { JoypadCommand::PressKey(key) } else { JoypadCommand::ReleaseKey(key) };
+        self.gb.exec_command(Command::Joypad(command));
     }
 
     #[wasm_bindgen]

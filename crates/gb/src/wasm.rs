@@ -4,6 +4,9 @@ pub use super::{GameBoy, Manifest};
 use gb_apu::AudioOutHandle;
 pub use gb_cartridge::Cartridge;
 use gb_ppu::{FrameOutHandle, VideoFrame};
+use gb_shared::command::Command;
+
+// TODO: bindgen command
 
 impl GameBoy {
     pub fn set_handles(
@@ -21,8 +24,17 @@ impl GameBoy {
         self.bus.ppu.pull_frame()
     }
 
-    pub fn play_with_clocks(&mut self) -> u64 {
-        let start = web_time::Instant::now();
+    pub fn exec_command(&mut self, command: Command) {
+        match command {
+            Command::Exit => {
+                // Exit command has no effects in this pattern
+                // TODO: maybe we should delete exit command and let user manually control only
+            }
+            _ => self.bus.handle_command(command),
+        }
+    }
+
+    pub fn play_with_clocks(&mut self) {
         loop {
             self.cpu.step();
             let cycles = self.cycles + self.cpu.finish_cycles() as u32;
@@ -30,7 +42,7 @@ impl GameBoy {
             self.cycles = cycles % 70224;
 
             if cycles >= 70224 {
-                return start.elapsed().as_millis() as u64;
+                return;
             }
         }
     }

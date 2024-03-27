@@ -1,6 +1,8 @@
-import { RefObject, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import { GameBoy } from "./gameboy";
 import { useStore } from "zustand";
+import { JoypadKey } from "gb_wasm_bindings";
+import { fromEvent, map, filter, distinctUntilChanged, merge } from "rxjs";
 
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
@@ -37,9 +39,60 @@ function Monitor() {
   return <div>FPS: {fps}</div>;
 }
 
+const keysMap: Record<string, JoypadKey> = {
+  ArrowRight: JoypadKey.Right,
+  ArrowLeft: JoypadKey.Left,
+  ArrowUp: JoypadKey.Up,
+  ArrowDown: JoypadKey.Down,
+  a: JoypadKey.A,
+  s: JoypadKey.B,
+  Enter: JoypadKey.Start,
+  Shift: JoypadKey.Select,
+};
+
+function useGameBoyControl() {
+  useEffect(() => {
+    const isKeyWanted = (key: string) => Object.keys(keysMap).includes(key);
+
+    const keydown$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
+      map((evt) => evt.key)
+    );
+    const keyup$ = fromEvent<KeyboardEvent>(document, "keyup").pipe(
+      map((evt) => evt.key)
+    );
+
+    const keys$ = merge(
+      keydown$.pipe(
+        filter(isKeyWanted),
+        map((key) => ({ key, pressed: true }))
+      ),
+      keyup$.pipe(
+        filter(isKeyWanted),
+        map((key) => ({ key, pressed: false }))
+      )
+    );
+
+    const keysSub = keys$
+      .pipe(
+        distinctUntilChanged(
+          (prev, cur) => prev.key === cur.key && prev.pressed === cur.pressed
+        )
+      )
+      .subscribe(({ key, pressed }) => {
+        gameboyHandle.changeKey(keysMap[key], pressed);
+      });
+
+    return () => {
+      keysSub.unsubscribe();
+    };
+  }, []);
+}
+
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
   const [scale, setScale] = useState(2);
+
+  useGameBoyControl();
 
   return (
     <div>

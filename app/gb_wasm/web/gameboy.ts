@@ -1,6 +1,6 @@
-import type { GameBoy as GameBoyHandle } from "gb_wasm_bindings";
+import type { GameBoy as GameBoyHandle, JoypadKey } from "gb_wasm_bindings";
 import { newGameBoy } from "gb_wasm_bindings";
-import { createStore, useStore } from "zustand";
+import { createStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
 
@@ -70,6 +70,8 @@ class GameBoy {
   private playCallbackId_?: number;
   private drawCallbackId_?: number;
 
+  private keyQueue_: { key: JoypadKey; pressed: boolean }[] = [];
+
   constructor() {
     this.store_ = createGameBoyStore();
     this.monitor_ = new Monitor(this.store_);
@@ -138,7 +140,13 @@ class GameBoy {
       }
 
       const start = performance.now();
-      this.instance_!.play_with_clocks();
+      this.keyQueue_
+        .splice(0, this.keyQueue_.length)
+        .forEach(({ key, pressed }) => {
+          this.instance_!.changeKey(key, pressed);
+        });
+      this.instance_!.playWithClocks();
+
       const duration = performance.now() - start;
       this.playCallbackId_ = window.setTimeout(() => {
         playCallback();
@@ -159,6 +167,12 @@ class GameBoy {
     if (this.drawCallbackId_) {
       window.cancelAnimationFrame(this.drawCallbackId_);
       this.drawCallbackId_ = undefined;
+    }
+  }
+
+  changeKey(key: JoypadKey, pressed: boolean) {
+    if (this.state.status === "playing") {
+      this.keyQueue_.push({ key, pressed });
     }
   }
 }
