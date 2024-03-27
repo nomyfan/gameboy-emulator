@@ -91,6 +91,7 @@ dependencies = [
  "anyhow",
  "gb_shared",
  "log",
+ "web-time",
 ]
 
 [[package]]

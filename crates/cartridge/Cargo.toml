@@ -9,3 +9,4 @@ edition = "2021"
 anyhow = { workspace = true }
 log = { workspace = true }
 gb_shared = { workspace = true }
+web-time = { workspace = true }

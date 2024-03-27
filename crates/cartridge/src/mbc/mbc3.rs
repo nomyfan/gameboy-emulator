@@ -1,7 +1,8 @@
 use super::{real_ram_size, Mbc, RamBank};
 use crate::CartridgeHeader;
 use gb_shared::{boxed_array, kib};
-use std::{path::Path, time::SystemTime};
+use std::path::Path;
+use web_time::SystemTime;
 
 pub(crate) struct Mbc3 {
     ram_banks: Vec<Box<RamBank>>,
