@@ -28,10 +28,9 @@ impl GameBoyHandle {
         GameBoyHandle { gb, frame_id: 0 }
     }
 
-    // TODO: rename to `continue`?
-    #[wasm_bindgen(js_name = playWithClocks)]
-    pub fn play_with_clocks(&mut self) {
-        self.gb.play_with_clocks();
+    #[wasm_bindgen(js_name = continue)]
+    pub fn r#continue(&mut self) {
+        self.gb.continue_clocks(70224); // 70224 clocks per frame
     }
 
     #[wasm_bindgen(js_name = changeKeyState)]

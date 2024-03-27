@@ -6,8 +6,6 @@ pub use gb_cartridge::Cartridge;
 use gb_ppu::{FrameOutHandle, VideoFrame};
 use gb_shared::command::Command;
 
-// TODO: bindgen command
-
 impl GameBoy {
     pub fn set_handles(
         &mut self,
@@ -34,14 +32,13 @@ impl GameBoy {
         }
     }
 
-    pub fn play_with_clocks(&mut self) {
+    pub fn continue_clocks(&mut self, clocks: u32) {
         loop {
             self.cpu.step();
-            let cycles = self.cycles + self.cpu.finish_cycles() as u32;
-            // TODO: make EXEC_CYCLES as parameter
-            self.cycles = cycles % 70224;
+            let finished_clocks = self.clocks + self.cpu.take_clocks() as u32;
+            self.clocks = finished_clocks % clocks;
 
-            if cycles >= 70224 {
+            if finished_clocks >= clocks {
                 return;
             }
         }

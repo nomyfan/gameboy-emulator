@@ -27,7 +27,7 @@ pub trait Memory {
 }
 
 pub trait Component {
-    fn step(&mut self, cycles: u8);
+    fn step(&mut self, clocks: u8);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

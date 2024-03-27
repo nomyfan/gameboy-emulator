@@ -145,7 +145,7 @@ class GameBoy {
         this.newKeyState_ = undefined;
       }
 
-      this.instance_!.playWithClocks();
+      this.instance_!.continue();
 
       const duration = performance.now() - start;
       this.playCallbackId_ = window.setTimeout(() => {

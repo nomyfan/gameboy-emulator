@@ -27,7 +27,7 @@ pub struct Manifest {
 pub struct GameBoy {
     cpu: Cpu<Bus>,
     bus: Bus,
-    cycles: u32,
+    clocks: u32,
     ts: Instant,
 }
 
@@ -48,7 +48,7 @@ impl GameBoy {
             cpu.reg_f = 0x80;
         }
 
-        Self { cpu, bus, cycles: 0, ts: Instant::now() }
+        Self { cpu, bus, clocks: 0, ts: Instant::now() }
     }
 
     pub fn play(
@@ -63,8 +63,8 @@ impl GameBoy {
         loop {
             self.cpu.step();
 
-            let cycles = self.cycles + self.cpu.finish_cycles() as u32;
-            self.cycles = cycles % Self::EXEC_CYCLES;
+            let cycles = self.clocks + self.cpu.take_clocks() as u32;
+            self.clocks = cycles % Self::EXEC_CYCLES;
 
             match pull_command()? {
                 Some(Command::Exit) => return Ok(()),
