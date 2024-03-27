@@ -19,8 +19,9 @@ class Fps {
 
     this.frameCount++;
     const now = performance.now();
-    if (now - this.lastTime >= 1000) {
-      this.fps = (this.frameCount - 1) / ((now - this.lastTime) / 1000);
+    const duration = now - this.lastTime;
+    if (duration >= 1000) {
+      this.fps = (this.frameCount - 1) / (duration / 1000);
       // TODO: notify properties changes to subscriber
       document.getElementById("fps")!.textContent = `FPS: ${this.fps.toFixed(
         2

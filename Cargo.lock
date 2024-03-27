@@ -16,9 +16,9 @@ checksum = "0952808a6c2afd1aa8947271f3a60f1a6763c7b912d210184c5149b5cf147247"
 
 [[package]]
 name = "blip_buf-rs"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5c882fa43b18e74e5860b29f38d7e59070f573f9df8b89f956447a14ff026e2"
+checksum = "69820bfc35d4a891cf579f2d66f6cf7f9c9b7d32a8fce61abebebf3fd2b0dd55"
 
 [[package]]
 name = "bumpalo"
