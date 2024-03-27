@@ -1,10 +1,36 @@
 import type { GameBoy as GameBoyHandle } from "gb_wasm_bindings";
 import { newGameBoy } from "gb_wasm_bindings";
+import { createStore, useStore } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import { subscribeWithSelector } from "zustand/middleware";
+
+function createGameBoyStore() {
+  return createStore(
+    subscribeWithSelector(
+      immer(() => {
+        return {
+          status: "uninstalled" as
+            | "playing"
+            | "paused"
+            | "installed"
+            | "uninstalled",
+          fps: 0,
+        };
+      })
+    )
+  );
+}
+
+type GameBoyStore = ReturnType<typeof createGameBoyStore>;
 
 class Fps {
   frameCount = 0;
   lastTime = performance.now();
-  fps = 0;
+  private store_: GameBoyStore;
+
+  constructor(store: GameBoyStore) {
+    this.store_ = store;
+  }
 
   stop() {
     this.frameCount = 0;
@@ -14,35 +40,49 @@ class Fps {
     if (this.frameCount === 0) {
       this.frameCount = 1;
       this.lastTime = performance.now();
-      return;
     }
 
     this.frameCount++;
     const now = performance.now();
     const duration = now - this.lastTime;
     if (duration >= 1000) {
-      this.fps = (this.frameCount - 1) / (duration / 1000);
-      // TODO: notify properties changes to subscriber
-      document.getElementById("fps")!.textContent = `FPS: ${this.fps.toFixed(
-        2
-      )}`;
+      const fps = (this.frameCount - 1) / (duration / 1000);
       this.frameCount = 1;
       this.lastTime = now;
+
+      this.store_.setState({ fps });
     }
   }
 }
 
 class Monitor {
-  fps: Fps = new Fps();
+  fps: Fps;
+  constructor(store: GameBoyStore) {
+    this.fps = new Fps(store);
+  }
 }
 
 class GameBoy {
+  private store_: GameBoyStore;
+  private monitor_;
+
   private instance_?: GameBoyHandle;
-  private status_: "playing" | "paused" | "installed" | "uninstalled" =
-    "uninstalled";
   private playCallbackId_?: number;
   private drawCallbackId_?: number;
-  private monitor_ = new Monitor();
+
+  constructor() {
+    this.store_ = createGameBoyStore();
+    this.monitor_ = new Monitor(this.store_);
+  }
+
+  private get state() {
+    type ReadonlyState = Readonly<ReturnType<(typeof this.store_)["getState"]>>;
+    return this.store_.getState() as ReadonlyState;
+  }
+
+  get store() {
+    return this.store_;
+  }
 
   // TODO: improve typing to help the caller known this.instance_ is not undefined
   private ensureInstalled() {
@@ -51,13 +91,9 @@ class GameBoy {
     }
   }
 
-  get status(): string {
-    return this.status_;
-  }
-
   install(rom: Uint8ClampedArray) {
     this.instance_ = newGameBoy(rom);
-    this.status_ = "installed";
+    this.store_.setState({ status: "installed" });
   }
 
   uninstall() {
@@ -68,19 +104,19 @@ class GameBoy {
       this.instance_.free();
       this.instance_ = undefined;
     }
-    this.status_ = "uninstalled";
+    this.store_.setState({ status: "uninstalled" });
   }
 
   play(canvasContext: CanvasRenderingContext2D) {
     this.ensureInstalled();
-    if (this.status_ === "playing") {
+    if (this.state.status === "playing") {
       return;
     }
 
-    this.status_ = "playing";
+    this.store_.setState({ status: "playing" });
 
     const drawCallback = () => {
-      if (this.status_ !== "playing" || !this.instance_) {
+      if (this.state.status !== "playing" || !this.instance_) {
         if (this.drawCallbackId_) {
           window.cancelAnimationFrame(this.drawCallbackId_);
           this.drawCallbackId_ = undefined;
@@ -97,7 +133,7 @@ class GameBoy {
     drawCallback();
 
     const playCallback = () => {
-      if (this.status_ !== "playing" || !this.instance_) {
+      if (this.state.status !== "playing" || !this.instance_) {
         return;
       }
 
@@ -113,7 +149,7 @@ class GameBoy {
 
   pause() {
     this.ensureInstalled();
-    this.status_ = "paused";
+    this.store_.setState({ status: "paused" });
     this.monitor_.fps.stop();
 
     if (this.playCallbackId_) {
