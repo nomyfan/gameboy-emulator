@@ -22,9 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-
-# Added by cargo
-
-/target
-/gb_wasm_bindings

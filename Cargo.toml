@@ -7,7 +7,7 @@ members = [
   "crates/ppu",
   # "bin/gb_dmg",
   "crates/apu",
-  "app/gb_wasm",
+  "crates/gb-wasm",
 ]
 exclude = ["bin/gb_dmg"]
 resolver = "2"

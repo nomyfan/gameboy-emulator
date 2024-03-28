@@ -1,11 +1,10 @@
+import { JoypadKey } from "gb-wasm";
 import { RefObject, useEffect, useRef, useState } from "react";
 // import { GameBoy } from "./gameboy";
-import { useStore } from "zustand";
-import { JoypadKey } from "gb_wasm_bindings";
 import { fromEvent, map, filter, distinctUntilChanged, merge } from "rxjs";
-import { useGamepadController } from "./gamepad";
 
 import GameBoyWorker from "./gameboy-worker?worker";
+import { useGamepadController } from "./gamepad";
 
 const worker = new GameBoyWorker();
 
@@ -106,9 +105,8 @@ function App() {
     const onmessage = (evt: any) => {
       const data = evt.data;
       if (data.type === "fps") {
-        document.getElementById(
-          "fps"
-        )!.innerText = `FPS: ${data.payload.toFixed(0)}`;
+        document.getElementById("fps")!.innerText =
+          `FPS: ${data.payload.toFixed(0)}`;
       }
     };
     worker.onmessage = onmessage;
@@ -162,7 +160,7 @@ function App() {
 
           const audioContext = new AudioContext();
           await audioContext.audioWorklet.addModule(
-            new URL("./audio-worklet.js", import.meta.url)
+            new URL("./audio-worklet.js", import.meta.url),
           );
           const gameboyAudioNode = new AudioWorkletNode(
             audioContext,
@@ -170,7 +168,7 @@ function App() {
             {
               numberOfOutputs: 1,
               outputChannelCount: [2],
-            }
+            },
           );
           gameboyAudioNode.connect(audioContext.destination);
 
@@ -183,7 +181,7 @@ function App() {
               type: "install",
               payload: { buffer, offscreen, sampleRate, audioPort },
             },
-            [offscreen, audioPort]
+            [offscreen, audioPort],
           );
 
           // gameboyHandle.uninstall();
@@ -195,4 +193,4 @@ function App() {
   );
 }
 
-export default App;
+export { App };

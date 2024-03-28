@@ -1,7 +1,8 @@
-import { JoypadKey } from "gb_wasm_bindings";
-import type { GameBoy } from "./gameboy";
+import { JoypadKey } from "gb-wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
+
+import type { GameBoy } from "./gameboy";
 
 /**
  * @see https://w3c.github.io/gamepad/#remapping
@@ -34,7 +35,7 @@ function useGamepadController(props: { gameboy: GameBoy }) {
           (gamepad) =>
             gamepad &&
             gamepad.mapping === "standard" &&
-            gamepad.id.toLocaleLowerCase().includes("xbox")
+            gamepad.id.toLocaleLowerCase().includes("xbox"),
         );
       if (!gamepad) {
         this.schedule();

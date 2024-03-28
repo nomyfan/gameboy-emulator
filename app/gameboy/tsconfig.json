@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2015",
+    "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
@@ -14,11 +14,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "gb_wasm_bindings": ["./gb_wasm_bindings"]
-    }
+    "jsx": "react-jsx"
   },
-  "include": ["web"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

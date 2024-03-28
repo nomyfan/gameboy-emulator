@@ -1,7 +1,7 @@
-import { GameBoy as GameBoyHandle, JoypadKey } from "gb_wasm_bindings";
+import { GameBoy as GameBoyHandle, JoypadKey } from "gb-wasm";
 import { createStore } from "zustand";
-import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 
 function createGameBoyStore() {
   return createStore(
@@ -15,8 +15,8 @@ function createGameBoyStore() {
             | "uninstalled",
           fps: 0,
         };
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -98,7 +98,7 @@ class GameBoy {
     rom: Uint8ClampedArray,
     canvas: OffscreenCanvas,
     sampleRate?: number,
-    audioPort?: MessagePort
+    audioPort?: MessagePort,
   ) {
     this.instance_ = GameBoyHandle.create(rom, canvas, sampleRate, audioPort);
     this.store_.setState({ status: "installed" });
