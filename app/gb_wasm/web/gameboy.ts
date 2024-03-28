@@ -49,6 +49,8 @@ class Fps {
       this.frameCount = 1;
       this.lastTime = now;
 
+      postMessage({ type: "fps", payload: fps });
+
       this.store_.setState({ fps });
     }
   }
@@ -92,8 +94,13 @@ class GameBoy {
     }
   }
 
-  install(rom: Uint8ClampedArray) {
-    this.instance_ = GameBoyHandle.fromUint8ClampedArray(rom);
+  install(
+    rom: Uint8ClampedArray,
+    canvas: OffscreenCanvas,
+    sampleRate?: number,
+    audioPort?: MessagePort
+  ) {
+    this.instance_ = GameBoyHandle.create(rom, canvas, sampleRate, audioPort);
     this.store_.setState({ status: "installed" });
   }
 
@@ -108,7 +115,7 @@ class GameBoy {
     this.store_.setState({ status: "uninstalled" });
   }
 
-  play(canvasContext: CanvasRenderingContext2D) {
+  play() {
     this.ensureInstalled();
     if (this.state.status === "playing") {
       return;
@@ -117,22 +124,22 @@ class GameBoy {
     this.store_.setState({ status: "playing" });
 
     // TODO: can we just do this in the Rust side?
-    const drawCallback = () => {
-      if (this.state.status !== "playing" || !this.instance_) {
-        if (this.drawCallbackId_) {
-          window.cancelAnimationFrame(this.drawCallbackId_);
-          this.drawCallbackId_ = undefined;
-        }
-        this.monitor_.fps.stop();
-        return;
-      }
+    // const drawCallback = () => {
+    //   if (this.state.status !== "playing" || !this.instance_) {
+    //     if (this.drawCallbackId_) {
+    //       cancelAnimationFrame(this.drawCallbackId_);
+    //       this.drawCallbackId_ = undefined;
+    //     }
+    //     this.monitor_.fps.stop();
+    //     return;
+    //   }
 
-      if (this.instance_.draw(canvasContext)) {
-        this.monitor_.fps.update();
-      }
-      this.drawCallbackId_ = window.requestAnimationFrame(drawCallback);
-    };
-    drawCallback();
+    //   if (this.instance_.draw(canvasContext)) {
+    //     this.monitor_.fps.update();
+    //   }
+    //   this.drawCallbackId_ = requestAnimationFrame(drawCallback);
+    // };
+    // drawCallback();
 
     const playCallback = () => {
       if (this.state.status !== "playing" || !this.instance_) {
@@ -149,9 +156,9 @@ class GameBoy {
       this.instance_!.continue();
 
       const duration = performance.now() - start;
-      this.playCallbackId_ = window.setTimeout(() => {
+      this.playCallbackId_ = setTimeout(() => {
         playCallback();
-      }, Math.max(0, 16 - duration));
+      }, 16.6 - duration) as unknown as number;
     };
     playCallback();
   }
@@ -162,11 +169,11 @@ class GameBoy {
     this.monitor_.fps.stop();
 
     if (this.playCallbackId_) {
-      window.clearTimeout(this.playCallbackId_);
+      clearTimeout(this.playCallbackId_);
       this.playCallbackId_ = undefined;
     }
     if (this.drawCallbackId_) {
-      window.cancelAnimationFrame(this.drawCallbackId_);
+      cancelAnimationFrame(this.drawCallbackId_);
       this.drawCallbackId_ = undefined;
     }
   }
