@@ -123,24 +123,6 @@ class GameBoy {
 
     this.store_.setState({ status: "playing" });
 
-    // TODO: can we just do this in the Rust side?
-    // const drawCallback = () => {
-    //   if (this.state.status !== "playing" || !this.instance_) {
-    //     if (this.drawCallbackId_) {
-    //       cancelAnimationFrame(this.drawCallbackId_);
-    //       this.drawCallbackId_ = undefined;
-    //     }
-    //     this.monitor_.fps.stop();
-    //     return;
-    //   }
-
-    //   if (this.instance_.draw(canvasContext)) {
-    //     this.monitor_.fps.update();
-    //   }
-    //   this.drawCallbackId_ = requestAnimationFrame(drawCallback);
-    // };
-    // drawCallback();
-
     const playCallback = () => {
       if (this.state.status !== "playing" || !this.instance_) {
         return;
