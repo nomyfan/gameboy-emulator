@@ -20,19 +20,10 @@ gb_shared = { workspace = true }
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.7", optional = true }
 web-sys = { version = "0.3.69", features = [
-  "Blob",
   "console",
-  "Window",
-  "Document",
-  "Element",
-  "HtmlCanvasElement",
   "OffscreenCanvas",
   "OffscreenCanvasRenderingContext2d",
-  "CanvasRenderingContext2d",
   "Performance",
-  "WorkerGlobalScope",
-  "DedicatedWorkerGlobalScope",
-  "MessagePort",
   "WritableStream",
   "WritableStreamDefaultWriter",
 ] }

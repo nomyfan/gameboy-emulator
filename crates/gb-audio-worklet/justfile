@@ -1,2 +1,0 @@
-build:
-  wasm-pack build --release --out-dir npm --target bundler --mode no-install

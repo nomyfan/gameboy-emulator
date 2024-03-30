@@ -61,9 +61,6 @@ devDependencies:
   vite:
     specifier: ^5.2.6
     version: 5.2.6(@types/node@20.11.30)
-  vite-plugin-wasm:
-    specifier: ^3.3.0
-    version: 3.3.0(vite@5.2.6)
 
 packages:
 
@@ -3338,14 +3335,6 @@ packages:
 
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
-    dev: true
-
-  /vite-plugin-wasm@3.3.0(vite@5.2.6):
-    resolution: {integrity: sha512-tVhz6w+W9MVsOCHzxo6SSMSswCeIw4HTrXEi6qL3IRzATl83jl09JVO1djBqPSwfjgnpVHNLYcaMbaDX5WB/pg==}
-    peerDependencies:
-      vite: ^2 || ^3 || ^4 || ^5
-    dependencies:
-      vite: 5.2.6(@types/node@20.11.30)
     dev: true
 
   /vite@5.2.6(@types/node@20.11.30):

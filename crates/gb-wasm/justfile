@@ -1,4 +1,4 @@
 build:
-  wasm-pack build --release --out-dir npm --target bundler --mode no-install
+  wasm-pack build --release --out-dir npm --target web --mode no-install
 build-dev:
-  wasm-pack build --dev --out-dir npm --target bundler --mode no-install
+  wasm-pack build --dev --out-dir npm --target web --mode no-install

@@ -1,3 +1,5 @@
+import init from "gb-wasm";
+
 import { GameBoy } from "./gameboy";
 
 const handle = new GameBoy();
@@ -44,4 +46,6 @@ self.onmessage = async (evt: MessageEvent<WorkerMessage>) => {
   }
 };
 
-postMessage({ type: "ready" });
+init().then(() => {
+  postMessage({ type: "ready" });
+});
