@@ -41,7 +41,7 @@ const RESOLUTION_Y = 144;
 
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [scale, setScale] = useState(3);
+  const [scale, setScale] = useState(2);
   const [bridge, setBridge] = useState<GameBoyBridge>();
 
   useKeyboardController({ gameboy: bridge });
