@@ -2,7 +2,7 @@ import { JoypadKey } from "gb-wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
 
-import type { GameBoyBridge } from "./gameboy-worker-bridge";
+import type { GameBoyBridge } from "../gameboy-worker-bridge";
 
 /**
  * @see https://w3c.github.io/gamepad/#remapping

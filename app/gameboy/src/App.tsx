@@ -1,9 +1,8 @@
-import { JoypadKey } from "gb-wasm";
-import { useEffect, useRef, useState } from "react";
-import { fromEvent, map, filter, distinctUntilChanged, merge } from "rxjs";
+import { useRef, useState } from "react";
 
 import { GameBoyBridge } from "./gameboy-worker-bridge";
-import { useGamepadController } from "./gamepad";
+import { useGamepadController } from "./hooks/useGamepadController";
+import { useKeyboardController } from "./hooks/useKeyboardController";
 
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
@@ -39,65 +38,6 @@ const RESOLUTION_Y = 144;
 
 //   return <div>FPS: {fps}</div>;
 // }
-
-const keyMapping: Record<string, JoypadKey> = {
-  ArrowRight: JoypadKey.Right,
-  ArrowLeft: JoypadKey.Left,
-  ArrowUp: JoypadKey.Up,
-  ArrowDown: JoypadKey.Down,
-  a: JoypadKey.A,
-  s: JoypadKey.B,
-  Enter: JoypadKey.Start,
-  Shift: JoypadKey.Select,
-};
-
-function useKeyboardController(props: { gameboy: GameBoyBridge | undefined }) {
-  const gameboy = props.gameboy;
-
-  useEffect(() => {
-    if (!gameboy) return;
-
-    const isKeyWanted = (key: string) => Object.keys(keyMapping).includes(key);
-
-    const keydown$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
-      map((evt) => evt.key),
-    );
-    const keyup$ = fromEvent<KeyboardEvent>(document, "keyup").pipe(
-      map((evt) => evt.key),
-    );
-
-    const keys$ = merge(
-      keydown$.pipe(
-        filter(isKeyWanted),
-        map((key) => ({ key, pressed: true })),
-      ),
-      keyup$.pipe(
-        filter(isKeyWanted),
-        map((key) => ({ key, pressed: false })),
-      ),
-    );
-
-    let state = 0;
-    const keysSub = keys$
-      .pipe(
-        distinctUntilChanged(
-          (prev, cur) => prev.key === cur.key && prev.pressed === cur.pressed,
-        ),
-      )
-      .subscribe(({ key, pressed }) => {
-        if (pressed) {
-          state |= keyMapping[key];
-        } else {
-          state &= ~keyMapping[key];
-        }
-        gameboy.changeKeyState(state);
-      });
-
-    return () => {
-      keysSub.unsubscribe();
-    };
-  }, [gameboy]);
-}
 
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
