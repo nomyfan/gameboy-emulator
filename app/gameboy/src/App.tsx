@@ -1,12 +1,9 @@
 import { JoypadKey } from "gb-wasm";
-import { RefObject, useEffect, useRef, useState } from "react";
-// import { GameBoy } from "./gameboy";
+import { useEffect, useRef, useState } from "react";
 import { fromEvent, map, filter, distinctUntilChanged, merge } from "rxjs";
 
-import GameBoyWorker from "./gameboy-worker?worker";
+import { GameBoyBridge } from "./gameboy-worker-bridge";
 import { useGamepadController } from "./gamepad";
-
-const worker = new GameBoyWorker();
 
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
@@ -54,67 +51,61 @@ const keyMapping: Record<string, JoypadKey> = {
   Shift: JoypadKey.Select,
 };
 
-// function useKeyboardController(props: { gameboy: GameBoy }) {
-//   const gameboy = props.gameboy;
+function useKeyboardController(props: { gameboy: GameBoyBridge | undefined }) {
+  const gameboy = props.gameboy;
 
-//   useEffect(() => {
-//     const isKeyWanted = (key: string) => Object.keys(keyMapping).includes(key);
+  useEffect(() => {
+    if (!gameboy) return;
 
-//     const keydown$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
-//       map((evt) => evt.key)
-//     );
-//     const keyup$ = fromEvent<KeyboardEvent>(document, "keyup").pipe(
-//       map((evt) => evt.key)
-//     );
+    const isKeyWanted = (key: string) => Object.keys(keyMapping).includes(key);
 
-//     const keys$ = merge(
-//       keydown$.pipe(
-//         filter(isKeyWanted),
-//         map((key) => ({ key, pressed: true }))
-//       ),
-//       keyup$.pipe(
-//         filter(isKeyWanted),
-//         map((key) => ({ key, pressed: false }))
-//       )
-//     );
+    const keydown$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
+      map((evt) => evt.key),
+    );
+    const keyup$ = fromEvent<KeyboardEvent>(document, "keyup").pipe(
+      map((evt) => evt.key),
+    );
 
-//     const keysSub = keys$
-//       .pipe(
-//         distinctUntilChanged(
-//           (prev, cur) => prev.key === cur.key && prev.pressed === cur.pressed
-//         )
-//       )
-//       .subscribe(({ key, pressed }) => {
-//         gameboy.changeKey(keyMapping[key], pressed);
-//       });
+    const keys$ = merge(
+      keydown$.pipe(
+        filter(isKeyWanted),
+        map((key) => ({ key, pressed: true })),
+      ),
+      keyup$.pipe(
+        filter(isKeyWanted),
+        map((key) => ({ key, pressed: false })),
+      ),
+    );
 
-//     return () => {
-//       keysSub.unsubscribe();
-//     };
-//   }, [gameboy]);
-// }
+    let state = 0;
+    const keysSub = keys$
+      .pipe(
+        distinctUntilChanged(
+          (prev, cur) => prev.key === cur.key && prev.pressed === cur.pressed,
+        ),
+      )
+      .subscribe(({ key, pressed }) => {
+        if (pressed) {
+          state |= keyMapping[key];
+        } else {
+          state &= ~keyMapping[key];
+        }
+        gameboy.changeKeyState(state);
+      });
+
+    return () => {
+      keysSub.unsubscribe();
+    };
+  }, [gameboy]);
+}
 
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
   const [scale, setScale] = useState(3);
+  const [bridge, setBridge] = useState<GameBoyBridge>();
 
-  // useKeyboardController({ gameboy: gameboyHandle });
-  // useGamepadController({ gameboy: gameboyHandle });
-
-  useEffect(() => {
-    const onmessage = (evt: any) => {
-      const data = evt.data;
-      if (data.type === "fps") {
-        document.getElementById("fps")!.innerText =
-          `FPS: ${data.payload.toFixed(0)}`;
-      }
-    };
-    worker.onmessage = onmessage;
-
-    return () => {
-      worker.onmessage = null;
-    };
-  }, []);
+  useKeyboardController({ gameboy: bridge });
+  useGamepadController({ gameboy: bridge });
 
   return (
     <div>
@@ -129,17 +120,24 @@ function App() {
       <span id="fps" />
       <button
         onClick={() => {
-          worker.postMessage({ type: "play" });
+          bridge?.play();
         }}
       >
         Play
       </button>
       <button
         onClick={() => {
-          worker.postMessage({ type: "pause" });
+          bridge?.pause();
         }}
       >
         Pause
+      </button>
+      <button
+        onClick={() => {
+          bridge?.terminate();
+        }}
+      >
+        Terminate
       </button>
       <input
         type="file"
@@ -149,52 +147,16 @@ function App() {
           if (!file) return;
 
           const canvas = ref.current!;
-
-          const raw_buffer = await file.arrayBuffer();
-          const buffer = new Uint8ClampedArray(raw_buffer);
-
           // FIXME: can only transfer once
           const offscreen = canvas.transferControlToOffscreen();
 
-          const audioContext = new AudioContext();
-          await audioContext.audioWorklet.addModule(
-            new URL("./audio-worklet.js", import.meta.url),
-          );
-          const workletNode = new AudioWorkletNode(
-            audioContext,
-            "GameBoyAudioProcessor",
-            {
-              numberOfOutputs: 1,
-              outputChannelCount: [2],
-              processorOptions: {
-                sampleRate: audioContext.sampleRate,
-              },
-            },
-          );
-          workletNode.connect(audioContext.destination);
-
-          const writableStream = await new Promise<WritableStream>(
-            (resolve) => {
-              const handler = (evt: MessageEvent) => {
-                if (evt.data.type === "stream") {
-                  workletNode.port.onmessage = null;
-                  resolve(evt.data.value as WritableStream);
-                }
-              };
-              workletNode.port.onmessage = handler;
-            },
-          );
-
-          const sampleRate = audioContext.sampleRate;
-
-          console.log("sample rate", sampleRate);
-          worker.postMessage(
-            {
-              type: "install",
-              payload: { buffer, offscreen, sampleRate, writableStream },
-            },
-            [offscreen, writableStream],
-          );
+          if (bridge) {
+            bridge.install(file, offscreen, scale);
+          } else {
+            const createdBridge = await GameBoyBridge.create();
+            createdBridge.install(file, offscreen, scale);
+            setBridge(createdBridge);
+          }
         }}
       />
     </div>

@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-undef
 class GameBoyAudioProcessor extends AudioWorkletProcessor {
   constructor(options) {
     const processorOptions = options.processorOptions;
@@ -8,6 +9,7 @@ class GameBoyAudioProcessor extends AudioWorkletProcessor {
     this.streamActive = true;
     this.sampleRate = sampleRate;
 
+    // eslint-disable-next-line no-undef
     const writableStream = new WritableStream({
       write: (chunk) => {
         this.audioBuffer.push(...chunk);
@@ -19,12 +21,12 @@ class GameBoyAudioProcessor extends AudioWorkletProcessor {
         this.streamActive = false;
       },
     });
-    this.port.postMessage({ type: "stream", value: writableStream }, [
+    this.port.postMessage({ type: "stream", payload: writableStream }, [
       writableStream,
     ]);
   }
 
-  process(inputs, outputs, parameters) {
+  process(_inputs, outputs, _parameters) {
     const audioBuffer = this.audioBuffer;
     const channels = outputs[0];
     const channelSamplesCount = channels[0].length;
@@ -45,4 +47,5 @@ class GameBoyAudioProcessor extends AudioWorkletProcessor {
   }
 }
 
+// eslint-disable-next-line no-undef
 registerProcessor("GameBoyAudioProcessor", GameBoyAudioProcessor);

@@ -2,7 +2,7 @@ import { JoypadKey } from "gb-wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
 
-import type { GameBoy } from "./gameboy";
+import type { GameBoyBridge } from "./gameboy-worker-bridge";
 
 /**
  * @see https://w3c.github.io/gamepad/#remapping
@@ -23,10 +23,14 @@ const xboxStandardMapping = [
  * Only Xbox controller is adapted now.
  * @param props
  */
-function useGamepadController(props: { gameboy: GameBoy }) {
+function useGamepadController(props: { gameboy: GameBoyBridge | undefined }) {
   const gameboy = props.gameboy;
 
   useEffect(() => {
+    if (!gameboy) {
+      return;
+    }
+
     let lastState = 0;
     const sub = animationFrameScheduler.schedule(function () {
       const gamepad = navigator

@@ -184,4 +184,4 @@ class GameBoy {
   }
 }
 
-export { GameBoy };
+export { GameBoy, JoypadKey };
