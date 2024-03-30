@@ -72,13 +72,6 @@ function App() {
       >
         Pause
       </button>
-      <button
-        onClick={() => {
-          bridge?.terminate();
-        }}
-      >
-        Terminate
-      </button>
       <input
         type="file"
         accept=".gb"
