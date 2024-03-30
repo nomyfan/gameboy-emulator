@@ -98,9 +98,14 @@ class GameBoy {
     rom: Uint8ClampedArray,
     canvas: OffscreenCanvas,
     sampleRate?: number,
-    audioPort?: MessagePort,
+    writableStream?: WritableStream,
   ) {
-    this.instance_ = GameBoyHandle.create(rom, canvas, sampleRate, audioPort);
+    this.instance_ = GameBoyHandle.create(
+      rom,
+      canvas,
+      sampleRate,
+      writableStream,
+    );
     this.store_.setState({ status: "installed" });
   }
 

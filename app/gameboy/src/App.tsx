@@ -149,8 +149,6 @@ function App() {
           if (!file) return;
 
           const canvas = ref.current!;
-          // const context = canvas.getContext("2d")!;
-          // context.setTransform(scale, 0, 0, scale, 0, 0);
 
           const raw_buffer = await file.arrayBuffer();
           const buffer = new Uint8ClampedArray(raw_buffer);
@@ -162,31 +160,41 @@ function App() {
           await audioContext.audioWorklet.addModule(
             new URL("./audio-worklet.js", import.meta.url),
           );
-          const gameboyAudioNode = new AudioWorkletNode(
+          const workletNode = new AudioWorkletNode(
             audioContext,
             "GameBoyAudioProcessor",
             {
               numberOfOutputs: 1,
               outputChannelCount: [2],
+              processorOptions: {
+                sampleRate: audioContext.sampleRate,
+              },
             },
           );
-          gameboyAudioNode.connect(audioContext.destination);
+          workletNode.connect(audioContext.destination);
+
+          const writableStream = await new Promise<WritableStream>(
+            (resolve) => {
+              const handler = (evt: MessageEvent) => {
+                if (evt.data.type === "stream") {
+                  workletNode.port.onmessage = null;
+                  resolve(evt.data.value as WritableStream);
+                }
+              };
+              workletNode.port.onmessage = handler;
+            },
+          );
 
           const sampleRate = audioContext.sampleRate;
-          const audioPort = gameboyAudioNode.port;
 
           console.log("sample rate", sampleRate);
           worker.postMessage(
             {
               type: "install",
-              payload: { buffer, offscreen, sampleRate, audioPort },
+              payload: { buffer, offscreen, sampleRate, writableStream },
             },
-            [offscreen, audioPort],
+            [offscreen, writableStream],
           );
-
-          // gameboyHandle.uninstall();
-          // gameboyHandle.install(buffer);
-          // gameboyHandle.play(context);
         }}
       />
     </div>
