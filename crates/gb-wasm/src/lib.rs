@@ -42,6 +42,10 @@ impl GameBoyHandle {
         match audio_stream {
             Some(stream) => {
                 let stream_writer = stream.get_writer().unwrap();
+                let sample_rate = sample_rate.unwrap();
+                let sample_count = sample_rate.div_ceil(64); // TODO: align to APU
+                let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
+
                 gb.set_handles(
                     Some(Box::new(move |data, #[cfg(debug_assertions)] _dbg_data| {
                         data.iter().enumerate().for_each(|(y, pixel)| {
@@ -53,15 +57,16 @@ impl GameBoyHandle {
                         });
                     })),
                     Some(Box::new(move |data| {
-                        let f32_float_array =
-                            web_sys::js_sys::Float32Array::new(&(data.len() as u32 * 2).into());
-                        for (i, (left, right)) in data.iter().enumerate() {
-                            f32_float_array.set_index(i as u32 * 2, *left);
-                            f32_float_array.set_index(i as u32 * 2 + 1, *right);
+                        let len = data.len().min(sample_count as usize);
+                        for (i, (left, right)) in data.iter().take(len).enumerate() {
+                            audio_buffer.set_index(i as u32 * 2, *left);
+                            audio_buffer.set_index(i as u32 * 2 + 1, *right);
                         }
 
+                        let slice = audio_buffer.slice(0, (len * 2) as u32);
+
                         // TODO: should we wait?
-                        let _ = stream_writer.write_with_chunk(&f32_float_array.into());
+                        let _ = stream_writer.write_with_chunk(&slice.into());
                     })),
                 )
             }
