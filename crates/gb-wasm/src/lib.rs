@@ -37,6 +37,8 @@ impl GameBoyHandle {
             .dyn_into::<OffscreenCanvasRenderingContext2d>()
             .unwrap();
 
+        let colors = COLOR_PALETTES.map(|color| color.into());
+
         match audio_stream {
             Some(stream) => {
                 let stream_writer = stream.get_writer().unwrap();
@@ -44,8 +46,8 @@ impl GameBoyHandle {
                     Some(Box::new(move |data, #[cfg(debug_assertions)] _dbg_data| {
                         data.iter().enumerate().for_each(|(y, pixel)| {
                             pixel.iter().enumerate().for_each(|(x, color_id)| {
-                                let color = COLOR_PALETTES[*color_id as usize];
-                                canvas_context.set_fill_style(&color.into());
+                                let color = &colors[*color_id as usize];
+                                canvas_context.set_fill_style(color);
                                 canvas_context.fill_rect(x as f64, y as f64, 1.0, 1.0);
                             });
                         });
@@ -68,8 +70,8 @@ impl GameBoyHandle {
                     Some(Box::new(move |data, #[cfg(debug_assertions)] _dbg_data| {
                         data.iter().enumerate().for_each(|(y, pixel)| {
                             pixel.iter().enumerate().for_each(|(x, color_id)| {
-                                let color = COLOR_PALETTES[*color_id as usize];
-                                canvas_context.set_fill_style(&color.into());
+                                let color = &colors[*color_id as usize];
+                                canvas_context.set_fill_style(color);
                                 canvas_context.fill_rect(x as f64, y as f64, 1.0, 1.0);
                             });
                         });
