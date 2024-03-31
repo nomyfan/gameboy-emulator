@@ -8,10 +8,10 @@ use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use fps::Fps;
-use gb_shared::boxed::{BoxedArray, BoxedMatrix};
+use gb_shared::boxed::BoxedArray;
 use gb_shared::{is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory};
 
-pub type VideoFrame = BoxedMatrix<u8, 160, 144>;
+pub type VideoFrame = BoxedArray<u8, 23040>; // 160 * 144
 
 #[cfg(debug_assertions)]
 pub type FrameOutHandle = dyn FnMut(&VideoFrame, Option<(&BoxedArray<u8, 0x2000>, bool)>);
@@ -82,7 +82,7 @@ pub struct Ppu {
     /// PPU work state.
     work_state: PpuWorkState,
     /// Storing palettes.
-    video_buffer: BoxedMatrix<u8, RESOLUTION_X, RESOLUTION_Y>,
+    video_buffer: VideoFrame,
     frame_id: u32,
 
     irq: Interrupt,
@@ -189,10 +189,8 @@ impl Ppu {
             self.work_state = Default::default();
             self.lcd.ly = 0;
             self.set_lcd_mode(LCDMode::HBlank);
-            self.video_buffer.iter_mut().for_each(|row| {
-                row.iter_mut().for_each(|color_palette| {
-                    *color_palette = 0;
-                })
+            self.video_buffer.iter_mut().for_each(|pixel| {
+                *pixel = 0;
             });
             self.work_state.fps.stop();
             self.frame_id = 0;
@@ -363,7 +361,7 @@ impl Ppu {
 
         let viewport_x = self.work_state.scanline_x as usize;
         let viewport_y = self.lcd.ly as usize;
-        self.video_buffer[viewport_y][viewport_x] = color_palette;
+        self.video_buffer[viewport_y * RESOLUTION_X as usize + viewport_x] = color_palette;
         self.work_state.scanline_x += 1;
 
         // Pixels in current scanline are all rendered.

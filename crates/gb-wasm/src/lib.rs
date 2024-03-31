@@ -1,12 +1,20 @@
 mod utils;
 
 use gb::wasm::{Cartridge, GameBoy, Manifest};
+use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use js_sys::Uint8ClampedArray;
-use wasm_bindgen::prelude::*;
-use web_sys::{js_sys, OffscreenCanvas, OffscreenCanvasRenderingContext2d, WritableStream};
+use wasm_bindgen::{prelude::*, Clamped};
+use web_sys::{
+    js_sys, ImageData, OffscreenCanvas, OffscreenCanvasRenderingContext2d, WritableStream,
+};
 
-const COLOR_PALETTES: [&str; 4] = ["#FFFFFF", "#AAAAAA", "#555555", "#000000"];
+const COLORS: [[u8; 4]; 4] = [
+    [0xFF, 0xFF, 0xFF, 0xFF],
+    [0xAA, 0xAA, 0xAA, 0xFF],
+    [0x55, 0x55, 0x55, 0xFF],
+    [0x00, 0x00, 0x00, 0xFF],
+];
 
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
@@ -37,7 +45,28 @@ impl GameBoyHandle {
             .dyn_into::<OffscreenCanvasRenderingContext2d>()
             .unwrap();
 
-        let colors = COLOR_PALETTES.map(|color| color.into());
+        // FIXME: scale
+        let mut raw_pixels = vec![0; 160 * 144 * 4];
+
+        let frame_handle =
+            Box::new(
+                move |data: &BoxedArray<u8, 23040>,
+                      #[cfg(debug_assertions)] _dbg_data: Option<(
+                    &BoxedArray<u8, 0x2000>,
+                    bool,
+                )>| {
+                    data.iter().enumerate().for_each(|(n, color_id)| {
+                        let color = &COLORS[*color_id as usize];
+                        let offset = n * 4;
+                        raw_pixels[offset..=(offset + 3)].copy_from_slice(color);
+                    });
+
+                    let image_data =
+                        ImageData::new_with_u8_clamped_array_and_sh(Clamped(&raw_pixels), 160, 144)
+                            .unwrap();
+                    canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+                },
+            );
 
         match audio_stream {
             Some(stream) => {
@@ -47,15 +76,7 @@ impl GameBoyHandle {
                 let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
 
                 gb.set_handles(
-                    Some(Box::new(move |data, #[cfg(debug_assertions)] _dbg_data| {
-                        data.iter().enumerate().for_each(|(y, pixel)| {
-                            pixel.iter().enumerate().for_each(|(x, color_id)| {
-                                let color = &colors[*color_id as usize];
-                                canvas_context.set_fill_style(color);
-                                canvas_context.fill_rect(x as f64, y as f64, 1.0, 1.0);
-                            });
-                        });
-                    })),
+                    Some(frame_handle),
                     Some(Box::new(move |data| {
                         let len = data.len().min(sample_count as usize);
                         for (i, (left, right)) in data.iter().take(len).enumerate() {
@@ -71,18 +92,7 @@ impl GameBoyHandle {
                 )
             }
             None => {
-                gb.set_handles(
-                    Some(Box::new(move |data, #[cfg(debug_assertions)] _dbg_data| {
-                        data.iter().enumerate().for_each(|(y, pixel)| {
-                            pixel.iter().enumerate().for_each(|(x, color_id)| {
-                                let color = &colors[*color_id as usize];
-                                canvas_context.set_fill_style(color);
-                                canvas_context.fill_rect(x as f64, y as f64, 1.0, 1.0);
-                            });
-                        });
-                    })),
-                    None,
-                );
+                gb.set_handles(Some(frame_handle), None);
             }
         }
 
