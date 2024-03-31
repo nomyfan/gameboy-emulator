@@ -7,41 +7,9 @@ import { useKeyboardController } from "./hooks/useKeyboardController";
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
 
-// const gameboyHandle = new GameBoy();
-
-// function Controller(props: { canvasRef: RefObject<HTMLCanvasElement> }) {
-//   const status = useStore(gameboyHandle.store, (state) => state.status);
-
-//   if (status === "uninstalled") {
-//     return null;
-//   }
-
-//   const statusText = status === "playing" ? "Pause" : "Play";
-//   const handleClick = () => {
-//     if (status === "playing") {
-//       gameboyHandle.pause();
-//     } else {
-//       // TODO: type safety
-//       gameboyHandle.play(props.canvasRef.current?.getContext("2d")!);
-//     }
-//   };
-
-//   return (
-//     <>
-//       <button onClick={handleClick}>{statusText}</button>
-//     </>
-//   );
-// }
-
-// function Monitor() {
-//   const fps = useStore(gameboyHandle.store, (state) => state.fps);
-
-//   return <div>FPS: {fps}</div>;
-// }
-
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [scale, setScale] = useState(2);
+  const [scale] = useState(2);
   const [supervisor, setSupervisor] = useState<GameBoySupervisor>();
 
   useKeyboardController({ supervisor: supervisor });
@@ -55,9 +23,6 @@ function App() {
         height={RESOLUTION_Y * scale}
       />
       <br />
-      {/* <Monitor /> */}
-      {/* <Controller canvasRef={ref} /> */}
-      <span id="fps" />
       <button
         onClick={() => {
           supervisor?.play();
