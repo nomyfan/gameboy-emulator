@@ -2,7 +2,7 @@ import { JoypadKey } from "gb-wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
 
-import type { GameBoyBridge } from "../gameboy-worker-bridge";
+import type { GameBoySupervisor } from "../gameboy-workers-supervisor";
 
 /**
  * @see https://w3c.github.io/gamepad/#remapping
@@ -23,11 +23,13 @@ const xboxStandardMapping = [
  * Only Xbox controller is adapted now.
  * @param props
  */
-function useGamepadController(props: { gameboy: GameBoyBridge | undefined }) {
-  const gameboy = props.gameboy;
+function useGamepadController(props: {
+  supervisor: GameBoySupervisor | undefined;
+}) {
+  const supervisor = props.supervisor;
 
   useEffect(() => {
-    if (!gameboy) {
+    if (!supervisor) {
       return;
     }
 
@@ -54,7 +56,7 @@ function useGamepadController(props: { gameboy: GameBoyBridge | undefined }) {
       }, 0);
 
       if (lastState !== newState) {
-        gameboy.changeKeyState(newState);
+        supervisor.changeKeyState(newState);
         lastState = newState;
       }
 
@@ -62,7 +64,7 @@ function useGamepadController(props: { gameboy: GameBoyBridge | undefined }) {
     });
 
     return () => sub.unsubscribe();
-  }, [gameboy]);
+  }, [supervisor]);
 }
 
 export { useGamepadController };

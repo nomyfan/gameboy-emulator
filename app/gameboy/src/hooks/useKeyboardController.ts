@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { fromEvent, map, merge, filter, distinctUntilChanged } from "rxjs";
 
 import { JoypadKey } from "../gameboy";
-import type { GameBoyBridge } from "../gameboy-worker-bridge";
+import type { GameBoySupervisor } from "../gameboy-workers-supervisor";
 
 const keyMapping: Record<string, JoypadKey> = {
   ArrowRight: JoypadKey.Right,
@@ -16,12 +16,12 @@ const keyMapping: Record<string, JoypadKey> = {
 };
 
 export function useKeyboardController(props: {
-  gameboy: GameBoyBridge | undefined;
+  supervisor: GameBoySupervisor | undefined;
 }) {
-  const gameboy = props.gameboy;
+  const supervisor = props.supervisor;
 
   useEffect(() => {
-    if (!gameboy) return;
+    if (!supervisor) return;
 
     const isKeyWanted = (key: string) => Object.keys(keyMapping).includes(key);
 
@@ -56,11 +56,11 @@ export function useKeyboardController(props: {
         } else {
           state &= ~keyMapping[key];
         }
-        gameboy.changeKeyState(state);
+        supervisor.changeKeyState(state);
       });
 
     return () => {
       keysSub.unsubscribe();
     };
-  }, [gameboy]);
+  }, [supervisor]);
 }

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import { GameBoyBridge } from "./gameboy-worker-bridge";
+import { GameBoySupervisor } from "./gameboy-workers-supervisor";
 import { useGamepadController } from "./hooks/useGamepadController";
 import { useKeyboardController } from "./hooks/useKeyboardController";
 
@@ -42,10 +42,10 @@ const RESOLUTION_Y = 144;
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
   const [scale, setScale] = useState(2);
-  const [bridge, setBridge] = useState<GameBoyBridge>();
+  const [supervisor, setSupervisor] = useState<GameBoySupervisor>();
 
-  useKeyboardController({ gameboy: bridge });
-  useGamepadController({ gameboy: bridge });
+  useKeyboardController({ supervisor: supervisor });
+  useGamepadController({ supervisor: supervisor });
 
   return (
     <div>
@@ -60,14 +60,14 @@ function App() {
       <span id="fps" />
       <button
         onClick={() => {
-          bridge?.play();
+          supervisor?.play();
         }}
       >
         Play
       </button>
       <button
         onClick={() => {
-          bridge?.pause();
+          supervisor?.pause();
         }}
       >
         Pause
@@ -83,12 +83,12 @@ function App() {
           // FIXME: can only transfer once
           const offscreen = canvas.transferControlToOffscreen();
 
-          if (bridge) {
-            bridge.install(file, offscreen, scale);
+          if (supervisor) {
+            supervisor.install(file, offscreen, scale);
           } else {
-            const createdBridge = await GameBoyBridge.create();
-            createdBridge.install(file, offscreen, scale);
-            setBridge(createdBridge);
+            const createdSupervisor = await GameBoySupervisor.create();
+            createdSupervisor.install(file, offscreen, scale);
+            setSupervisor(createdSupervisor);
           }
         }}
       />

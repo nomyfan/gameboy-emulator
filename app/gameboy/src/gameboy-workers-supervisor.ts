@@ -97,4 +97,4 @@ class GameBoySupervisor {
   }
 }
 
-export { GameBoySupervisor as GameBoyBridge };
+export { GameBoySupervisor };
