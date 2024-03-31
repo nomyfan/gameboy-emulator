@@ -36,10 +36,7 @@ class GameBoySupervisor {
       "GameBoyAudioProcessor",
       {
         numberOfOutputs: 1,
-        outputChannelCount: [2],
-        processorOptions: {
-          sampleRate,
-        },
+        outputChannelCount: [2], // Stereo
       },
     );
     workletNode.connect(this.audioContext_.destination);

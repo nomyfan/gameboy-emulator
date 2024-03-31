@@ -1,13 +1,9 @@
 // eslint-disable-next-line no-undef
 class GameBoyAudioProcessor extends AudioWorkletProcessor {
   constructor(options) {
-    const processorOptions = options.processorOptions;
-    const sampleRate = processorOptions.sampleRate;
-
     super(options);
     this.audioBuffer = [];
     this.streamActive = true;
-    this.sampleRate = sampleRate;
 
     // eslint-disable-next-line no-undef
     const writableStream = new WritableStream({
