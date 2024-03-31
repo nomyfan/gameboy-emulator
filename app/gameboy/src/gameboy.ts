@@ -13,7 +13,6 @@ function createGameBoyStore() {
             | "paused"
             | "installed"
             | "uninstalled",
-          fps: 0,
         };
       }),
     ),
@@ -22,60 +21,16 @@ function createGameBoyStore() {
 
 type GameBoyStore = ReturnType<typeof createGameBoyStore>;
 
-class Fps {
-  frameCount = 0;
-  lastTime = performance.now();
+class GameBoyControl {
   private store_: GameBoyStore;
-
-  constructor(store: GameBoyStore) {
-    this.store_ = store;
-  }
-
-  stop() {
-    this.frameCount = 0;
-  }
-
-  update() {
-    if (this.frameCount === 0) {
-      this.frameCount = 1;
-      this.lastTime = performance.now();
-    }
-
-    this.frameCount++;
-    const now = performance.now();
-    const duration = now - this.lastTime;
-    if (duration >= 1000) {
-      const fps = (this.frameCount - 1) / (duration / 1000);
-      this.frameCount = 1;
-      this.lastTime = now;
-
-      postMessage({ type: "fps", payload: fps });
-
-      this.store_.setState({ fps });
-    }
-  }
-}
-
-class Monitor {
-  fps: Fps;
-  constructor(store: GameBoyStore) {
-    this.fps = new Fps(store);
-  }
-}
-
-class GameBoy {
-  private store_: GameBoyStore;
-  private monitor_;
 
   private instance_?: GameBoyHandle;
   private playCallbackId_?: number;
-  private drawCallbackId_?: number;
 
   private newKeyState_?: number;
 
   constructor() {
     this.store_ = createGameBoyStore();
-    this.monitor_ = new Monitor(this.store_);
   }
 
   private get state() {
@@ -97,16 +52,15 @@ class GameBoy {
   install(
     rom: Uint8ClampedArray,
     canvas: OffscreenCanvas,
-    sampleRate?: number,
-    writableStream?: WritableStream,
     scale?: number,
+    audio?: { sampleRate: number; stream: WritableStream },
   ) {
     this.instance_ = GameBoyHandle.create(
       rom,
       canvas,
-      sampleRate,
-      writableStream,
       scale,
+      audio?.sampleRate,
+      audio?.stream,
     );
     this.store_.setState({ status: "installed" });
   }
@@ -155,15 +109,10 @@ class GameBoy {
   pause() {
     this.ensureInstalled();
     this.store_.setState({ status: "paused" });
-    this.monitor_.fps.stop();
 
     if (this.playCallbackId_) {
       clearTimeout(this.playCallbackId_);
       this.playCallbackId_ = undefined;
-    }
-    if (this.drawCallbackId_) {
-      cancelAnimationFrame(this.drawCallbackId_);
-      this.drawCallbackId_ = undefined;
     }
   }
 
@@ -186,4 +135,4 @@ class GameBoy {
   }
 }
 
-export { GameBoy, JoypadKey };
+export { GameBoyControl, JoypadKey };

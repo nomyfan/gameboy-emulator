@@ -6,23 +6,23 @@ function invoke(this: Worker, message: WorkerMessage) {
   this.postMessage(message);
 }
 
-class GameBoyBridge {
+class GameBoySupervisor {
   private audioContext_: AudioContext;
   private worker_?: Worker;
   private workletNode_?: AudioWorkletNode;
-  private invoke?: (message: WorkerMessage) => void;
+  private invoke: (message: WorkerMessage) => void = () => {};
 
   private constructor(audioContext: AudioContext) {
     this.audioContext_ = audioContext;
   }
 
-  static async create(): Promise<GameBoyBridge> {
+  static async create(): Promise<GameBoySupervisor> {
     const context = new AudioContext();
     await context.audioWorklet.addModule(
       new URL("./audio-worklet.js", import.meta.url),
     );
 
-    return new GameBoyBridge(context);
+    return new GameBoySupervisor(context);
   }
 
   async install(file: File, canvas: OffscreenCanvas, scale: number = 1) {
@@ -82,23 +82,22 @@ class GameBoyBridge {
   }
 
   play() {
-    this.invoke?.({ type: "play" });
+    this.invoke({ type: "play" });
   }
 
   pause() {
-    this.invoke?.({ type: "pause" });
+    this.invoke({ type: "pause" });
   }
 
   changeKeyState(state: number) {
-    this.invoke?.({ type: "change_key_state", payload: state & 0xff });
+    this.invoke({ type: "change_key_state", payload: state & 0xff });
   }
 
   async terminate() {
-    // TODO: terminate
-    // this.worker_.terminate();
-    // this.workletNode_?.disconnect();
-    // await this.audioContext_.close();
+    this.worker_?.terminate();
+    this.workletNode_?.disconnect();
+    await this.audioContext_.close();
   }
 }
 
-export { GameBoyBridge };
+export { GameBoySupervisor as GameBoyBridge };

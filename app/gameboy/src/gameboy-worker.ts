@@ -1,8 +1,8 @@
 import init from "gb-wasm";
 
-import { GameBoy } from "./gameboy";
+import { GameBoyControl } from "./gameboy";
 
-const handle = new GameBoy();
+const control = new GameBoyControl();
 
 type U8 = number;
 
@@ -31,16 +31,21 @@ export type WorkerMessage =
 self.onmessage = async (evt: MessageEvent<WorkerMessage>) => {
   const data = evt.data;
   if (data.type === "install") {
-    handle.uninstall();
+    control.uninstall();
     const { buffer, canvas, sampleRate, stream } = data.payload;
-    handle.install(buffer, canvas, sampleRate, stream, data.payload.scale || 1);
-    handle.play();
+    control.install(
+      buffer,
+      canvas,
+      data.payload.scale || 1,
+      sampleRate && stream ? { sampleRate, stream } : undefined,
+    );
+    control.play();
   } else if (data.type === "play") {
-    handle.play();
+    control.play();
   } else if (data.type === "pause") {
-    handle.pause();
+    control.pause();
   } else if (data.type === "change_key_state") {
-    handle.changeKeyState(data.payload);
+    control.changeKeyState(data.payload);
   }
 };
 

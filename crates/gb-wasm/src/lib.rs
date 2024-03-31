@@ -21,12 +21,12 @@ pub struct GameBoyHandle {
     gb: GameBoy,
 }
 
-struct ScaleImage(Vec<u8>, u8);
+struct ScaleImageData(Vec<u8>, u8);
 
-impl ScaleImage {
-    fn new(width: usize, height: usize, scale: u8) -> ScaleImage {
+impl ScaleImageData {
+    fn new(width: usize, height: usize, scale: u8) -> ScaleImageData {
         let scaled_size = width * scale as usize * height * scale as usize * 4;
-        ScaleImage(vec![0; scaled_size], scale)
+        ScaleImageData(vec![0; scaled_size], scale)
     }
 
     fn set(&mut self, x: usize, y: usize, color: &[u8; 4]) {
@@ -63,9 +63,9 @@ impl GameBoyHandle {
     pub fn create(
         rom: Uint8ClampedArray,
         canvas: OffscreenCanvas,
+        scale: Option<u8>,
         sample_rate: Option<u32>,
         audio_stream: Option<WritableStream>,
-        scale: Option<u8>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
@@ -82,7 +82,7 @@ impl GameBoyHandle {
         canvas_context.set_transform(scale as f64, 0.0, 0.0, scale as f64, 0.0, 0.0).unwrap();
 
         // TODO: how to dynamically change the scale?
-        let mut scale_image = ScaleImage::new(160, 144, scale);
+        let mut scale_image = ScaleImageData::new(160, 144, scale);
         let frame_handle =
             Box::new(
                 move |data: &BoxedArray<u8, 23040>,
