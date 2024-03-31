@@ -99,12 +99,14 @@ class GameBoy {
     canvas: OffscreenCanvas,
     sampleRate?: number,
     writableStream?: WritableStream,
+    scale?: number,
   ) {
     this.instance_ = GameBoyHandle.create(
       rom,
       canvas,
       sampleRate,
       writableStream,
+      scale,
     );
     this.store_.setState({ status: "installed" });
   }

@@ -21,6 +21,39 @@ pub struct GameBoyHandle {
     gb: GameBoy,
 }
 
+struct ScaleImage(Vec<u8>, u8);
+
+impl ScaleImage {
+    fn new(width: usize, height: usize, scale: u8) -> ScaleImage {
+        let scaled_size = width * scale as usize * height * scale as usize * 4;
+        ScaleImage(vec![0; scaled_size], scale)
+    }
+
+    fn set(&mut self, x: usize, y: usize, color: &[u8; 4]) {
+        let scale = self.1 as usize;
+        let x_begin = x * scale;
+        let x_end = x_begin + scale;
+        let y_begin = y * scale;
+        let y_end = y_begin + scale;
+
+        for y in y_begin..y_end {
+            for x in x_begin..x_end {
+                let offset = (y * 160 * scale + x) * 4;
+                self.0[offset..(offset + 4)].copy_from_slice(color);
+            }
+        }
+    }
+
+    fn as_image_data(&self) -> ImageData {
+        ImageData::new_with_u8_clamped_array_and_sh(
+            Clamped(&self.0),
+            160 * self.1 as u32,
+            144 * self.1 as u32,
+        )
+        .unwrap()
+    }
+}
+
 #[wasm_bindgen(js_class = GameBoy)]
 impl GameBoyHandle {
     #[wasm_bindgen]
@@ -32,22 +65,24 @@ impl GameBoyHandle {
         canvas: OffscreenCanvas,
         sample_rate: Option<u32>,
         audio_stream: Option<WritableStream>,
+        scale: Option<u8>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
 
         let mut gb = GameBoy::new(Manifest { cart, sample_rate });
 
+        let scale = scale.unwrap_or(1);
         let canvas_context = canvas
             .get_context("2d")
             .unwrap()
             .unwrap()
             .dyn_into::<OffscreenCanvasRenderingContext2d>()
             .unwrap();
+        canvas_context.set_transform(scale as f64, 0.0, 0.0, scale as f64, 0.0, 0.0).unwrap();
 
-        // FIXME: scale
-        let mut raw_pixels = vec![0; 160 * 144 * 4];
-
+        // TODO: how to dynamically change the scale?
+        let mut scale_image = ScaleImage::new(160, 144, scale);
         let frame_handle =
             Box::new(
                 move |data: &BoxedArray<u8, 23040>,
@@ -57,13 +92,13 @@ impl GameBoyHandle {
                 )>| {
                     data.iter().enumerate().for_each(|(n, color_id)| {
                         let color = &COLORS[*color_id as usize];
-                        let offset = n * 4;
-                        raw_pixels[offset..=(offset + 3)].copy_from_slice(color);
+
+                        let y = n / 160;
+                        let x = n % 160;
+                        scale_image.set(x, y, color);
                     });
 
-                    let image_data =
-                        ImageData::new_with_u8_clamped_array_and_sh(Clamped(&raw_pixels), 160, 144)
-                            .unwrap();
+                    let image_data = scale_image.as_image_data();
                     canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
                 },
             );

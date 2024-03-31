@@ -32,10 +32,8 @@ self.onmessage = async (evt: MessageEvent<WorkerMessage>) => {
   const data = evt.data;
   if (data.type === "install") {
     handle.uninstall();
-    const { buffer, canvas, sampleRate, stream, scale = 1 } = data.payload;
-    const context = canvas.getContext("2d")!;
-    context.setTransform(scale, 0, 0, scale, 0, 0);
-    handle.install(buffer, canvas, sampleRate, stream);
+    const { buffer, canvas, sampleRate, stream } = data.payload;
+    handle.install(buffer, canvas, sampleRate, stream, data.payload.scale || 1);
     handle.play();
   } else if (data.type === "play") {
     handle.play();
