@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 
+import { AbButton } from "./components/AbButton";
+import { DirectionButton } from "./components/DirectionButton";
+import { Screen } from "./components/Screen";
 import { GameBoySupervisor } from "./gameboy-workers-supervisor";
 import { useGamepadController } from "./hooks/useGamepadController";
 import { useKeyboardController } from "./hooks/useKeyboardController";
-
-const RESOLUTION_X = 160;
-const RESOLUTION_Y = 144;
+import { cn } from "./lib/utils";
 
 function App() {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -16,13 +17,19 @@ function App() {
   useGamepadController({ supervisor: supervisor });
 
   return (
-    <div>
-      <canvas
-        ref={ref}
-        width={RESOLUTION_X * scale}
-        height={RESOLUTION_Y * scale}
-      />
-      <br />
+    <div className={cn("min-h-screen bg-[#C8C4BE]")}>
+      <Screen ref={ref} className="mb-[20px]" />
+      <div
+        className={cn("flex justify-between")}
+        style={
+          {
+            // transform: "rotate(-25deg)",
+          }
+        }
+      >
+        <DirectionButton />
+        <AbButton />
+      </div>
       <button
         onClick={() => {
           supervisor?.play();
