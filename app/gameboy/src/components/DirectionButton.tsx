@@ -1,23 +1,28 @@
-import { ButtonHTMLAttributes, CSSProperties } from "react";
+import { CSSProperties } from "react";
 
 import { cn } from "../lib/utils";
 
 function Button(props: {
   className?: string;
   style?: CSSProperties;
-  onClick?: ButtonHTMLAttributes<unknown>["onClick"];
+  onDown?: () => void;
+  onUp?: () => void;
 }) {
   return (
     <button
       className={cn("bg-black h-full w-full rounded-[4px]", props.className)}
       style={props.style}
-      onClick={props.onClick}
+      onMouseDown={() => props.onDown?.()}
+      onTouchStart={() => props.onDown?.()}
+      onMouseUp={() => props.onUp?.()}
+      onTouchEnd={() => props.onUp?.()}
     />
   );
 }
 
 function DirectionButton(props: {
-  onClick?: (button: "top" | "right" | "bottom" | "left") => void;
+  onDown?: (button: "up" | "right" | "down" | "left") => void;
+  onUP?: (button: "up" | "right" | "down" | "left") => void;
 }) {
   return (
     <div
@@ -35,7 +40,8 @@ function DirectionButton(props: {
         style={{
           boxShadow: "-4px -4px 4px rgba(255,255,255,.25)",
         }}
-        onClick={() => props.onClick?.("top")}
+        onDown={() => props.onDown?.("up")}
+        onUp={() => props.onUP?.("up")}
       />
       <Button
         key="left"
@@ -44,7 +50,8 @@ function DirectionButton(props: {
           boxShadow:
             "0px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
         }}
-        onClick={() => props.onClick?.("left")}
+        onDown={() => props.onDown?.("left")}
+        onUp={() => props.onUP?.("left")}
       />
       <div
         key="center"
@@ -68,7 +75,8 @@ function DirectionButton(props: {
           boxShadow:
             "4px 0px 4px rgba(0,0,0,.25),0px 4px 4px rgba(0,0,0,.25),4px -4px 4px rgba(255,255,255,.25)",
         }}
-        onClick={() => props.onClick?.("right")}
+        onDown={() => props.onDown?.("right")}
+        onUp={() => props.onUP?.("right")}
       />
       <Button
         key="bottom"
@@ -77,7 +85,8 @@ function DirectionButton(props: {
           boxShadow:
             "0px 4px 4px rgba(0,0,0,.25),-4px 4px 4px rgba(255,255,255,.25)",
         }}
-        onClick={() => props.onClick?.("bottom")}
+        onDown={() => props.onDown?.("down")}
+        onUp={() => props.onUP?.("down")}
       />
     </div>
   );

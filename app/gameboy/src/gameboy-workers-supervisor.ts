@@ -1,5 +1,7 @@
 // This is a module responds to coordinate the audio worklet and the main GameBoy emulator worker.
 
+import { JoypadKey } from "gb-wasm";
+
 import type { WorkerMessage } from "./gameboy-worker";
 
 function invoke(this: Worker, message: WorkerMessage) {
@@ -11,6 +13,8 @@ class GameBoySupervisor {
   private worker_?: Worker;
   private workletNode_?: AudioWorkletNode;
   private invoke: (message: WorkerMessage) => void = () => {};
+
+  private keyState_ = 0;
 
   private constructor(audioContext: AudioContext) {
     this.audioContext_ = audioContext;
@@ -87,10 +91,20 @@ class GameBoySupervisor {
   }
 
   changeKeyState(state: number) {
+    this.keyState_ = state;
     this.invoke({ type: "change_key_state", payload: state & 0xff });
   }
 
+  pressKey(key: JoypadKey) {
+    this.changeKeyState(this.keyState_ | key);
+  }
+
+  releaseKey(key: JoypadKey) {
+    this.changeKeyState(this.keyState_ & ~key);
+  }
+
   async terminate() {
+    this.keyState_ = 0;
     this.worker_?.terminate();
     this.workletNode_?.disconnect();
     await this.audioContext_.close();

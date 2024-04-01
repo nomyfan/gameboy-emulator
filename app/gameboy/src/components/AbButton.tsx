@@ -1,14 +1,14 @@
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import { ReactNode } from "react";
 
 import { cn } from "../lib/utils";
 
 function Button(props: {
   className?: string;
-  onClick?: ButtonHTMLAttributes<unknown>["onClick"];
+  onDown?: () => void;
+  onUp?: () => void;
 }) {
   return (
     <button
-      onClick={props.onClick}
       className={cn(
         "bg-[#9B0757] h-[45px] w-[45px] rounded-full",
         props.className,
@@ -16,6 +16,10 @@ function Button(props: {
       style={{
         boxShadow: "3px 3px 4px rgba(0,0,0,.25)",
       }}
+      onMouseDown={() => props.onDown?.()}
+      onTouchStart={() => props.onDown?.()}
+      onMouseUp={() => props.onUp?.()}
+      onTouchEnd={() => props.onUp?.()}
     ></button>
   );
 }
@@ -34,7 +38,10 @@ function ButtonLabel(props: { className?: string; children?: ReactNode }) {
   );
 }
 
-function AbButton(props: { onClick?: (button: "A" | "B") => void }) {
+function AbButton(props: {
+  onDown?: (button: "A" | "B") => void;
+  onUp?: (button: "A" | "B") => void;
+}) {
   return (
     <div
       className="relative"
@@ -53,9 +60,13 @@ function AbButton(props: { onClick?: (button: "A" | "B") => void }) {
       >
         <Button
           className={cn("mr-[15px] ")}
-          onClick={() => props.onClick?.("B")}
+          onDown={() => props.onDown?.("B")}
+          onUp={() => props.onUp?.("B")}
         />
-        <Button onClick={() => props.onClick?.("A")} />
+        <Button
+          onDown={() => props.onDown?.("A")}
+          onUp={() => props.onUp?.("A")}
+        />
       </div>
 
       <div

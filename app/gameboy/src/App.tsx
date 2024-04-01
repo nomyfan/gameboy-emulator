@@ -1,3 +1,4 @@
+import { JoypadKey } from "gb-wasm";
 import { useRef, useState } from "react";
 
 import { AbButton } from "./components/AbButton";
@@ -22,18 +23,51 @@ function App() {
       <Screen ref={ref} className="mb-[20px]" />
       <div className={cn("flex justify-between items-center px-5")}>
         <DirectionButton
-          onClick={(button) => {
-            console.log("direction button", button);
+          onDown={(button) => {
+            const key =
+              button === "up"
+                ? JoypadKey.Up
+                : button === "down"
+                  ? JoypadKey.Down
+                  : button === "left"
+                    ? JoypadKey.Left
+                    : JoypadKey.Right;
+            supervisor?.pressKey(key);
+          }}
+          onUP={(button) => {
+            const key =
+              button === "up"
+                ? JoypadKey.Up
+                : button === "down"
+                  ? JoypadKey.Down
+                  : button === "left"
+                    ? JoypadKey.Left
+                    : JoypadKey.Right;
+            supervisor?.releaseKey(key);
           }}
         />
         <AbButton
-          onClick={(button) => {
-            console.log("AB button", button);
+          onDown={(button) => {
+            const key = button === "A" ? JoypadKey.A : JoypadKey.B;
+            supervisor?.pressKey(key);
+          }}
+          onUp={(button) => {
+            const key = button === "A" ? JoypadKey.A : JoypadKey.B;
+            supervisor?.releaseKey(key);
           }}
         />
       </div>
       <div className="py-[30px]">
-        <FnButton />
+        <FnButton
+          onUp={(button) => {
+            const key = button === "start" ? JoypadKey.Start : JoypadKey.Select;
+            supervisor?.releaseKey(key);
+          }}
+          onDown={(button) => {
+            const key = button === "start" ? JoypadKey.Start : JoypadKey.Select;
+            supervisor?.pressKey(key);
+          }}
+        />
       </div>
       <button
         onClick={() => {

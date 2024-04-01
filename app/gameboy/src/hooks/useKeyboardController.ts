@@ -43,7 +43,6 @@ export function useKeyboardController(props: {
       ),
     );
 
-    let state = 0;
     const keysSub = keys$
       .pipe(
         distinctUntilChanged(
@@ -52,11 +51,10 @@ export function useKeyboardController(props: {
       )
       .subscribe(({ key, pressed }) => {
         if (pressed) {
-          state |= keyMapping[key];
+          supervisor.pressKey(keyMapping[key]);
         } else {
-          state &= ~keyMapping[key];
+          supervisor.releaseKey(keyMapping[key]);
         }
-        supervisor.changeKeyState(state);
       });
 
     return () => {
