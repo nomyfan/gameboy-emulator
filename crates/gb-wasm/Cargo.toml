@@ -21,15 +21,14 @@ gb_shared = { workspace = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 web-sys = { version = "0.3.69", features = [
   "console",
-  "OffscreenCanvas",
-  "OffscreenCanvasRenderingContext2d",
+  "HtmlCanvasElement",
+  "CanvasRenderingContext2d",
   "Performance",
-  "WritableStream",
-  "WritableStreamDefaultWriter",
   "ImageData",
 ] }
 anyhow = "1.0.81"
 wasm-bindgen-futures = "0.4.42"
+cpal = { version = "0.15.3", features = ["wasm-bindgen"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"

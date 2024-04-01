@@ -1,13 +1,16 @@
+mod audio;
 mod utils;
 
+use std::sync::{Arc, Mutex};
+
+use cpal::traits::StreamTrait;
+use cpal::Stream;
 use gb::wasm::{Cartridge, GameBoy, Manifest};
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use js_sys::Uint8ClampedArray;
 use wasm_bindgen::{prelude::*, Clamped};
-use web_sys::{
-    js_sys, ImageData, OffscreenCanvas, OffscreenCanvasRenderingContext2d, WritableStream,
-};
+use web_sys::{js_sys, CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 
 const COLORS: [[u8; 4]; 4] = [
     [0xFF, 0xFF, 0xFF, 0xFF],
@@ -19,6 +22,9 @@ const COLORS: [[u8; 4]; 4] = [
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
+    playing: bool,
+    samples_buf: Option<Arc<Mutex<Vec<(f32, f32)>>>>,
+    audio_stream: Option<Stream>,
 }
 
 struct ScaleImageData(Vec<u8>, u8);
@@ -62,13 +68,15 @@ impl GameBoyHandle {
     #[wasm_bindgen]
     pub fn create(
         rom: Uint8ClampedArray,
-        canvas: OffscreenCanvas,
+        canvas: HtmlCanvasElement,
         scale: Option<u8>,
-        sample_rate: Option<u32>,
-        audio_stream: Option<WritableStream>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
+
+        let (stream, samples_buf, sample_rate) = audio::init_audio()
+            .map(|(stream, buf, sample_rate)| (Some(stream), Some(buf), Some(sample_rate)))
+            .unwrap_or_default();
 
         let mut gb = GameBoy::new(Manifest { cart, sample_rate });
 
@@ -77,7 +85,7 @@ impl GameBoyHandle {
             .get_context("2d")
             .unwrap()
             .unwrap()
-            .dyn_into::<OffscreenCanvasRenderingContext2d>()
+            .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
         canvas_context.set_transform(scale as f64, 0.0, 0.0, scale as f64, 0.0, 0.0).unwrap();
 
@@ -103,40 +111,46 @@ impl GameBoyHandle {
                 },
             );
 
-        match audio_stream {
-            Some(stream) => {
-                let stream_writer = stream.get_writer().unwrap();
-                let sample_rate = sample_rate.unwrap();
-                let sample_count = sample_rate.div_ceil(64); // TODO: align to APU
-                let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
+        if let Some(stream) = &stream {
+            stream.play().unwrap();
+        }
 
-                gb.set_handles(
-                    Some(frame_handle),
-                    Some(Box::new(move |data| {
-                        let len = data.len().min(sample_count as usize);
-                        for (i, (left, right)) in data.iter().take(len).enumerate() {
-                            audio_buffer.set_index(i as u32 * 2, *left);
-                            audio_buffer.set_index(i as u32 * 2 + 1, *right);
-                        }
-
-                        let slice = audio_buffer.slice(0, (len * 2) as u32);
-
-                        // TODO: should wait?
-                        let _ = stream_writer.write_with_chunk(&slice.into());
-                    })),
-                )
-            }
+        match samples_buf.clone() {
+            Some(samples_buf) => gb.set_handles(
+                Some(frame_handle),
+                Some(Box::new(move |sample_data| {
+                    samples_buf.lock().unwrap().extend_from_slice(sample_data);
+                })),
+            ),
             None => {
                 gb.set_handles(Some(frame_handle), None);
             }
         }
 
-        GameBoyHandle { gb }
+        GameBoyHandle { gb, audio_stream: stream, playing: true, samples_buf }
     }
 
     #[wasm_bindgen(js_name = continue)]
     pub fn r#continue(&mut self) {
+        if !self.playing {
+            self.playing = true;
+            if let Some(buf) = &self.samples_buf {
+                buf.lock().unwrap().clear();
+            }
+            if let Some(stream) = &self.audio_stream {
+                stream.play().unwrap();
+            }
+        }
         self.gb.continue_clocks(70224); // 70224 clocks per frame
+    }
+
+    #[wasm_bindgen(js_name = pause)]
+    pub fn pause(&mut self) {
+        self.playing = false;
+        // FIXME: There is an issue when pause then play.
+        if let Some(stream) = &self.audio_stream {
+            stream.pause().unwrap();
+        }
     }
 
     #[wasm_bindgen(js_name = changeKeyState)]

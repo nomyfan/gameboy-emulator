@@ -49,19 +49,8 @@ class GameBoyControl {
     }
   }
 
-  install(
-    rom: Uint8ClampedArray,
-    canvas: OffscreenCanvas,
-    scale?: number,
-    audio?: { sampleRate: number; stream: WritableStream },
-  ) {
-    this.instance_ = GameBoyHandle.create(
-      rom,
-      canvas,
-      scale,
-      audio?.sampleRate,
-      audio?.stream,
-    );
+  install(rom: Uint8ClampedArray, canvas: HTMLCanvasElement, scale?: number) {
+    this.instance_ = GameBoyHandle.create(rom, canvas, scale);
     this.store_.setState({ status: "installed" });
   }
 

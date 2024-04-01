@@ -1,22 +1,22 @@
 import { JoypadKey } from "gb-wasm";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 
 import { AbButton } from "./components/AbButton";
 import { DirectionButton } from "./components/DirectionButton";
 import { FnButton } from "./components/FnButton";
-import type { IScreenRef } from "./components/Screen";
-import { Screen } from "./components/Screen";
-import { GameBoySupervisor } from "./gameboy-workers-supervisor";
+import { Screen, SCALE } from "./components/Screen";
+import { GameBoyControl } from "./gameboy";
 import { useGamepadController } from "./hooks/useGamepadController";
 import { useKeyboardController } from "./hooks/useKeyboardController";
 import { cn } from "./lib/utils";
 
-function App() {
-  const screenRef = useRef<IScreenRef>(null);
-  const [supervisor, setSupervisor] = useState<GameBoySupervisor>();
+const gameboy = new GameBoyControl();
 
-  useKeyboardController({ supervisor: supervisor });
-  useGamepadController({ supervisor: supervisor });
+function App() {
+  const screenRef = useRef<HTMLCanvasElement>(null);
+
+  useKeyboardController({ gameboy });
+  useGamepadController({ gameboy });
 
   const handleButtonChange = useCallback(
     (
@@ -54,13 +54,9 @@ function App() {
           throw new Error("Wrong button value " + wrongButton);
         }
       }
-      if (pressed) {
-        supervisor?.pressKey(key);
-      } else {
-        supervisor?.releaseKey(key);
-      }
+      gameboy.changeKey(key, pressed);
     },
-    [supervisor],
+    [],
   );
 
   return (
@@ -94,20 +90,6 @@ function App() {
           }}
         />
       </div>
-      <button
-        onClick={() => {
-          supervisor?.play();
-        }}
-      >
-        Play
-      </button>
-      <button
-        onClick={() => {
-          supervisor?.pause();
-        }}
-      >
-        Pause
-      </button>
       <input
         type="file"
         accept=".gb"
@@ -117,18 +99,11 @@ function App() {
             return;
           }
 
-          const canvas = screenRef.current.newCanvasHandle();
-          const scale = screenRef.current.scale;
-          const offscreen = canvas.transferControlToOffscreen();
-
-          if (supervisor) {
-            await supervisor.terminate();
-            await supervisor.install(file, offscreen, scale);
-          } else {
-            const createdSupervisor = await GameBoySupervisor.create();
-            await createdSupervisor.install(file, offscreen, scale);
-            setSupervisor(createdSupervisor);
-          }
+          const buffer = new Uint8ClampedArray(await file.arrayBuffer());
+          const canvas = screenRef.current;
+          gameboy.uninstall();
+          gameboy.install(buffer, canvas, SCALE);
+          gameboy.play();
         }}
       />
     </div>
