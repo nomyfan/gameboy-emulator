@@ -361,7 +361,7 @@ impl Ppu {
 
         let viewport_x = self.work_state.scanline_x as usize;
         let viewport_y = self.lcd.ly as usize;
-        self.video_buffer[viewport_y * RESOLUTION_X as usize + viewport_x] = color_palette;
+        self.video_buffer[viewport_y * RESOLUTION_X + viewport_x] = color_palette;
         self.work_state.scanline_x += 1;
 
         // Pixels in current scanline are all rendered.
