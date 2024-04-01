@@ -4,17 +4,14 @@ import { useCallback, useRef, useState } from "react";
 import { AbButton } from "./components/AbButton";
 import { DirectionButton } from "./components/DirectionButton";
 import { FnButton } from "./components/FnButton";
-import { Screen } from "./components/Screen";
+import { Screen, IScreenRef } from "./components/Screen";
 import { GameBoySupervisor } from "./gameboy-workers-supervisor";
 import { useGamepadController } from "./hooks/useGamepadController";
 import { useKeyboardController } from "./hooks/useKeyboardController";
 import { cn } from "./lib/utils";
 
 function App() {
-  const ref = useRef<{
-    newCanvasHandle: () => HTMLCanvasElement;
-  }>(null);
-  const [scale] = useState(2);
+  const screenRef = useRef<IScreenRef>(null);
   const [supervisor, setSupervisor] = useState<GameBoySupervisor>();
 
   useKeyboardController({ supervisor: supervisor });
@@ -67,13 +64,13 @@ function App() {
 
   return (
     <div className={cn("min-h-screen bg-[#C8C4BE]")}>
-      <Screen ref={ref} className="mb-[20px]" />
+      <Screen ref={screenRef} className="mb-[20px]" />
       <div className={cn("flex justify-between items-center px-5")}>
         <DirectionButton
           onDown={(button) => {
             handleButtonChange(button, true);
           }}
-          onUP={(button) => {
+          onUp={(button) => {
             handleButtonChange(button, false);
           }}
         />
@@ -115,11 +112,12 @@ function App() {
         accept=".gb"
         onChange={async (evt) => {
           const file = evt.target.files?.[0];
-          if (!file || !ref.current) {
+          if (!file || !screenRef.current) {
             return;
           }
 
-          const canvas = ref.current.newCanvasHandle();
+          const canvas = screenRef.current.newCanvasHandle();
+          const scale = screenRef.current.scale;
           const offscreen = canvas.transferControlToOffscreen();
 
           if (supervisor) {

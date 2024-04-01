@@ -8,7 +8,7 @@ import {
 
 import { cn } from "../lib/utils";
 
-const SCALE = 2;
+export const SCALE = 2;
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
 
@@ -23,10 +23,13 @@ function newScreenCanvas() {
   return canvas;
 }
 
+export interface IScreenRef {
+  newCanvasHandle: () => HTMLCanvasElement;
+  scale: number;
+}
+
 const Screen = forwardRef<
-  {
-    newCanvasHandle: () => HTMLCanvasElement;
-  },
+  IScreenRef,
   {
     className?: string;
   }
@@ -50,6 +53,7 @@ const Screen = forwardRef<
 
   useImperativeHandle(ref, () => {
     return {
+      scale: SCALE,
       newCanvasHandle: () => {
         if (initialCanvas.current) {
           initialCanvas.current = false;
