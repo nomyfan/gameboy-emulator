@@ -27,7 +27,7 @@ class GameBoyControl {
   private instance_?: GameBoyHandle;
   private playCallbackId_?: number;
 
-  private newKeyState_?: number;
+  private keyState = 0;
 
   constructor() {
     this.store_ = createGameBoyStore();
@@ -79,15 +79,9 @@ class GameBoyControl {
       }
 
       const start = performance.now();
-
-      if (this.newKeyState_ !== undefined) {
-        this.instance_!.changeKeyState(this.newKeyState_);
-        this.newKeyState_ = undefined;
-      }
-
       this.instance_!.continue();
-
       const duration = performance.now() - start;
+
       this.playCallbackId_ = setTimeout(() => {
         playCallback();
       }, 16.6 - duration) as unknown as number;
@@ -107,19 +101,20 @@ class GameBoyControl {
 
   changeKey(key: JoypadKey, pressed: boolean) {
     if (this.state.status === "playing") {
-      let newState = this.newKeyState_ ?? 0;
+      let newState = this.keyState;
       if (pressed) {
         newState |= key;
       } else {
         newState &= ~key;
       }
-      this.newKeyState_ = newState;
+      this.keyState = newState;
+      this.instance_!.changeKeyState(newState);
     }
   }
 
   changeKeyState(state: number) {
     if (this.state.status === "playing") {
-      this.newKeyState_ = state;
+      this.keyState = state;
     }
   }
 }

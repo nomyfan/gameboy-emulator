@@ -1,8 +1,6 @@
 mod audio;
 mod utils;
 
-use std::sync::{Arc, Mutex};
-
 use cpal::traits::StreamTrait;
 use cpal::Stream;
 use gb::wasm::{Cartridge, GameBoy, Manifest};
@@ -22,9 +20,7 @@ const COLORS: [[u8; 4]; 4] = [
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
-    playing: bool,
-    samples_buf: Option<Arc<Mutex<Vec<(f32, f32)>>>>,
-    audio_stream: Option<Stream>,
+    _audio_stream: Option<Stream>,
 }
 
 struct ScaleImageData(Vec<u8>, u8);
@@ -115,7 +111,7 @@ impl GameBoyHandle {
             stream.play().unwrap();
         }
 
-        match samples_buf.clone() {
+        match samples_buf {
             Some(samples_buf) => gb.set_handles(
                 Some(frame_handle),
                 Some(Box::new(move |sample_data| {
@@ -127,30 +123,12 @@ impl GameBoyHandle {
             }
         }
 
-        GameBoyHandle { gb, audio_stream: stream, playing: true, samples_buf }
+        GameBoyHandle { gb, _audio_stream: stream }
     }
 
     #[wasm_bindgen(js_name = continue)]
     pub fn r#continue(&mut self) {
-        if !self.playing {
-            self.playing = true;
-            if let Some(buf) = &self.samples_buf {
-                buf.lock().unwrap().clear();
-            }
-            if let Some(stream) = &self.audio_stream {
-                stream.play().unwrap();
-            }
-        }
         self.gb.continue_clocks(70224); // 70224 clocks per frame
-    }
-
-    #[wasm_bindgen(js_name = pause)]
-    pub fn pause(&mut self) {
-        self.playing = false;
-        // FIXME: There is an issue when pause then play.
-        if let Some(stream) = &self.audio_stream {
-            stream.pause().unwrap();
-        }
     }
 
     #[wasm_bindgen(js_name = changeKeyState)]
