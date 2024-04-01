@@ -10,7 +10,7 @@ function Button(props: {
   return (
     <button
       className={cn(
-        "bg-[#9B0757] h-[45px] w-[45px] rounded-full",
+        "bg-[#9B0757] h-[50px] w-[50px] rounded-full",
         props.className,
       )}
       style={{
@@ -49,17 +49,9 @@ function AbButton(props: {
         transform: "rotate(-25deg)",
       }}
     >
-      <div
-        className={cn(
-          "bg-[#E4E1DD] w-fit flex rounded-[50px] py-[10px] px-[15px]",
-        )}
-        style={{
-          boxShadow:
-            "inset -4px -4px 4px rgba(255,255,255,.25),inset 4px 4px 4px rgba(0,0,0,.25)",
-        }}
-      >
+      <div className={cn("w-fit flex rounded-[50px] py-[10px] px-[15px]")}>
         <Button
-          className={cn("mr-[15px] ")}
+          className={cn("mr-[20px] ")}
           onDown={() => props.onDown?.("B")}
           onUp={() => props.onUp?.("B")}
         />
@@ -71,10 +63,10 @@ function AbButton(props: {
 
       <div
         className={cn(
-          "flex justify-between px-[15px] text-center font-semibold absolute",
+          "flex justify-between px-[15px] text-center font-semibold w-full absolute ml-[5px]",
         )}
       >
-        <ButtonLabel className="mr-[15px]">B</ButtonLabel>
+        <ButtonLabel>B</ButtonLabel>
         <ButtonLabel>A</ButtonLabel>
       </div>
     </div>

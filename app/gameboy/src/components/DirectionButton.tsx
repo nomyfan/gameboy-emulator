@@ -26,12 +26,10 @@ function DirectionButton(props: {
 }) {
   return (
     <div
-      className={cn("grid bg-[#E4E1DD] rounded-full p-[15px]")}
+      className={cn("grid p-[15px]")}
       style={{
-        gridTemplateColumns: "35px 40px 35px",
-        gridTemplateRows: "35px 40px 35px",
-        boxShadow:
-          "inset -4px -4px 4px rgba(255,255,255,.25), inset 4px 4px 4px rgba(0,0,0,.25)",
+        gridTemplateColumns: "40px 40px 40px",
+        gridTemplateRows: "40px 40px 40px",
       }}
     >
       <Button
