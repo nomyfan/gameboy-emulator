@@ -15,13 +15,13 @@ const Screen = forwardRef<
   return (
     <div
       className={cn(
-        "flex justify-center items-center h-[360px] bg-[#3E3C48]",
+        "flex justify-center items-center py-5 bg-[#3E3C48]",
         props.className,
       )}
       style={{
         boxShadow:
           "4px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
-        borderRadius: "0 0 10% 5px",
+        borderRadius: "0 0 10px 10px",
       }}
     >
       <canvas
