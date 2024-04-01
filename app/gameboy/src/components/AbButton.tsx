@@ -33,7 +33,12 @@ function ButtonLabel(props: { className?: string; children?: ReactNode }) {
 
 function AbButton() {
   return (
-    <div>
+    <div
+      className="relative"
+      style={{
+        transform: "rotate(-25deg)",
+      }}
+    >
       <div
         className={cn(
           "bg-[#E4E1DD] w-fit flex rounded-[50px] py-[10px] px-[15px]",
@@ -49,7 +54,7 @@ function AbButton() {
 
       <div
         className={cn(
-          "flex justify-between px-[15px] text-center font-semibold",
+          "flex justify-between px-[15px] text-center font-semibold absolute",
         )}
       >
         <ButtonLabel className="mr-[15px]">B</ButtonLabel>

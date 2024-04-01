@@ -19,14 +19,7 @@ function App() {
   return (
     <div className={cn("min-h-screen bg-[#C8C4BE]")}>
       <Screen ref={ref} className="mb-[20px]" />
-      <div
-        className={cn("flex justify-between")}
-        style={
-          {
-            // transform: "rotate(-25deg)",
-          }
-        }
-      >
+      <div className={cn("flex justify-between items-center px-5")}>
         <DirectionButton />
         <AbButton />
       </div>
