@@ -5,11 +5,9 @@ members = [
   "crates/cartridge",
   "crates/shared",
   "crates/ppu",
-  # "bin/gb_dmg",
   "crates/apu",
   "crates/gb-wasm",
 ]
-exclude = ["bin/gb_dmg"]
 resolver = "2"
 
 [workspace.dependencies]
