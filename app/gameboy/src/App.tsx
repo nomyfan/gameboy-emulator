@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import { AbButton } from "./components/AbButton";
 import { DirectionButton } from "./components/DirectionButton";
+import { FnButton } from "./components/FnButton";
 import { Screen } from "./components/Screen";
 import { GameBoySupervisor } from "./gameboy-workers-supervisor";
 import { useGamepadController } from "./hooks/useGamepadController";
@@ -30,6 +31,9 @@ function App() {
             console.log("AB button", button);
           }}
         />
+      </div>
+      <div className="py-[30px]">
+        <FnButton />
       </div>
       <button
         onClick={() => {
