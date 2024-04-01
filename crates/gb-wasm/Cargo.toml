@@ -11,7 +11,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 wasm-bindgen = { workspace = true }
-gb = { workspace = true, features = ["wasm"] }
+gb = { workspace = true }
 gb_shared = { workspace = true }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

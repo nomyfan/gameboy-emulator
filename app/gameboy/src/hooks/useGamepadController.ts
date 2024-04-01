@@ -20,7 +20,7 @@ const xboxStandardMapping = [
 ];
 
 /**
- * Only Xbox controller is adapted now.
+ * Only Xbox controller is supported now.
  * @param props
  */
 function useGamepadController(props: {
@@ -33,7 +33,8 @@ function useGamepadController(props: {
       return;
     }
 
-    let lastState = 0;
+    // Used to comparing with the latest state for reducing API calling.
+    let prevState = 0;
     const sub = animationFrameScheduler.schedule(function () {
       const gamepad = navigator
         .getGamepads()
@@ -55,9 +56,9 @@ function useGamepadController(props: {
         return state;
       }, 0);
 
-      if (lastState !== newState) {
+      if (prevState !== newState) {
         supervisor.changeKeyState(newState);
-        lastState = newState;
+        prevState = newState;
       }
 
       this.schedule();

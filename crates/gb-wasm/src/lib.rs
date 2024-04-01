@@ -121,7 +121,7 @@ impl GameBoyHandle {
 
                         let slice = audio_buffer.slice(0, (len * 2) as u32);
 
-                        // TODO: should we wait?
+                        // TODO: should wait?
                         let _ = stream_writer.write_with_chunk(&slice.into());
                     })),
                 )

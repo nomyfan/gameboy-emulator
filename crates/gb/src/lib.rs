@@ -2,11 +2,11 @@ mod bus;
 mod dma;
 mod hram;
 mod joypad;
-#[cfg(feature = "native")]
+#[cfg(not(target_family = "wasm"))]
 pub mod native;
 mod serial;
 mod timer;
-#[cfg(feature = "wasm")]
+#[cfg(target_family = "wasm")]
 pub mod wasm;
 mod wram;
 

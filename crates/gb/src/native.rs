@@ -1,4 +1,4 @@
-#![cfg(feature = "native")]
+#![cfg(not(target_family = "wasm"))]
 
 pub use gb_apu::AudioOutHandle;
 pub use gb_cartridge::Cartridge;

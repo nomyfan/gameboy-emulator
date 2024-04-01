@@ -1,6 +1,6 @@
 // This is a module responds to coordinate the audio worklet and the main GameBoy emulator worker.
 
-import { JoypadKey } from "gb-wasm";
+import type { JoypadKey } from "gb-wasm";
 
 import type { WorkerMessage } from "./gameboy-worker";
 

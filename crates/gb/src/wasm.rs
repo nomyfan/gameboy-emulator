@@ -1,4 +1,4 @@
-#![cfg(feature = "wasm")]
+#![cfg(target_family = "wasm")]
 
 pub use super::{GameBoy, Manifest};
 pub use gb_cartridge::Cartridge;
