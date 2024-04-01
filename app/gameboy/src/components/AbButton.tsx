@@ -46,7 +46,7 @@ function AbButton(props: {
     <div
       className="relative"
       style={{
-        transform: "rotate(-25deg)",
+        transform: "rotate(-25deg) translateY(-12px)",
       }}
     >
       <div className={cn("w-fit flex rounded-[50px] py-[10px] px-[15px]")}>
