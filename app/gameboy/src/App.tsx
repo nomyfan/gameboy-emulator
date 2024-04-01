@@ -11,7 +11,9 @@ import { useKeyboardController } from "./hooks/useKeyboardController";
 import { cn } from "./lib/utils";
 
 function App() {
-  const ref = useRef<HTMLCanvasElement>(null);
+  const ref = useRef<{
+    newCanvasHandle: () => HTMLCanvasElement;
+  }>(null);
   const [scale] = useState(2);
   const [supervisor, setSupervisor] = useState<GameBoySupervisor>();
 
@@ -113,13 +115,15 @@ function App() {
         accept=".gb"
         onChange={async (evt) => {
           const file = evt.target.files?.[0];
-          if (!file) return;
+          if (!file || !ref.current) {
+            return;
+          }
 
-          const canvas = ref.current!;
-          // FIXME: can only transfer once
+          const canvas = ref.current.newCanvasHandle();
           const offscreen = canvas.transferControlToOffscreen();
 
           if (supervisor) {
+            await supervisor.terminate();
             await supervisor.install(file, offscreen, scale);
           } else {
             const createdSupervisor = await GameBoySupervisor.create();

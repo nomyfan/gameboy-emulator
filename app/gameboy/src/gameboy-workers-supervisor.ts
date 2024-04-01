@@ -107,7 +107,7 @@ class GameBoySupervisor {
     this.keyState_ = 0;
     this.worker_?.terminate();
     this.workletNode_?.disconnect();
-    await this.audioContext_.close();
+    // await this.audioContext_.close();
   }
 }
 
