@@ -28,8 +28,8 @@ function DirectionButton(props: {
     <div
       className={cn("grid p-[15px]")}
       style={{
-        gridTemplateColumns: "40px 40px 40px",
-        gridTemplateRows: "40px 40px 40px",
+        gridTemplateColumns: "42px 42px 42px",
+        gridTemplateRows: "42px 40px 42px",
       }}
     >
       <Button
