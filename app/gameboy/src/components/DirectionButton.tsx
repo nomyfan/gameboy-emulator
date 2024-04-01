@@ -1,17 +1,24 @@
-import { CSSProperties } from "react";
+import { ButtonHTMLAttributes, CSSProperties } from "react";
 
 import { cn } from "../lib/utils";
 
-function Button(props: { className?: string; style?: CSSProperties }) {
+function Button(props: {
+  className?: string;
+  style?: CSSProperties;
+  onClick?: ButtonHTMLAttributes<unknown>["onClick"];
+}) {
   return (
     <button
       className={cn("bg-black h-full w-full rounded-[4px]", props.className)}
       style={props.style}
+      onClick={props.onClick}
     />
   );
 }
 
-function DirectionButton() {
+function DirectionButton(props: {
+  onClick?: (button: "top" | "right" | "bottom" | "left") => void;
+}) {
   return (
     <div
       className={cn("grid bg-[#E4E1DD] rounded-full p-[15px]")}
@@ -28,6 +35,7 @@ function DirectionButton() {
         style={{
           boxShadow: "-4px -4px 4px rgba(255,255,255,.25)",
         }}
+        onClick={() => props.onClick?.("top")}
       />
       <Button
         key="left"
@@ -36,6 +44,7 @@ function DirectionButton() {
           boxShadow:
             "0px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
         }}
+        onClick={() => props.onClick?.("left")}
       />
       <div
         key="center"
@@ -59,6 +68,7 @@ function DirectionButton() {
           boxShadow:
             "4px 0px 4px rgba(0,0,0,.25),0px 4px 4px rgba(0,0,0,.25),4px -4px 4px rgba(255,255,255,.25)",
         }}
+        onClick={() => props.onClick?.("right")}
       />
       <Button
         key="bottom"
@@ -67,6 +77,7 @@ function DirectionButton() {
           boxShadow:
             "0px 4px 4px rgba(0,0,0,.25),-4px 4px 4px rgba(255,255,255,.25)",
         }}
+        onClick={() => props.onClick?.("bottom")}
       />
     </div>
   );

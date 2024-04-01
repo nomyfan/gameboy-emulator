@@ -20,8 +20,16 @@ function App() {
     <div className={cn("min-h-screen bg-[#C8C4BE]")}>
       <Screen ref={ref} className="mb-[20px]" />
       <div className={cn("flex justify-between items-center px-5")}>
-        <DirectionButton />
-        <AbButton />
+        <DirectionButton
+          onClick={(button) => {
+            console.log("direction button", button);
+          }}
+        />
+        <AbButton
+          onClick={(button) => {
+            console.log("AB button", button);
+          }}
+        />
       </div>
       <button
         onClick={() => {

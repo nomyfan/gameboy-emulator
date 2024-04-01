@@ -1,11 +1,14 @@
-import { ReactNode } from "react";
+import { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "../lib/utils";
 
-function Button(props: { className?: string; onClick?: () => void }) {
+function Button(props: {
+  className?: string;
+  onClick?: ButtonHTMLAttributes<unknown>["onClick"];
+}) {
   return (
     <button
-      onClick={() => props.onClick?.()}
+      onClick={props.onClick}
       className={cn(
         "bg-[#9B0757] h-[45px] w-[45px] rounded-full",
         props.className,
@@ -31,7 +34,7 @@ function ButtonLabel(props: { className?: string; children?: ReactNode }) {
   );
 }
 
-function AbButton() {
+function AbButton(props: { onClick?: (button: "A" | "B") => void }) {
   return (
     <div
       className="relative"
@@ -48,8 +51,11 @@ function AbButton() {
             "inset -4px -4px 4px rgba(255,255,255,.25),inset 4px 4px 4px rgba(0,0,0,.25)",
         }}
       >
-        <Button className={cn("mr-[15px] ")} />
-        <Button />
+        <Button
+          className={cn("mr-[15px] ")}
+          onClick={() => props.onClick?.("B")}
+        />
+        <Button onClick={() => props.onClick?.("A")} />
       </div>
 
       <div
