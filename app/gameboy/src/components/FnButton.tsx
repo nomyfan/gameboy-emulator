@@ -38,21 +38,21 @@ function Button(props: {
 }
 
 function FnButton(props: {
-  onDown?: (button: "start" | "select") => void;
-  onUp?: (button: "start" | "select") => void;
+  onDown?: (button: "START" | "SELECT") => void;
+  onUp?: (button: "START" | "SELECT") => void;
 }) {
   return (
     <div className={cn("flex justify-center")}>
       <Button
         label="SELECT"
         className="mr-[20px]"
-        onDown={() => props.onDown?.("select")}
-        onUp={() => props.onUp?.("select")}
+        onDown={() => props.onDown?.("SELECT")}
+        onUp={() => props.onUp?.("SELECT")}
       />
       <Button
         label="START"
-        onDown={() => props.onDown?.("start")}
-        onUp={() => props.onUp?.("start")}
+        onDown={() => props.onDown?.("START")}
+        onUp={() => props.onUp?.("START")}
       />
     </div>
   );

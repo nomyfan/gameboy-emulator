@@ -1,5 +1,5 @@
 import { JoypadKey } from "gb-wasm";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { AbButton } from "./components/AbButton";
 import { DirectionButton } from "./components/DirectionButton";
@@ -18,54 +18,79 @@ function App() {
   useKeyboardController({ supervisor: supervisor });
   useGamepadController({ supervisor: supervisor });
 
+  const handleButtonChange = useCallback(
+    (
+      button: "UP" | "RIGHT" | "DOWN" | "LEFT" | "A" | "B" | "START" | "SELECT",
+      pressed: boolean,
+    ) => {
+      let key: JoypadKey;
+      switch (button) {
+        case "B":
+          key = JoypadKey.B;
+          break;
+        case "A":
+          key = JoypadKey.A;
+          break;
+        case "LEFT":
+          key = JoypadKey.Left;
+          break;
+        case "RIGHT":
+          key = JoypadKey.Right;
+          break;
+        case "UP":
+          key = JoypadKey.Up;
+          break;
+        case "DOWN":
+          key = JoypadKey.Down;
+          break;
+        case "SELECT":
+          key = JoypadKey.Select;
+          break;
+        case "START":
+          key = JoypadKey.Start;
+          break;
+        default: {
+          const wrongButton: never = button;
+          throw new Error("Wrong button value " + wrongButton);
+        }
+      }
+      if (pressed) {
+        supervisor?.pressKey(key);
+      } else {
+        supervisor?.releaseKey(key);
+      }
+    },
+    [supervisor],
+  );
+
   return (
     <div className={cn("min-h-screen bg-[#C8C4BE]")}>
       <Screen ref={ref} className="mb-[20px]" />
       <div className={cn("flex justify-between items-center px-5")}>
         <DirectionButton
           onDown={(button) => {
-            const key =
-              button === "up"
-                ? JoypadKey.Up
-                : button === "down"
-                  ? JoypadKey.Down
-                  : button === "left"
-                    ? JoypadKey.Left
-                    : JoypadKey.Right;
-            supervisor?.pressKey(key);
+            handleButtonChange(button, true);
           }}
           onUP={(button) => {
-            const key =
-              button === "up"
-                ? JoypadKey.Up
-                : button === "down"
-                  ? JoypadKey.Down
-                  : button === "left"
-                    ? JoypadKey.Left
-                    : JoypadKey.Right;
-            supervisor?.releaseKey(key);
+            handleButtonChange(button, false);
           }}
         />
         <AbButton
           onDown={(button) => {
-            const key = button === "A" ? JoypadKey.A : JoypadKey.B;
-            supervisor?.pressKey(key);
+            handleButtonChange(button, true);
           }}
           onUp={(button) => {
-            const key = button === "A" ? JoypadKey.A : JoypadKey.B;
-            supervisor?.releaseKey(key);
+            handleButtonChange(button, false);
           }}
         />
       </div>
       <div className="py-[30px]">
         <FnButton
           onUp={(button) => {
-            const key = button === "start" ? JoypadKey.Start : JoypadKey.Select;
-            supervisor?.releaseKey(key);
+            handleButtonChange(button, true);
           }}
           onDown={(button) => {
-            const key = button === "start" ? JoypadKey.Start : JoypadKey.Select;
-            supervisor?.pressKey(key);
+            handleButtonChange(button, false);
           }}
         />
       </div>
@@ -95,10 +120,10 @@ function App() {
           const offscreen = canvas.transferControlToOffscreen();
 
           if (supervisor) {
-            supervisor.install(file, offscreen, scale);
+            await supervisor.install(file, offscreen, scale);
           } else {
             const createdSupervisor = await GameBoySupervisor.create();
-            createdSupervisor.install(file, offscreen, scale);
+            await createdSupervisor.install(file, offscreen, scale);
             setSupervisor(createdSupervisor);
           }
         }}
