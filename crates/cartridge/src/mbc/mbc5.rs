@@ -1,8 +1,3 @@
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
-
 use gb_shared::{boxed_array, kib};
 
 use super::{real_ram_size, Mbc, RamBank};
@@ -109,8 +104,10 @@ impl Mbc for Mbc5 {
     }
 
     fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
+        #[cfg(not(target_family = "wasm"))]
         if self.with_battery {
-            let mut file = File::create(path)?;
+            use std::io::Write;
+            let mut file = std::fs::File::create(path)?;
             for bank in &self.ram_banks {
                 file.write_all(bank.as_ref())?;
             }
@@ -121,8 +118,10 @@ impl Mbc for Mbc5 {
     }
 
     fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
+        #[cfg(not(target_family = "wasm"))]
         if self.with_battery {
-            let mut file = File::open(path)?;
+            use std::io::Read;
+            let mut file = std::fs::File::open(path)?;
             if file.metadata()?.len() as usize != self.ram_banks.len() * kib(8) {
                 // Ignore invalid file.
                 return Ok(());

@@ -4,6 +4,5 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.67.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[target.'cfg(target_family = "wasm")'.dependencies]
+wasm-bindgen = { workspace = true }

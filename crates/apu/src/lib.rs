@@ -5,7 +5,9 @@ mod utils;
 
 use channel::{Channel1, Channel2, Channel3, Channel4, FrameSequencer};
 use clock::Clock;
-use gb_shared::{is_bit_set, AudioOutHandle, Memory, CPU_FREQ};
+use gb_shared::{is_bit_set, Memory, CPU_FREQ};
+
+pub type AudioOutHandle = dyn FnMut(&[(f32, f32)]);
 
 pub struct Apu {
     ch1: Channel1,
@@ -13,7 +15,7 @@ pub struct Apu {
     ch3: Channel3,
     ch4: Channel4,
     mixer_clock: Clock,
-    /// Master volumn & VIN panning.
+    /// Master volume & VIN panning.
     /// Bit 7: VIN left.
     /// Bit 6..=4: Volume left.
     /// Bit 3: VIN right.

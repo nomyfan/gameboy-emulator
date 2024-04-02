@@ -36,8 +36,8 @@ pub(crate) struct BusInner {
     serial: Serial,
     joypad: Joypad,
     timer: Timer,
-    ppu: Ppu,
-    apu: Option<Apu>,
+    pub(crate) ppu: Ppu,
+    pub(crate) apu: Option<Apu>,
     ref_count: usize,
 }
 
@@ -231,27 +231,12 @@ impl Bus {
         self.timer.step();
     }
 
-    pub(crate) fn set_frame_out_handle(
-        &mut self,
-        frame_out_handle: Option<Box<gb_shared::FrameOutHandle>>,
-    ) {
-        self.ppu.set_frame_out_handle(frame_out_handle);
-    }
-
-    pub(crate) fn set_audio_out_handle(
-        &mut self,
-        audio_out_handle: Option<Box<gb_shared::AudioOutHandle>>,
-    ) {
-        if let Some(apu) = self.apu.as_mut() {
-            apu.set_audio_out_handle(audio_out_handle);
-        }
-    }
-
     pub(crate) fn handle_command(&mut self, command: Command) {
-        let Command::Joypad(joypad_command) = command;
-        self.joypad.handle_command(joypad_command);
-        let irq = self.joypad.take_irq();
-        self.set_irq(irq);
+        if let Command::Joypad(joypad_command) = command {
+            self.joypad.handle_command(joypad_command);
+            let irq = self.joypad.take_irq();
+            self.set_irq(irq);
+        }
     }
 }
 

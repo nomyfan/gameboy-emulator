@@ -1,0 +1,34 @@
+[package]
+name = "gb-wasm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+gb = { workspace = true }
+gb_shared = { workspace = true }
+
+# The `console_error_panic_hook` crate provides better debugging of panics by
+# logging them with `console.error`. This is great for development, but requires
+# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
+# code size when deploying.
+console_error_panic_hook = { version = "0.1.7", optional = true }
+web-sys = { version = "0.3.69", features = [
+  "console",
+  "HtmlCanvasElement",
+  "CanvasRenderingContext2d",
+  "Performance",
+  "ImageData",
+] }
+anyhow = "1.0.81"
+wasm-bindgen-futures = "0.4.42"
+cpal = { version = "0.15.3", features = ["wasm-bindgen"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.34"

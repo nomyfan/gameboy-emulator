@@ -4,6 +4,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     ChannelCount, FromSample, Sample, SizedSample, Stream,
 };
+use web_sys::console;
 
 pub(crate) type AudioSamplesBuffer = Vec<(f32, f32)>;
 
@@ -44,17 +45,7 @@ pub(crate) fn init_audio() -> anyhow::Result<(Stream, Arc<Mutex<AudioSamplesBuff
                     move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
                         write_data(channel_count, data, &mut samples_buf.lock().unwrap());
                     },
-                    move |err| log::error!("{}", err),
-                    None,
-                )
-                .unwrap(),
-            cpal::SampleFormat::F64 => device
-                .build_output_stream(
-                    &config,
-                    move |data: &mut [f64], _: &cpal::OutputCallbackInfo| {
-                        write_data(channel_count, data, &mut samples_buf.lock().unwrap());
-                    },
-                    move |err| log::error!("{}", err),
+                    move |err| console::error_1(&format!("{}", err).into()),
                     None,
                 )
                 .unwrap(),

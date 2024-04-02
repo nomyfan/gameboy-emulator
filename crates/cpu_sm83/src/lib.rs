@@ -11,14 +11,14 @@ impl<BUS> Cpu16 for Cpu<BUS>
 where
     BUS: gb_shared::Memory + gb_shared::Component,
 {
-    fn adv_cycles(&mut self, cycles: u8) {
-        self.cycles = self.cycles.wrapping_add(cycles);
-        self.bus.step(cycles);
+    fn adv_clocks(&mut self, clocks: u8) {
+        self.clocks = self.clocks.wrapping_add(clocks);
+        self.bus.step(clocks);
     }
 
     fn bus_read(&mut self, addr: u16) -> u8 {
         let value = self.bus.read(addr);
-        self.adv_cycles(4);
+        self.adv_clocks(4);
 
         value
     }
@@ -26,7 +26,7 @@ where
     fn bus_write(&mut self, addr: u16, value: u8) {
         self.bus.write(addr, value);
 
-        self.adv_cycles(4)
+        self.adv_clocks(4)
     }
 
     fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
@@ -181,7 +181,7 @@ where
     /// Set by instruction STOP
     pub stopped: bool,
 
-    pub cycles: u8,
+    pub clocks: u8,
 
     bus: BUS,
     /// [Fetch and stuff](https://gist.github.com/SonoSooS/c0055300670d678b5ae8433e20bea595#fetch-and-stuff)
@@ -248,7 +248,7 @@ where
             enabling_ime: false,
             halted: false,
             stopped: false,
-            cycles: 0,
+            clocks: 0,
             ir: 0,
             handle_itr: true,
             bus,
@@ -338,11 +338,11 @@ where
         self.bus_write(addr.wrapping_add(1), (value >> 8) as u8);
     }
 
-    pub fn finish_cycles(&mut self) -> u8 {
-        let cycles = self.cycles;
-        self.cycles = 0;
+    pub fn take_clocks(&mut self) -> u8 {
+        let clocks = self.clocks;
+        self.clocks = 0;
 
-        cycles
+        clocks
     }
 
     fn read_reg(&mut self, loc: u8) -> u8 {
@@ -388,10 +388,10 @@ where
             .find(|it| (interrupt_flag & it.flag) != 0 && (interrupt_enable & it.flag) != 0)
         {
             self.pc -= 1; // M0
-            self.adv_cycles(4);
+            self.adv_clocks(4);
             self.stack_push_pc(); // M1,M2
             self.jp(interrupt_source.handler_address);
-            self.adv_cycles(4); // M3
+            self.adv_clocks(4); // M3
             self.bus.write(0xFF0F, interrupt_flag & (!interrupt_source.flag));
             self.halted = false;
             // Interrupt handler can let CPU continue to handle
@@ -410,7 +410,7 @@ where
             if self.itr_pending() {
                 self.halted = false;
             }
-            self.adv_cycles(4);
+            self.adv_clocks(4);
 
             let handle_itr = self.handle_itr;
             self.handle_itr = true;
@@ -461,7 +461,7 @@ where
                 // INC BC
                 self.set_bc(alu::inc::alu_inc_16(self.bc()));
 
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x04 => {
                 // INC B
@@ -496,7 +496,7 @@ where
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
 
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x0A => {
                 // LD A,(BC)
@@ -506,7 +506,7 @@ where
                 // DEC BC
                 self.set_bc(alu::dec::alu_dec_16(self.bc()));
 
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x0C => {
                 // INC C
@@ -546,7 +546,7 @@ where
             0x13 => {
                 // INC DE
                 self.set_de(alu::inc::alu_inc_16(self.de()));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x14 => {
                 // INC D
@@ -574,14 +574,14 @@ where
                 // JR r8
                 let r8 = self.read_pc() as i8;
                 self.jr(r8);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x19 => {
                 // ADD HL,DE
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.de());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x1A => {
                 // LD A,(DE)
@@ -590,7 +590,7 @@ where
             0x1B => {
                 // DEC DE
                 self.set_de(alu::dec::alu_dec_16(self.de()));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x1C => {
                 // INC E
@@ -619,7 +619,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if !self.flag_z() {
                     self.jr(r8);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0x21 => {
@@ -635,7 +635,7 @@ where
             0x23 => {
                 // INC HL
                 self.set_hl(alu::inc::alu_inc_16(self.hl()));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x24 => {
                 // INC H
@@ -665,7 +665,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if self.flag_z() {
                     self.jr(r8);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0x29 => {
@@ -673,7 +673,7 @@ where
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.hl());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x2A => {
                 // LD A,(HL+)
@@ -683,7 +683,7 @@ where
             0x2B => {
                 // DEC HL
                 self.set_hl(alu::dec::alu_dec_16(self.hl()));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x2C => {
                 // INC L
@@ -711,7 +711,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if !self.flag_c() {
                     self.jr(r8);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0x31 => {
@@ -726,7 +726,7 @@ where
             0x33 => {
                 // INC SP
                 self.sp = alu::inc::alu_inc_16(self.sp);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x34 => {
                 // INC (HL)
@@ -754,7 +754,7 @@ where
                 let r8 = self.read_pc() as i8;
                 if self.flag_c() {
                     self.jr(r8);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0x39 => {
@@ -762,7 +762,7 @@ where
                 let (value, h, c) = alu::add::alu_add_16(self.hl(), self.sp);
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x3A => {
                 // LD A,(HL-)
@@ -772,7 +772,7 @@ where
             0x3B => {
                 // DEC SP
                 self.sp = alu::dec::alu_dec_16(self.sp);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0x3C => {
                 // INC A
@@ -894,10 +894,10 @@ where
             }
             0xC0 => {
                 // RET NZ
-                self.adv_cycles(4);
+                self.adv_clocks(4);
                 if !self.flag_z() {
                     self.pc = self.stack_pop2();
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xC1 => {
@@ -910,14 +910,14 @@ where
                 let addr = self.read_pc2();
                 if !self.flag_z() {
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xC3 => {
                 // JP a16
                 let addr = self.read_pc2();
                 self.jp(addr);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xC4 => {
                 // CALL NZ,a16
@@ -925,13 +925,13 @@ where
                 if !self.flag_z() {
                     self.stack_push_pc();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xC5 => {
                 // PUSH BC
                 self.stack_push2(self.bc());
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xC6 => {
                 // ADD A,d8
@@ -943,29 +943,29 @@ where
                 // RST 00H
                 self.stack_push_pc();
                 self.jp(0x00);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xC8 => {
                 // RET Z
-                self.adv_cycles(4);
+                self.adv_clocks(4);
                 if self.flag_z() {
                     let addr = self.stack_pop2();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xC9 => {
                 // RET
                 let addr = self.stack_pop2();
                 self.jp(addr);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xCA => {
                 // JP Z,a16
                 let addr = self.read_pc2();
                 if self.flag_z() {
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xCB => {
@@ -978,7 +978,7 @@ where
                 if self.flag_z() {
                     self.stack_push_pc();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xCD => {
@@ -986,7 +986,7 @@ where
                 let addr = self.read_pc2();
                 self.stack_push_pc();
                 self.jp(addr);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xCE => {
                 // ADC A,d8
@@ -998,15 +998,15 @@ where
                 // RST 08H
                 self.stack_push_pc();
                 self.jp(0x08);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xD0 => {
                 // RET NC
-                self.adv_cycles(4);
+                self.adv_clocks(4);
                 if !self.flag_c() {
                     let addr = self.stack_pop2();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xD1 => {
@@ -1019,7 +1019,7 @@ where
                 let addr = self.read_pc2();
                 if !self.flag_c() {
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xD4 => {
@@ -1028,13 +1028,13 @@ where
                 if !self.flag_c() {
                     self.stack_push_pc();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xD5 => {
                 // PUSH DE
                 self.stack_push2(self.de());
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xD6 => {
                 // SUB A,d8
@@ -1046,15 +1046,15 @@ where
                 // RST 10H
                 self.stack_push_pc();
                 self.jp(0x10);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xD8 => {
                 // RET C
-                self.adv_cycles(4);
+                self.adv_clocks(4);
                 if self.flag_c() {
                     let addr = self.stack_pop2();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xD9 => {
@@ -1062,14 +1062,14 @@ where
                 self.set_ime(true);
                 let addr = self.stack_pop2();
                 self.jp(addr);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xDA => {
                 // JP C,a16
                 let addr = self.read_pc2();
                 if self.flag_c() {
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xDC => {
@@ -1078,7 +1078,7 @@ where
                 if self.flag_c() {
                     self.stack_push_pc();
                     self.jp(addr);
-                    self.adv_cycles(4);
+                    self.adv_clocks(4);
                 }
             }
             0xDE => {
@@ -1091,7 +1091,7 @@ where
                 // RST 18H
                 self.stack_push_pc();
                 self.jp(0x18);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xE0 => {
                 // LDH (a8),A
@@ -1110,7 +1110,7 @@ where
             0xE5 => {
                 // PUSH HL
                 self.stack_push2(self.hl());
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xE6 => {
                 // AND A,d8
@@ -1122,14 +1122,14 @@ where
                 // RST 20H
                 self.stack_push_pc();
                 self.jp(0x20);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xE8 => {
                 // ADD SP,r8
                 let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
                 self.sp = value;
                 self.set_flags(Some(false), Some(false), Some(h), Some(c));
-                self.adv_cycles(8);
+                self.adv_clocks(8);
             }
             0xE9 => {
                 // JP (HL)
@@ -1150,7 +1150,7 @@ where
                 // RST 28H
                 self.stack_push_pc();
                 self.jp(0x28);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xF0 => {
                 // LDH A,(a8)
@@ -1173,7 +1173,7 @@ where
             0xF5 => {
                 // PUSH AF
                 self.stack_push2(self.af());
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xF6 => {
                 // OR A,d8
@@ -1185,19 +1185,19 @@ where
                 // RST 30H
                 self.stack_push_pc();
                 self.jp(0x30);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xF8 => {
                 // LD HL,SP+r8
                 let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
                 self.set_hl(value);
                 self.set_flags(Some(false), Some(false), Some(h), Some(c));
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xF9 => {
                 // LD SP,HL
                 self.sp = self.hl();
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             0xFA => {
                 // LD A,(a16)
@@ -1217,7 +1217,7 @@ where
                 // RST 38H
                 self.stack_push_pc();
                 self.jp(0x38);
-                self.adv_cycles(4);
+                self.adv_clocks(4);
             }
             _ => {
                 panic!("No such instruction, opcode:{:#02X}", opcode);
@@ -1226,7 +1226,7 @@ where
 
         if halt_bug {
             self.ir = self.bus.read(self.pc);
-            self.adv_cycles(4);
+            self.adv_clocks(4);
         } else {
             self.ir = self.read_pc();
         }

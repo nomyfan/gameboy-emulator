@@ -68,6 +68,13 @@ impl Joypad {
             JoypadCommand::ReleaseKey(key) => {
                 mutate_key_state(key, false);
             }
+            JoypadCommand::State(state) => {
+                let pressed_buttons = (state ^ self.buttons) & state;
+                self.buttons = state;
+                if pressed_buttons != 0 {
+                    self.irq.request_joypad();
+                }
+            }
         }
     }
 

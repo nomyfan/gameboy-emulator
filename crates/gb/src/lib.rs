@@ -2,20 +2,22 @@ mod bus;
 mod dma;
 mod hram;
 mod joypad;
+#[cfg(not(target_family = "wasm"))]
+pub mod native;
 mod serial;
 mod timer;
+#[cfg(target_family = "wasm")]
+pub mod wasm;
 mod wram;
 
+use web_time::{Duration, Instant};
+
+use bus::Bus;
+use gb_apu::AudioOutHandle;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::Cpu;
-use gb_shared::{command::CommandReceiver, AudioOutHandle, FrameOutHandle, CPU_FREQ};
-use std::{
-    path::Path,
-    sync::mpsc::TryRecvError,
-    time::{Duration, Instant},
-};
-
-use crate::bus::Bus;
+pub use gb_ppu::FrameOutHandle;
+use gb_shared::{command::Command, CPU_FREQ};
 
 pub struct Manifest {
     pub cart: Cartridge,
@@ -25,7 +27,7 @@ pub struct Manifest {
 pub struct GameBoy {
     cpu: Cpu<Bus>,
     bus: Bus,
-    cycles: u32,
+    clocks: u32,
     ts: Instant,
 }
 
@@ -46,40 +48,39 @@ impl GameBoy {
             cpu.reg_f = 0x80;
         }
 
-        Self { cpu, bus, cycles: 0, ts: Instant::now() }
+        Self { cpu, bus, clocks: 0, ts: Instant::now() }
     }
 
-    pub fn try_from_path<P: AsRef<Path>>(
-        path: P,
-        sample_rate: Option<u32>,
-    ) -> anyhow::Result<Self> {
-        let cart = Cartridge::try_from_path(path)?;
-        Ok(Self::new(Manifest { cart, sample_rate }))
+    pub fn set_handles(
+        &mut self,
+        frame_out_handle: Option<Box<FrameOutHandle>>,
+        audio_out_handle: Option<Box<AudioOutHandle>>,
+    ) {
+        self.bus.ppu.set_frame_out_handle(frame_out_handle);
+        if let Some(apu) = self.bus.apu.as_mut() {
+            apu.set_audio_out_handle(audio_out_handle);
+        }
     }
 
     pub fn play(
         mut self,
         frame_out_handle: Box<FrameOutHandle>,
         audio_out_handle: Option<Box<AudioOutHandle>>,
-        command_receiver: CommandReceiver,
+        pull_command: Box<dyn Fn() -> anyhow::Result<Option<Command>>>,
     ) -> anyhow::Result<()> {
-        self.bus.set_frame_out_handle(Some(frame_out_handle));
-        self.bus.set_audio_out_handle(audio_out_handle);
+        self.set_handles(Some(frame_out_handle), audio_out_handle);
 
         self.ts = Instant::now();
-
         loop {
             self.cpu.step();
 
-            let cycles = self.cycles + self.cpu.finish_cycles() as u32;
-            self.cycles = cycles % Self::EXEC_CYCLES;
+            let cycles = self.clocks + self.cpu.take_clocks() as u32;
+            self.clocks = cycles % Self::EXEC_CYCLES;
 
-            match command_receiver.try_recv() {
-                Ok(command) => self.bus.handle_command(command),
-                Err(TryRecvError::Disconnected) => {
-                    return Ok(());
-                }
-                _ => {}
+            match pull_command()? {
+                Some(Command::Exit) => return Ok(()),
+                Some(command) => self.bus.handle_command(command),
+                None => {}
             }
 
             if cycles >= Self::EXEC_CYCLES {

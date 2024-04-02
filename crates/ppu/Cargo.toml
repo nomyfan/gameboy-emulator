@@ -7,3 +7,4 @@ edition = "2021"
 gb_shared = { workspace = true }
 log = { workspace = true }
 mockall = { workspace = true }
+web-time = { workspace = true }

@@ -30,7 +30,7 @@ pub(crate) enum Register {
 
 /// 16 bits CPU
 pub(crate) trait Cpu16 {
-    fn adv_cycles(&mut self, cycles: u8);
+    fn adv_clocks(&mut self, cycles: u8);
     fn read_r8(&self, reg: Register8) -> u8;
     fn write_r8(&mut self, reg: Register8, value: u8);
     fn read_r16(&self, reg: Register16) -> u16;
@@ -69,7 +69,7 @@ mock! {
     pub Cpu16 {}
 
     impl Cpu16 for Cpu16 {
-        fn adv_cycles(&mut self, cycles: u8);
+        fn adv_clocks(&mut self, cycles: u8);
         fn read_r8(&self, reg: Register8) -> u8;
         fn write_r8(&mut self, reg: Register8, value: u8);
         fn read_r16(&self, reg: Register16) -> u16;

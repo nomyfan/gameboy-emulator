@@ -1,12 +1,14 @@
+use web_time::Instant;
+
 #[derive(Debug)]
 pub(super) struct Fps {
     frame_count: u32,
-    last_frame_time: std::time::Instant,
+    last_frame_time: Instant,
 }
 
 impl Fps {
     pub(super) fn new() -> Self {
-        Self { frame_count: 0, last_frame_time: std::time::Instant::now() }
+        Self { frame_count: 0, last_frame_time: Instant::now() }
     }
 
     pub(super) fn stop(&mut self) {
@@ -16,13 +18,13 @@ impl Fps {
     pub(super) fn update(&mut self) -> Option<f32> {
         if self.frame_count == 0 {
             // This is the point where we assume it starts rendering.
-            self.last_frame_time = std::time::Instant::now();
+            self.last_frame_time = Instant::now();
             self.frame_count = 1;
             return None;
         }
 
         self.frame_count += 1;
-        let now = std::time::Instant::now();
+        let now = Instant::now();
         let elapsed = now - self.last_frame_time;
         let elapsed = elapsed.as_secs_f32();
         if elapsed >= 1.0 {
