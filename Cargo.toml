@@ -17,7 +17,7 @@ gb_ppu = { path = "crates/ppu" }
 gb_apu = { path = "crates/apu" }
 gb_shared = { path = "crates/shared" }
 gb = { path = "crates/gb" }
-log = { version = "0.4.17" }
+log = { version = "0.4.21" }
 anyhow = "1.0.81"
 mockall = "0.12.0"
 web-time = "1.1.0"
