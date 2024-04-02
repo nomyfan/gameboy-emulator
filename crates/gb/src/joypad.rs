@@ -1,6 +1,6 @@
 use gb_shared::{
     command::{JoypadCommand, JoypadKey},
-    is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory,
+    is_bit_set, Interrupt, InterruptRequest, Memory,
 };
 
 /// The state is true when the value is zero.
@@ -49,13 +49,11 @@ impl Joypad {
 
     pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
         let mut mutate_key_state = |key: JoypadKey, pressed: bool| {
-            let bit = key as u8;
-            let old_value = is_bit_set!(self.buttons, bit);
+            let new_value = (self.buttons & (!(key as u8))) | if pressed { 0 } else { key as u8 };
+            let itr_occurred = (new_value ^ self.buttons) & new_value != 0; // Some bits change from 0 to 1
+            self.buttons = new_value;
 
-            self.buttons =
-                if pressed { set_bits!(self.buttons, bit) } else { unset_bits!(self.buttons, bit) };
-
-            old_value
+            itr_occurred
         };
 
         match command {
@@ -69,9 +67,9 @@ impl Joypad {
                 mutate_key_state(key, false);
             }
             JoypadCommand::State(state) => {
-                let pressed_buttons = (state ^ self.buttons) & state;
+                let itr_occurred = (state ^ self.buttons) & state != 0; // Some bits change from 0 to 1
                 self.buttons = state;
-                if pressed_buttons != 0 {
+                if itr_occurred {
                     self.irq.request_joypad();
                 }
             }
