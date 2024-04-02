@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test_build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "wasm32-unknown-unknown,x86_64-unknown-linux-gnu"
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        name: Setup Node.js
+        with:
+          node-version: "20"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Run tests
+        run: cargo test --workspace --exclude gb-wasm --target x86_64-unknown-linux-gnu
+
+      - name: Lint
+        run: cargo clippy --target wasm32-unknown-unknown
+
+      - name: Build WASM
+        working-directory: ./crates/gb-wasm
+        run: wasm-pack build --release --out-dir npm --target web
+
+      - name: Install dependencies for web app
+        working-directory: ./app/gameboy
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Build web app
+        working-directory: ./app/gameboy
+        run: corepack pnpm run build
