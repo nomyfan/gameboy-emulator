@@ -18,7 +18,7 @@ gb_apu = { path = "crates/apu" }
 gb_shared = { path = "crates/shared" }
 gb = { path = "crates/gb" }
 log = { version = "0.4.17" }
-anyhow = "1.0.66"
+anyhow = "1.0.81"
 mockall = "0.12.0"
 web-time = "1.1.0"
 wasm-bindgen = "0.2.92"
