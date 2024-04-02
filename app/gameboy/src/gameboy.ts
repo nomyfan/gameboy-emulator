@@ -22,7 +22,7 @@ function createGameBoyStore() {
 type GameBoyStore = ReturnType<typeof createGameBoyStore>;
 
 class GameBoyControl {
-  private store_: GameBoyStore;
+  private readonly store_: GameBoyStore;
 
   private instance_?: GameBoyHandle;
   private playCallbackId_?: number;
