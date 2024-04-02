@@ -1,4 +1,5 @@
 import { cn } from "../lib/utils";
+import type { IFnButton } from "../types";
 
 function Button(props: {
   label: string;
@@ -38,8 +39,8 @@ function Button(props: {
 }
 
 function FnButton(props: {
-  onDown?: (button: "START" | "SELECT") => void;
-  onUp?: (button: "START" | "SELECT") => void;
+  onDown?: (button: IFnButton) => void;
+  onUp?: (button: IFnButton) => void;
 }) {
   return (
     <div className={cn("flex justify-center")}>

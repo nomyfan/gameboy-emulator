@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "../lib/utils";
+import type { IAbButton } from "../types";
 
 function Button(props: {
   className?: string;
@@ -39,8 +40,8 @@ function ButtonLabel(props: { className?: string; children?: ReactNode }) {
 }
 
 function AbButton(props: {
-  onDown?: (button: "A" | "B") => void;
-  onUp?: (button: "A" | "B") => void;
+  onDown?: (button: IAbButton) => void;
+  onUp?: (button: IAbButton) => void;
 }) {
   return (
     <div

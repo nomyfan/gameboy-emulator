@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { cn } from "../lib/utils";
+import type { IDirectionButton } from "../types";
 
 function Button(props: {
   className?: string;
@@ -21,8 +22,8 @@ function Button(props: {
 }
 
 function DirectionButton(props: {
-  onDown?: (button: "UP" | "RIGHT" | "DOWN" | "LEFT") => void;
-  onUp?: (button: "UP" | "RIGHT" | "DOWN" | "LEFT") => void;
+  onDown?: (button: IDirectionButton) => void;
+  onUp?: (button: IDirectionButton) => void;
 }) {
   return (
     <div

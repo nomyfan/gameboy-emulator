@@ -70,6 +70,7 @@ impl GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
 
+        // TODO: cpal doesn't perform well on mobiles.
         let (stream, samples_buf, sample_rate) = audio::init_audio()
             .map(|(stream, buf, sample_rate)| (Some(stream), Some(buf), Some(sample_rate)))
             .unwrap_or_default();
