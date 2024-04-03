@@ -39,10 +39,9 @@ impl ScaleImageData {
         let y_end = y_begin + scale;
 
         for y in y_begin..y_end {
-            for x in x_begin..x_end {
-                let offset = (y * 160 * scale + x) * 4;
-                self.0[offset..(offset + 4)].copy_from_slice(color);
-            }
+            let begin = (y * 160 * scale + x_begin) * 4;
+            let end = (y * 160 * scale + x_end) * 4;
+            self.0[begin..end].chunks_mut(4).for_each(|chunk| chunk.copy_from_slice(color));
         }
     }
 

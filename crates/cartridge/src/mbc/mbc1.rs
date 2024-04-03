@@ -1,7 +1,6 @@
 use super::{real_ram_size, RamBank};
 use crate::CartridgeHeader;
 use gb_shared::{boxed_array, kib};
-use std::path::Path;
 
 /// https://gbdev.io/pandocs/MBC1.html
 pub(crate) struct Mbc1 {
@@ -100,8 +99,8 @@ impl super::Mbc for Mbc1 {
         }
     }
 
-    fn store(&self, path: &Path) -> anyhow::Result<()> {
-        #[cfg(not(target_family = "wasm"))]
+    #[cfg(not(target_family = "wasm"))]
+    fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
         if self.with_battery {
             use std::io::Write;
             let mut file = std::fs::File::create(path)?;
@@ -114,8 +113,8 @@ impl super::Mbc for Mbc1 {
         Ok(())
     }
 
-    fn restore(&mut self, path: &Path) -> anyhow::Result<()> {
-        #[cfg(not(target_family = "wasm"))]
+    #[cfg(not(target_family = "wasm"))]
+    fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
         if self.with_battery {
             use std::io::Read;
             let mut file = std::fs::File::open(path)?;
