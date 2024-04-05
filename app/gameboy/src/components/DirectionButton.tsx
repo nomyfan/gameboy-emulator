@@ -1,7 +1,9 @@
+import { clsx } from "clsx";
 import type { CSSProperties } from "react";
 
-import { cn } from "../lib/utils";
 import type { IDirectionButton } from "../types";
+
+import * as styles from "./DirectionButton.css";
 
 function Button(props: {
   className?: string;
@@ -11,7 +13,7 @@ function Button(props: {
 }) {
   return (
     <button
-      className={cn("bg-black h-full w-full rounded-[4px]", props.className)}
+      className={clsx(styles.button, props.className)}
       style={props.style}
       onMouseDown={() => props.onDown?.()}
       onTouchStart={() => props.onDown?.()}
@@ -26,63 +28,55 @@ function DirectionButton(props: {
   onUp?: (button: IDirectionButton) => void;
 }) {
   return (
-    <div
-      className={cn("grid p-[15px]")}
-      style={{
-        gridTemplateColumns: "42px 42px 42px",
-        gridTemplateRows: "42px 40px 42px",
-      }}
-    >
+    <div className={styles.directionButton}>
       <Button
         key="top"
-        className={cn("col-start-2 rounded-b-[0]")}
         style={{
           boxShadow: "-4px -4px 4px rgba(255,255,255,.25)",
+          gridColumnStart: 2,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
         }}
         onDown={() => props.onDown?.("UP")}
         onUp={() => props.onUp?.("UP")}
       />
       <Button
         key="left"
-        className={cn("row-start-2 rounded-r-[0]")}
         style={{
           boxShadow:
             "0px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
+          gridRowStart: 2,
+          borderTopRightRadius: 0,
+          borderBottomRightRadius: 0,
         }}
         onDown={() => props.onDown?.("LEFT")}
         onUp={() => props.onUp?.("LEFT")}
       />
-      <div
-        key="center"
-        className={cn(
-          "bg-black row-start-2 col-start-2 flex justify-center items-center",
-        )}
-      >
-        <div
-          key="circle"
-          className={cn("h-[30px] w-[30px] bg-[#E3E1DD] rounded-full")}
-          style={{
-            boxShadow:
-              "inset -4px -4px 4px rgba(255,255,255,.25), inset 4px 4px 4px rgba(0,0,0,.25)",
-          }}
-        />
+      <div key="center" className={styles.center}>
+        <div key="circle" className={styles.circle} />
       </div>
       <Button
         key="right"
-        className={cn("row-start-2 col-start-3 rounded-l-[0]")}
         style={{
           boxShadow:
             "4px 0px 4px rgba(0,0,0,.25),0px 4px 4px rgba(0,0,0,.25),4px -4px 4px rgba(255,255,255,.25)",
+          gridRowStart: 2,
+          gridColumnStart: 3,
+          borderTopLeftRadius: 0,
+          borderBottomLeftRadius: 0,
         }}
         onDown={() => props.onDown?.("RIGHT")}
         onUp={() => props.onUp?.("RIGHT")}
       />
       <Button
         key="bottom"
-        className={cn("row-start-3 col-start-2 rounded-t-[0]")}
         style={{
           boxShadow:
             "0px 4px 4px rgba(0,0,0,.25),-4px 4px 4px rgba(255,255,255,.25)",
+          gridRowStart: 3,
+          gridColumnStart: 2,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
         }}
         onDown={() => props.onDown?.("DOWN")}
         onUp={() => props.onUp?.("DOWN")}

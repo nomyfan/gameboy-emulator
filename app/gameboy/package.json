@@ -9,24 +9,25 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vanilla-extract/css": "^1.14.2",
+    "clsx": "^2.1.0",
     "gb-wasm": "link:../../crates/gb-wasm/npm",
     "immer": "^10.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rxjs": "^7.8.1",
-    "tailwind-merge": "^2.0.0",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",
     "@types/react": "^18.2.73",
     "@types/react-dom": "^18.2.22",
+    "@vanilla-extract/vite-plugin": "^4.0.7",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "eslint-plugin-nomyfan": "^0.1.2",
     "postcss": "^8.4.38",
     "prettier": "^3.2.5",
-    "tailwindcss": "^3.4.3",
     "typescript": "^5.4.3",
     "vite": "^5.2.6"
   },

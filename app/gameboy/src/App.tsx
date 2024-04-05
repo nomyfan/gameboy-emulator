@@ -1,6 +1,7 @@
 import { JoypadKey } from "gb-wasm";
 import { useRef } from "react";
 
+import * as styles from "./App.css";
 import { AbButton } from "./components/AbButton";
 import { DirectionButton } from "./components/DirectionButton";
 import { FnButton } from "./components/FnButton";
@@ -8,7 +9,6 @@ import { Screen, SCALE } from "./components/Screen";
 import { GameBoyControl } from "./gameboy";
 import { useGamepadController } from "./hooks/useGamepadController";
 import { useKeyboardController } from "./hooks/useKeyboardController";
-import { cn } from "./lib/utils";
 import { IGameBoyButton } from "./types";
 
 const gameboy = new GameBoyControl();
@@ -63,13 +63,21 @@ function App() {
   useGamepadController({ gameboy });
 
   return (
-    <div className={cn("min-h-screen bg-[#C8C4BE]")}>
-      <Screen ref={screenRef} className="mb-[20px]" />
-      <div className={cn("flex justify-between items-center px-5")}>
+    <div className={styles.app}>
+      <Screen ref={screenRef} style={{ marginBottom: 20 }} />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingLeft: 20,
+          paddingRight: 20,
+        }}
+      >
         <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
         <AbButton onDown={handleButtonDown} onUp={handleButtonUp} />
       </div>
-      <div className="py-[30px]">
+      <div style={{ paddingTop: 30, paddingBottom: 30 }}>
         <FnButton onUp={handleButtonUp} onDown={handleButtonDown} />
       </div>
       <input
