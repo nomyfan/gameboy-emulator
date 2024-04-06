@@ -1,7 +1,6 @@
 pub mod bitwise;
 pub mod boxed;
 pub mod command;
-pub mod event;
 
 pub fn boxed_array<T: Copy, const SIZE: usize>(val: T) -> Box<[T; SIZE]> {
     let boxed_slice = vec![val; SIZE].into_boxed_slice();
@@ -84,3 +83,8 @@ pub const fn mib(m: usize) -> usize {
 }
 
 pub const CPU_FREQ: u32 = 4_194_304;
+
+pub trait Snapshot {
+    fn snapshot(&self) -> Vec<u8>;
+    fn restore(&mut self, snapshot: &[u8]);
+}

@@ -33,7 +33,7 @@ pub struct GameBoy {
 
 impl GameBoy {
     const EXEC_DURATION: Duration = Duration::from_millis(1000 / 4);
-    const EXEC_CYCLES: u32 = (CPU_FREQ / 4);
+    const EXEC_CLOCKS: u32 = (CPU_FREQ / 4);
 
     pub fn new(manifest: Manifest) -> Self {
         let Manifest { cart, sample_rate } = manifest;
@@ -74,8 +74,8 @@ impl GameBoy {
         loop {
             self.cpu.step();
 
-            let cycles = self.clocks + self.cpu.take_clocks() as u32;
-            self.clocks = cycles % Self::EXEC_CYCLES;
+            let clocks = self.clocks + self.cpu.take_clocks() as u32;
+            self.clocks = clocks % Self::EXEC_CLOCKS;
 
             match pull_command()? {
                 Some(Command::Exit) => return Ok(()),
@@ -83,7 +83,7 @@ impl GameBoy {
                 None => {}
             }
 
-            if cycles >= Self::EXEC_CYCLES {
+            if clocks >= Self::EXEC_CLOCKS {
                 let duration = self.ts.elapsed();
                 if duration < Self::EXEC_DURATION {
                     std::thread::sleep(Self::EXEC_DURATION - duration);
