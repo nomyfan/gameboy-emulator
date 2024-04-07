@@ -155,15 +155,19 @@ where
 
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
-            if self.active() {
+            let volume = if self.active() {
                 let is_high_signal = self.duty_cycle.step(self.nrx1);
                 let volume = self.envelope.volume() as i32;
-                let volume = if is_high_signal { volume } else { -volume };
-                if let Some(blipbuf) = &mut self.blipbuf {
-                    blipbuf.add_delta(self.channel_clock.div(), volume);
+                if is_high_signal {
+                    volume
+                } else {
+                    -volume
                 }
-            } else if let Some(blipbuf) = &mut self.blipbuf {
-                blipbuf.add_delta(self.channel_clock.div(), 0);
+            } else {
+                0
+            };
+            if let Some(blipbuf) = &mut self.blipbuf {
+                blipbuf.add_delta(self.channel_clock.div(), volume);
             }
         }
 

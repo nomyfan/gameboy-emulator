@@ -162,7 +162,7 @@ impl WaveChannel {
 
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
-            if self.active() {
+            let volume = if self.active() {
                 let volume = self.wave_ram.next_position();
                 let volume = match self.output_level() {
                     OutputLevel::Mute => 0,
@@ -170,11 +170,13 @@ impl WaveChannel {
                     OutputLevel::Half => volume >> 1,
                     OutputLevel::Quarter => volume >> 2,
                 };
-                if let Some(blipbuf) = &mut self.blipbuf {
-                    blipbuf.add_delta(self.channel_clock.div(), volume as i32);
-                }
-            } else if let Some(blipbuf) = &mut self.blipbuf {
-                blipbuf.add_delta(self.channel_clock.div(), 0);
+
+                volume as i32
+            } else {
+                0
+            };
+            if let Some(blipbuf) = &mut self.blipbuf {
+                blipbuf.add_delta(self.channel_clock.div(), volume);
             }
         }
 
