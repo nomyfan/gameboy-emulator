@@ -59,6 +59,7 @@ function handleButtonUp(button: IGameBoyButton) {
 }
 
 function App() {
+  const appRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLCanvasElement>(null);
 
   useKeyboardController({ gameboy });
@@ -166,12 +167,9 @@ function App() {
       return renderPortrait();
     }
   };
-  const appVars = isLandscape
-    ? styles.appLandscapeVars
-    : styles.appPortrailVars;
 
   return (
-    <div className={clsx(styles.app, appVars)}>
+    <div ref={appRef} className={clsx(styles.app)}>
       {render()}
       <input
         type="file"
@@ -249,6 +247,13 @@ function App() {
           reader.readAsArrayBuffer(file);
         }}
       />
+      <button
+        onClick={() => {
+          appRef.current?.requestFullscreen();
+        }}
+      >
+        Fullscreen
+      </button>
     </div>
   );
 }
