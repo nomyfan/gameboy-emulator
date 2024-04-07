@@ -1,4 +1,4 @@
-use gb_shared::{is_bit_set, Interrupt, InterruptRequest, Memory};
+use gb_shared::{is_bit_set, Interrupt, InterruptRequest, Memory, Snapshot};
 
 enum CounterIncCycles {
     Cycles1024,
@@ -103,6 +103,29 @@ impl Timer {
 
     pub fn take_irq(&mut self) -> u8 {
         self.irq.take()
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) struct TimerSnapshot {
+    div: u16,
+    tima: u8,
+    tma: u8,
+    tac: u8,
+}
+
+impl Snapshot for Timer {
+    type Snapshot = TimerSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        TimerSnapshot { div: self.div, tima: self.tima, tma: self.tma, tac: self.tac }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.div = snapshot.div;
+        self.tima = snapshot.tima;
+        self.tma = snapshot.tma;
+        self.tac = snapshot.tac;
     }
 }
 

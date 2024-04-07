@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 log = { workspace = true }
 gb_shared = { workspace = true }
+serde = { workspace = true }
+bincode = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }

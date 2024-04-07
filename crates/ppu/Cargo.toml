@@ -8,3 +8,4 @@ gb_shared = { workspace = true }
 log = { workspace = true }
 mockall = { workspace = true }
 web-time = { workspace = true }
+serde = { workspace = true }

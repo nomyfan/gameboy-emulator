@@ -4,7 +4,7 @@ mod interrupt;
 mod proc;
 
 use cpu16::{Cpu16, Register16, Register8};
-use gb_shared::{is_bit_set, set_bits, unset_bits};
+use gb_shared::{is_bit_set, set_bits, unset_bits, Snapshot};
 use interrupt::INTERRUPTS;
 
 impl<BUS> Cpu16 for Cpu<BUS>
@@ -1517,5 +1517,75 @@ mod tests {
             cpu.jr(2);
             assert_eq!(cpu.pc, 0x1235);
         }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct CpuSnapshot {
+    a: u8,
+    f: u8,
+    b: u8,
+    c: u8,
+    d: u8,
+    e: u8,
+    h: u8,
+    l: u8,
+    sp: u16,
+    pc: u16,
+    ime: bool,
+    enabling_ime: bool,
+    halted: bool,
+    stopped: bool,
+    clocks: u8,
+    ir: u8,
+    handle_itr: bool,
+}
+
+impl<BUS> Snapshot for Cpu<BUS>
+where
+    BUS: gb_shared::Memory + gb_shared::Component,
+{
+    type Snapshot = CpuSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        CpuSnapshot {
+            a: self.reg_a,
+            f: self.reg_f,
+            b: self.reg_b,
+            c: self.reg_c,
+            d: self.reg_d,
+            e: self.reg_e,
+            h: self.reg_h,
+            l: self.reg_l,
+            sp: self.sp,
+            pc: self.pc,
+            ime: self.ime,
+            enabling_ime: self.enabling_ime,
+            halted: self.halted,
+            stopped: self.stopped,
+            clocks: self.clocks,
+            ir: self.ir,
+            handle_itr: self.handle_itr,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.reg_a = snapshot.a;
+        self.reg_f = snapshot.f;
+        self.reg_b = snapshot.b;
+        self.reg_c = snapshot.c;
+        self.reg_d = snapshot.d;
+        self.reg_e = snapshot.e;
+        self.reg_h = snapshot.h;
+        self.reg_l = snapshot.l;
+        self.sp = snapshot.sp;
+        self.pc = snapshot.pc;
+        self.ime = snapshot.ime;
+        self.enabling_ime = snapshot.enabling_ime;
+        self.halted = snapshot.halted;
+        self.stopped = snapshot.stopped;
+        self.clocks = snapshot.clocks;
+        self.ir = snapshot.ir;
+        self.handle_itr = snapshot.handle_itr;
     }
 }

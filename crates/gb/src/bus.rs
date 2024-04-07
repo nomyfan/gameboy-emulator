@@ -1,10 +1,17 @@
 use gb_apu::Apu;
 use gb_cartridge::Cartridge;
-use gb_ppu::Ppu;
-use gb_shared::{command::Command, Memory};
+use gb_ppu::{Ppu, PpuSnapshot};
+use gb_shared::{command::Command, Memory, Snapshot};
 use std::ops::{Deref, DerefMut};
 
-use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
+use crate::{
+    dma::{DmaSnapshot, DMA},
+    hram::{HighRam, HighRamSnapshot},
+    joypad::{Joypad, JoypadSnapshot},
+    serial::{Serial, SerialSnapshot},
+    timer::{Timer, TimerSnapshot},
+    wram::{WorkRam, WorkRamSnapshot},
+};
 
 pub(crate) struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -37,6 +44,7 @@ pub(crate) struct BusInner {
     joypad: Joypad,
     timer: Timer,
     pub(crate) ppu: Ppu,
+    // TODO: Make APU always available excepting that it may not output audio to the device.
     pub(crate) apu: Option<Apu>,
     ref_count: usize,
 }
@@ -297,5 +305,49 @@ impl Memory for Bus {
 
     fn read(&self, addr: u16) -> u8 {
         unsafe { (*self.ptr).read(addr) }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) struct BusSnapshot {
+    interrupt_enable: u8,
+    interrupt_flag: u8,
+    wram: WorkRamSnapshot,
+    hram: HighRamSnapshot,
+    dma: DmaSnapshot,
+    serial: SerialSnapshot,
+    joypad: JoypadSnapshot,
+    timer: TimerSnapshot,
+    ppu: PpuSnapshot,
+    // TODO: APU snapshot
+}
+
+impl Snapshot for Bus {
+    type Snapshot = BusSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        BusSnapshot {
+            interrupt_enable: self.interrupt_enable,
+            interrupt_flag: self.interrupt_flag,
+            wram: self.wram.snapshot(),
+            hram: self.hram.snapshot(),
+            dma: self.dma.snapshot(),
+            serial: self.serial.snapshot(),
+            joypad: self.joypad.snapshot(),
+            timer: self.timer.snapshot(),
+            ppu: self.ppu.snapshot(),
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.interrupt_enable = snapshot.interrupt_enable;
+        self.interrupt_flag = snapshot.interrupt_flag;
+        self.wram.restore(snapshot.wram);
+        self.hram.restore(snapshot.hram);
+        self.dma.restore(snapshot.dma);
+        self.serial.restore(snapshot.serial);
+        self.joypad.restore(snapshot.joypad);
+        self.timer.restore(snapshot.timer);
+        self.ppu.restore(snapshot.ppu);
     }
 }

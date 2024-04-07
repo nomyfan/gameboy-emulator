@@ -1,4 +1,4 @@
-use gb_shared::Memory;
+use gb_shared::{Memory, Snapshot};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
@@ -42,6 +42,25 @@ impl DMA {
         } else {
             None
         }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) struct DmaSnapshot {
+    value: u8,
+    offset: u8,
+}
+
+impl Snapshot for DMA {
+    type Snapshot = DmaSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        DmaSnapshot { value: self.value, offset: self.offset }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.value = snapshot.value;
+        self.offset = snapshot.offset;
     }
 }
 

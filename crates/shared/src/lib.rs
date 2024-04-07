@@ -20,6 +20,17 @@ pub fn boxed_array_fn<T, F: Fn(usize) -> T, const SIZE: usize>(init_fn: F) -> Bo
     unsafe { Box::from_raw(ptr) }
 }
 
+pub fn boxed_array_try_from_vec<T, const SIZE: usize>(vec: Vec<T>) -> Result<Box<[T; SIZE]>, Vec<T>> {
+    if vec.len() == SIZE {
+        let boxed_slice = vec.into_boxed_slice();
+        let ptr = Box::into_raw(boxed_slice) as *mut [T; SIZE];
+
+        Ok(unsafe { Box::from_raw(ptr) })
+    } else {
+        Err(vec)
+    }
+}
+
 pub trait Memory {
     fn write(&mut self, addr: u16, value: u8);
     fn read(&self, addr: u16) -> u8;
@@ -85,6 +96,7 @@ pub const fn mib(m: usize) -> usize {
 pub const CPU_FREQ: u32 = 4_194_304;
 
 pub trait Snapshot {
-    fn snapshot(&self) -> Vec<u8>;
-    fn restore(&mut self, snapshot: &[u8]);
+    type Snapshot;
+    fn snapshot(&self) -> Self::Snapshot;
+    fn restore(&mut self, snapshot: Self::Snapshot);
 }

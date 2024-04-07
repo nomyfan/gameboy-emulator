@@ -1,4 +1,4 @@
-use gb_shared::is_bit_set;
+use gb_shared::{is_bit_set, Snapshot};
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq)]
@@ -106,5 +106,45 @@ impl LCD {
 
     pub(crate) fn is_lcd_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 7)
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) struct LCDSnapshot {
+    lcdc: u8,
+    stat: u8,
+    ly: u8,
+    lyc: u8,
+    wy: u8,
+    wx: u8,
+    scy: u8,
+    scx: u8,
+}
+
+impl Snapshot for LCD {
+    type Snapshot = LCDSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        LCDSnapshot {
+            lcdc: self.lcdc,
+            stat: self.stat,
+            ly: self.ly,
+            lyc: self.lyc,
+            wy: self.wy,
+            wx: self.wx,
+            scy: self.scy,
+            scx: self.scx,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.lcdc = snapshot.lcdc;
+        self.stat = snapshot.stat;
+        self.ly = snapshot.ly;
+        self.lyc = snapshot.lyc;
+        self.wy = snapshot.wy;
+        self.wx = snapshot.wx;
+        self.scy = snapshot.scy;
+        self.scx = snapshot.scx;
     }
 }

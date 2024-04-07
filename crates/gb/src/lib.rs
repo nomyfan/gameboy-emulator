@@ -12,12 +12,12 @@ mod wram;
 
 use web_time::{Duration, Instant};
 
-use bus::Bus;
+use bus::{Bus, BusSnapshot};
 use gb_apu::AudioOutHandle;
 use gb_cartridge::Cartridge;
-use gb_cpu_sm83::Cpu;
+use gb_cpu_sm83::{Cpu, CpuSnapshot};
 pub use gb_ppu::FrameOutHandle;
-use gb_shared::{command::Command, CPU_FREQ};
+use gb_shared::{command::Command, Snapshot, CPU_FREQ};
 
 pub struct Manifest {
     pub cart: Cartridge,
@@ -91,5 +91,40 @@ impl GameBoy {
                 self.ts = Instant::now();
             }
         }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct GameBoySnapshot {
+    bus: BusSnapshot,
+    cpu: CpuSnapshot,
+}
+
+impl Snapshot for GameBoy {
+    type Snapshot = GameBoySnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        Self::Snapshot { bus: self.bus.snapshot(), cpu: self.cpu.snapshot() }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.bus.restore(snapshot.bus);
+        self.cpu.restore(snapshot.cpu);
+    }
+}
+
+impl TryFrom<&[u8]> for GameBoySnapshot {
+    type Error = bincode::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        bincode::deserialize(value)
+    }
+}
+
+impl TryFrom<&GameBoySnapshot> for Vec<u8> {
+    type Error = bincode::Error;
+
+    fn try_from(value: &GameBoySnapshot) -> Result<Self, Self::Error> {
+        bincode::serialize(value)
     }
 }

@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::boxed_array_fn;
+use crate::{boxed_array_fn, boxed_array_try_from_vec};
 
 #[derive(Debug)]
 pub struct BoxedArray<T, const SIZE: usize>(Box<[T; SIZE]>);
@@ -34,6 +34,12 @@ impl<T: Copy, const SIZE: usize> From<&[T; SIZE]> for BoxedArray<T, SIZE> {
 impl<T: Clone, const SIZE: usize> Clone for BoxedArray<T, SIZE> {
     fn clone(&self) -> Self {
         Self(boxed_array_fn(|i| self[i].clone()))
+    }
+}
+
+impl<T, const SIZE: usize> BoxedArray<T, SIZE> {
+    pub fn try_from_vec(value: Vec<T>) -> Result<Self, Vec<T>> {
+        Ok(Self(boxed_array_try_from_vec(value)?))
     }
 }
 

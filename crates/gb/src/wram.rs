@@ -1,4 +1,4 @@
-use gb_shared::{boxed_array, Memory};
+use gb_shared::{boxed::BoxedArray, boxed_array, boxed_array_try_from_vec, Memory, Snapshot};
 
 pub(crate) struct WorkRam {
     /// [C000, E000)
@@ -25,5 +25,22 @@ impl Memory for WorkRam {
 
         let addr = (addr as usize) - 0xC000;
         self.ram[addr]
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) struct WorkRamSnapshot {
+    ram: Vec<u8>,
+}
+
+impl Snapshot for WorkRam {
+    type Snapshot = WorkRamSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        WorkRamSnapshot { ram: self.ram.to_vec() }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.ram = boxed_array_try_from_vec(snapshot.ram).unwrap();
     }
 }

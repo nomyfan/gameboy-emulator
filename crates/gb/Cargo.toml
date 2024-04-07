@@ -12,6 +12,8 @@ gb_shared = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
 web-time = { workspace = true }
+serde = { workspace = true }
+bincode = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
