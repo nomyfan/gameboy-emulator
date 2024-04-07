@@ -1,12 +1,13 @@
 import { globalStyle, style } from "@vanilla-extract/css";
 
+import { lightShadow, darkShadow } from "../styles";
+
 export const button = style({
   width: "fit-content",
   transform: "rotate(-25deg)",
 });
 
-const shadow =
-  "-2px -2px 4px rgba(255,255,255,.25), 2px 2px 4px rgba(0,0,0,.25)";
+const shadow = `${lightShadow("-2px -2px 4px")}, ${darkShadow("2px 2px 4px")}`;
 
 globalStyle(`${button} > button`, {
   height: 15,

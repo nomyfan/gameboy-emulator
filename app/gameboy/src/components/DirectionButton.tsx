@@ -5,6 +5,8 @@ import type { IDirectionButton } from "../types";
 
 import * as styles from "./DirectionButton.css";
 
+import { lightShadow, darkShadow } from "../styles";
+
 function Button(props: {
   className?: string;
   style?: CSSProperties;
@@ -32,7 +34,7 @@ function DirectionButton(props: {
       <Button
         key="top"
         style={{
-          boxShadow: "-4px -4px 4px rgba(255,255,255,.25)",
+          boxShadow: lightShadow("-4px -4px 4px"),
           gridColumnStart: 2,
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
@@ -43,8 +45,7 @@ function DirectionButton(props: {
       <Button
         key="left"
         style={{
-          boxShadow:
-            "0px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
+          boxShadow: `${darkShadow("0px 4px 4px")}, ${lightShadow("-4px -4px 4px")}`,
           gridRowStart: 2,
           borderTopRightRadius: 0,
           borderBottomRightRadius: 0,
@@ -58,8 +59,7 @@ function DirectionButton(props: {
       <Button
         key="right"
         style={{
-          boxShadow:
-            "4px 0px 4px rgba(0,0,0,.25),0px 4px 4px rgba(0,0,0,.25),4px -4px 4px rgba(255,255,255,.25)",
+          boxShadow: `${darkShadow("4px 0px 4px")}, ${darkShadow("0px 4px 4px")}, ${lightShadow("4px -4px 4px")}`,
           gridRowStart: 2,
           gridColumnStart: 3,
           borderTopLeftRadius: 0,
@@ -71,8 +71,7 @@ function DirectionButton(props: {
       <Button
         key="bottom"
         style={{
-          boxShadow:
-            "0px 4px 4px rgba(0,0,0,.25),-4px 4px 4px rgba(255,255,255,.25)",
+          boxShadow: `${darkShadow("0 4px 4px")}, ${lightShadow("-4px 4px 4px")}`,
           gridRowStart: 3,
           gridColumnStart: 2,
           borderTopLeftRadius: 0,

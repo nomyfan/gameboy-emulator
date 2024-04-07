@@ -1,12 +1,12 @@
 import { globalStyle, style } from "@vanilla-extract/css";
 
-import { flexCenter, py } from "../styles";
+import { flexCenter, py, lightShadow, darkShadow } from "../styles";
 
 export const screen = style({
   ...flexCenter(),
   ...py(20),
   backgroundColor: "#3E3C48",
-  boxShadow: "4px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
+  boxShadow: `${darkShadow("4px 4px 4px")}, ${lightShadow("-4px -4px 4px")}`,
 });
 
 globalStyle(`${screen} > canvas`, {

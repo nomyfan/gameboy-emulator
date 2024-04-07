@@ -1,5 +1,7 @@
 import type { CSSProperties } from "@vanilla-extract/css";
 
+import { lightShadowColor, darkShadowColor } from "./vars.css";
+
 export const px = (value: CSSProperties["paddingLeft"]) => ({
   paddingLeft: value,
   paddingRight: value,
@@ -20,3 +22,7 @@ export const flexCenter = () => ({
   justifyContent: "center",
   alignItems: "center",
 });
+
+export const lightShadow = (value: string) => `${value} ${lightShadowColor}`;
+
+export const darkShadow = (value: string) => `${value} ${darkShadowColor}`;

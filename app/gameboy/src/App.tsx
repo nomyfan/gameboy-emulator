@@ -1,5 +1,7 @@
+import clsx from "clsx";
 import { JoypadKey } from "gb-wasm";
 import { useRef } from "react";
+import { useOrientation } from "react-use";
 
 import * as styles from "./App.css";
 import { AbButton } from "./components/AbButton";
@@ -62,24 +64,115 @@ function App() {
   useKeyboardController({ gameboy });
   useGamepadController({ gameboy });
 
+  const orientation = useOrientation();
+  const isLandscape =
+    orientation.type === "landscape-primary" ||
+    orientation.type === "landscape-secondary";
+
+  const renderLandscape = () => {
+    return (
+      <>
+        <Screen
+          ref={screenRef}
+          style={{ marginBottom: 20 }}
+          left={
+            <div
+              style={{
+                flexBasis: 0,
+                flexShrink: 0,
+                flexGrow: 1,
+                display: "flex",
+                justifyContent: "left",
+              }}
+            >
+              <DirectionButton
+                onDown={handleButtonDown}
+                onUp={handleButtonUp}
+              />
+            </div>
+          }
+          right={
+            <div
+              style={{
+                position: "relative",
+                flexBasis: 0,
+                flexGrow: 1,
+                flexShrink: 0,
+                display: "flex",
+                justifyContent: "right",
+                padding: 15,
+              }}
+            >
+              <AbButton
+                style={{
+                  transform: "rotate(-25deg) translateY(-12px)",
+                }}
+                onDown={handleButtonDown}
+                onUp={handleButtonUp}
+              />
+              <FnButton
+                style={{
+                  position: "absolute",
+                  bottom: -80,
+                }}
+                onUp={handleButtonUp}
+                onDown={handleButtonDown}
+              />
+            </div>
+          }
+        />
+      </>
+    );
+  };
+
+  const renderPortrait = () => {
+    return (
+      <>
+        <Screen ref={screenRef} style={{ marginBottom: 20 }} />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingLeft: 20,
+            paddingRight: 20,
+          }}
+        >
+          <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
+          <AbButton
+            style={{
+              transform: "rotate(-25deg) translateY(-12px)",
+            }}
+            onDown={handleButtonDown}
+            onUp={handleButtonUp}
+          />
+        </div>
+        <div
+          style={{
+            paddingTop: 30,
+            paddingBottom: 30,
+          }}
+        >
+          <FnButton onUp={handleButtonUp} onDown={handleButtonDown} />
+        </div>
+      </>
+    );
+  };
+
+  const render = () => {
+    if (isLandscape) {
+      return renderLandscape();
+    } else {
+      return renderPortrait();
+    }
+  };
+  const appVars = isLandscape
+    ? styles.appLandscapeVars
+    : styles.appPortrailVars;
+
   return (
-    <div className={styles.app}>
-      <Screen ref={screenRef} style={{ marginBottom: 20 }} />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingLeft: 20,
-          paddingRight: 20,
-        }}
-      >
-        <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
-        <AbButton onDown={handleButtonDown} onUp={handleButtonUp} />
-      </div>
-      <div style={{ paddingTop: 30, paddingBottom: 30 }}>
-        <FnButton onUp={handleButtonUp} onDown={handleButtonDown} />
-      </div>
+    <div className={clsx(styles.app, appVars)}>
+      {render()}
       <input
         type="file"
         accept=".gb"
