@@ -306,7 +306,6 @@ dependencies = [
 name = "gb_cpu_sm83"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "gb_shared",
  "log",
  "mockall",
