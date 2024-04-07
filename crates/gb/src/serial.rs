@@ -33,7 +33,7 @@ impl Serial {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct SerialSnapshot {
     data: u8,
     control: u8,

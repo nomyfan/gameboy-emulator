@@ -106,7 +106,7 @@ impl Timer {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct TimerSnapshot {
     div: u16,
     tima: u8,

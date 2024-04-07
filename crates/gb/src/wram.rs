@@ -1,4 +1,4 @@
-use gb_shared::{boxed::BoxedArray, boxed_array, boxed_array_try_from_vec, Memory, Snapshot};
+use gb_shared::{boxed_array, boxed_array_try_from_vec, Memory, Snapshot};
 
 pub(crate) struct WorkRam {
     /// [C000, E000)
@@ -28,7 +28,7 @@ impl Memory for WorkRam {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct WorkRamSnapshot {
     ram: Vec<u8>,
 }

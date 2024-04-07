@@ -27,7 +27,7 @@ impl Memory for HighRam {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct HighRamSnapshot {
     ram: Vec<u8>,
 }

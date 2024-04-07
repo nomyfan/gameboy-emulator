@@ -81,7 +81,7 @@ impl Joypad {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct JoypadSnapshot {
     buttons: u8,
     select_action: bool,
