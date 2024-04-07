@@ -48,7 +48,7 @@ impl From<u8> for ObjectAttrs {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct ObjectSnapshot {
     y: u8,
     x: u8,

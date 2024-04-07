@@ -489,7 +489,7 @@ impl Memory for Ppu {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct PpuSnapshot {
     vram: Vec<u8>, // 0x2000
     oam: Vec<u8>,  // 0xA0
