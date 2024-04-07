@@ -13,7 +13,7 @@ mod wram;
 use web_time::{Duration, Instant};
 
 use bus::{Bus, BusSnapshot};
-use gb_apu::{ApuSnapshot, AudioOutHandle};
+use gb_apu::AudioOutHandle;
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::{Cpu, CpuSnapshot};
 pub use gb_ppu::FrameOutHandle;
@@ -29,7 +29,7 @@ pub struct GameBoy {
     bus: Bus,
     clocks: u32,
     ts: Instant,
-    checksum: u16,
+    cart_checksum: u16,
 }
 
 impl GameBoy {
@@ -40,7 +40,7 @@ impl GameBoy {
         let Manifest { cart, sample_rate } = manifest;
 
         let cart_header_checksum = cart.header.checksum;
-        let checksum = cart.header.global_checksum;
+        let cart_global_checksum = cart.header.global_checksum;
         let bus = Bus::new(cart, sample_rate);
 
         let mut cpu = Cpu::new(bus.clone());
@@ -50,7 +50,7 @@ impl GameBoy {
             cpu.reg_f = 0x80;
         }
 
-        Self { cpu, bus, clocks: 0, ts: Instant::now(), checksum }
+        Self { cpu, bus, clocks: 0, ts: Instant::now(), cart_checksum: cart_global_checksum }
     }
 
     pub fn set_handles(
@@ -63,8 +63,8 @@ impl GameBoy {
     }
 
     #[inline]
-    pub fn checksum(&self) -> u16 {
-        self.checksum
+    pub fn cart_checksum(&self) -> u16 {
+        self.cart_checksum
     }
 
     pub fn play(
@@ -101,15 +101,15 @@ impl GameBoy {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct GameBoySnapshot {
-    checksum: u16,
+    cart_checksum: u16,
     bus: BusSnapshot,
     cpu: CpuSnapshot,
 }
 
 impl GameBoySnapshot {
     #[inline]
-    pub fn checksum(&self) -> u16 {
-        self.checksum
+    pub fn cart_checksum(&self) -> u16 {
+        self.cart_checksum
     }
 }
 
@@ -120,7 +120,7 @@ impl Snapshot for GameBoy {
         Self::Snapshot {
             bus: self.bus.snapshot(),
             cpu: self.cpu.snapshot(),
-            checksum: self.checksum,
+            cart_checksum: self.cart_checksum,
         }
     }
 

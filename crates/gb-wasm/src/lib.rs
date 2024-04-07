@@ -150,7 +150,7 @@ impl GameBoyHandle {
     pub fn restore_snapshot(&mut self, snapshot: js_sys::Uint8Array) -> Result<(), JsError> {
         match GameBoySnapshot::try_from(snapshot.to_vec().as_slice()) {
             Ok(snapshot) => {
-                if snapshot.checksum() != self.gb.checksum() {
+                if snapshot.cart_checksum() != self.gb.cart_checksum() {
                     return Err(JsError::new("[ESS2]The snapshot doesn't match the game"));
                 }
                 self.gb.restore(snapshot);
