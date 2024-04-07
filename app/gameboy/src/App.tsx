@@ -96,6 +96,42 @@ function App() {
           gameboy.play();
         }}
       />
+      <button
+        onClick={() => {
+          const bytes = gameboy.takeSnapshot();
+          const blob = new Blob([bytes], { type: "application/octet-stream" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.style.display = "none";
+          a.download = "snapshot.ss";
+          a.click();
+          setTimeout(() => {
+            a.remove();
+            URL.revokeObjectURL(url);
+          }, 1000);
+        }}
+      >
+        Take snapshot
+      </button>
+      <input
+        type="file"
+        accept=".snapshot"
+        onChange={(evt) => {
+          const file = evt.target.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const buffer = new Uint8Array(reader.result as ArrayBuffer);
+            gameboy.restoreSnapshot(buffer);
+            evt.target.value = "";
+          };
+          reader.readAsArrayBuffer(file);
+        }}
+      />
     </div>
   );
 }

@@ -96,6 +96,7 @@ impl GameBoy {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GameBoySnapshot {
+    // TODO: add checksum metadata and validate when restoring
     bus: BusSnapshot,
     cpu: CpuSnapshot,
 }
