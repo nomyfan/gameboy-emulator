@@ -151,13 +151,13 @@ impl GameBoyHandle {
         match GameBoySnapshot::try_from(snapshot.to_vec().as_slice()) {
             Ok(snapshot) => {
                 if snapshot.checksum() != self.gb.checksum() {
-                    return Err(JsError::new("[ESS2] The snapshot doesn't match the game"));
+                    return Err(JsError::new("[ESS2]The snapshot doesn't match the game"));
                 }
                 self.gb.restore(snapshot);
 
                 Ok(())
             }
-            Err(_) => Err(JsError::new("[ESS1] Snapshot is broken")),
+            Err(_) => Err(JsError::new("[ESS1]Snapshot is broken")),
         }
     }
 }

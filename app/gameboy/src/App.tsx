@@ -132,7 +132,22 @@ function App() {
             } catch (err) {
               if (err instanceof Error) {
                 const message = err.message;
-                console.error(message);
+                const parseGameBoyError = (errorMessage: string) => {
+                  const RE = /^\[(E\w+?\d+?)\]/;
+                  const match = RE.exec(errorMessage);
+                  if (match) {
+                    const code = match[1];
+                    const message = errorMessage.replace(RE, "");
+                    return { code, message };
+                  } else {
+                    return null;
+                  }
+                };
+                const gbError = parseGameBoyError(message);
+                if (gbError) {
+                  console.error(gbError);
+                  return;
+                }
               }
 
               throw err;
