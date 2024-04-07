@@ -7,3 +7,4 @@ edition = "2021"
 gb_shared = { workspace = true }
 log = { workspace = true }
 blip_buf-rs = "0.1.1"
+serde = { workspace = true }

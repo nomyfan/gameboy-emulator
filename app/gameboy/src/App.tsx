@@ -96,6 +96,66 @@ function App() {
           gameboy.play();
         }}
       />
+      <button
+        onClick={() => {
+          const bytes = gameboy.takeSnapshot();
+          const blob = new Blob([bytes], { type: "application/octet-stream" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.style.display = "none";
+          a.download = "snapshot.ss";
+          a.click();
+          setTimeout(() => {
+            a.remove();
+            URL.revokeObjectURL(url);
+          }, 1000);
+        }}
+      >
+        Take snapshot
+      </button>
+      <input
+        type="file"
+        accept=".ss"
+        onChange={(evt) => {
+          const file = evt.target.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const buffer = new Uint8Array(reader.result as ArrayBuffer);
+            try {
+              gameboy.restoreSnapshot(buffer);
+              evt.target.value = "";
+            } catch (err) {
+              if (err instanceof Error) {
+                const message = err.message;
+                const parseGameBoyError = (errorMessage: string) => {
+                  const RE = /^\[(E\w+?\d+?)\]/;
+                  const match = RE.exec(errorMessage);
+                  if (match) {
+                    const code = match[1];
+                    const message = errorMessage.replace(RE, "");
+                    return { code, message };
+                  } else {
+                    return null;
+                  }
+                };
+                const gbError = parseGameBoyError(message);
+                if (gbError) {
+                  console.error(gbError);
+                  return;
+                }
+              }
+
+              throw err;
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        }}
+      />
     </div>
   );
 }

@@ -1,10 +1,17 @@
-use gb_apu::Apu;
+use gb_apu::{Apu, ApuSnapshot};
 use gb_cartridge::Cartridge;
-use gb_ppu::Ppu;
-use gb_shared::{command::Command, Memory};
+use gb_ppu::{Ppu, PpuSnapshot};
+use gb_shared::{command::Command, Memory, Snapshot};
 use std::ops::{Deref, DerefMut};
 
-use crate::{dma::DMA, hram::HighRam, joypad::Joypad, serial::Serial, timer::Timer, wram::WorkRam};
+use crate::{
+    dma::{DmaSnapshot, DMA},
+    hram::{HighRam, HighRamSnapshot},
+    joypad::{Joypad, JoypadSnapshot},
+    serial::{Serial, SerialSnapshot},
+    timer::{Timer, TimerSnapshot},
+    wram::{WorkRam, WorkRamSnapshot},
+};
 
 pub(crate) struct BusInner {
     /// R/W. Set the bit to be 1 if the corresponding
@@ -37,7 +44,7 @@ pub(crate) struct BusInner {
     joypad: Joypad,
     timer: Timer,
     pub(crate) ppu: Ppu,
-    pub(crate) apu: Option<Apu>,
+    pub(crate) apu: Apu,
     ref_count: usize,
 }
 
@@ -79,9 +86,7 @@ impl Memory for BusInner {
                         self.interrupt_flag = 0xE0 | value
                     }
                     0xFF10..=0xFF3F => {
-                        if let Some(apu) = &mut self.apu {
-                            apu.write(addr, value);
-                        }
+                        self.apu.write(addr, value);
                     }
                     0xFF46 => {
                         // DMA
@@ -150,13 +155,7 @@ impl Memory for BusInner {
                         // IF
                         self.interrupt_flag
                     }
-                    0xFF10..=0xFF3F => {
-                        if let Some(apu) = &self.apu {
-                            apu.read(addr)
-                        } else {
-                            0
-                        }
-                    }
+                    0xFF10..=0xFF3F => self.apu.read(addr),
                     0xFF46 => self.dma.read(addr),
                     0xFF40..=0xFF4B => self.ppu.read(addr),
                     _ => {
@@ -210,7 +209,7 @@ impl Bus {
                 joypad: Joypad::new(),
                 timer: Timer::new(),
                 ppu: Ppu::new(),
-                apu: sample_rate.map(Apu::new),
+                apu: Apu::new(sample_rate),
                 ref_count: 1,
             })),
         }
@@ -255,9 +254,7 @@ impl gb_shared::Component for Bus {
                 let irq = self.timer.take_irq();
                 self.set_irq(irq);
 
-                if let Some(apu) = self.apu.as_mut() {
-                    apu.step();
-                }
+                self.apu.step();
             }
 
             // It costs 160 machine cycles to transfer 160 bytes of data.
@@ -297,5 +294,51 @@ impl Memory for Bus {
 
     fn read(&self, addr: u16) -> u8 {
         unsafe { (*self.ptr).read(addr) }
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct BusSnapshot {
+    interrupt_enable: u8,
+    interrupt_flag: u8,
+    wram: WorkRamSnapshot,
+    hram: HighRamSnapshot,
+    dma: DmaSnapshot,
+    serial: SerialSnapshot,
+    joypad: JoypadSnapshot,
+    timer: TimerSnapshot,
+    ppu: PpuSnapshot,
+    apu: ApuSnapshot,
+}
+
+impl Snapshot for Bus {
+    type Snapshot = BusSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        BusSnapshot {
+            interrupt_enable: self.interrupt_enable,
+            interrupt_flag: self.interrupt_flag,
+            wram: self.wram.snapshot(),
+            hram: self.hram.snapshot(),
+            dma: self.dma.snapshot(),
+            serial: self.serial.snapshot(),
+            joypad: self.joypad.snapshot(),
+            timer: self.timer.snapshot(),
+            ppu: self.ppu.snapshot(),
+            apu: self.apu.snapshot(),
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.interrupt_enable = snapshot.interrupt_enable;
+        self.interrupt_flag = snapshot.interrupt_flag;
+        self.wram.restore(snapshot.wram);
+        self.hram.restore(snapshot.hram);
+        self.dma.restore(snapshot.dma);
+        self.serial.restore(snapshot.serial);
+        self.joypad.restore(snapshot.joypad);
+        self.timer.restore(snapshot.timer);
+        self.ppu.restore(snapshot.ppu);
+        self.apu.restore(snapshot.apu);
     }
 }

@@ -1,6 +1,6 @@
 use gb_shared::{
     command::{JoypadCommand, JoypadKey},
-    is_bit_set, Interrupt, InterruptRequest, Memory,
+    is_bit_set, Interrupt, InterruptRequest, Memory, Snapshot,
 };
 
 /// The state is true when the value is zero.
@@ -78,6 +78,31 @@ impl Joypad {
 
     pub fn take_irq(&mut self) -> u8 {
         self.irq.take()
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct JoypadSnapshot {
+    buttons: u8,
+    select_action: bool,
+    select_direction: bool,
+}
+
+impl Snapshot for Joypad {
+    type Snapshot = JoypadSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        JoypadSnapshot {
+            buttons: self.buttons,
+            select_action: self.select_action,
+            select_direction: self.select_direction,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.buttons = snapshot.buttons;
+        self.select_action = snapshot.select_action;
+        self.select_direction = snapshot.select_direction;
     }
 }
 

@@ -12,12 +12,12 @@ mod wram;
 
 use web_time::{Duration, Instant};
 
-use bus::Bus;
+use bus::{Bus, BusSnapshot};
 use gb_apu::AudioOutHandle;
 use gb_cartridge::Cartridge;
-use gb_cpu_sm83::Cpu;
+use gb_cpu_sm83::{Cpu, CpuSnapshot};
 pub use gb_ppu::FrameOutHandle;
-use gb_shared::{command::Command, CPU_FREQ};
+use gb_shared::{command::Command, Snapshot, CPU_FREQ};
 
 pub struct Manifest {
     pub cart: Cartridge,
@@ -29,16 +29,18 @@ pub struct GameBoy {
     bus: Bus,
     clocks: u32,
     ts: Instant,
+    cart_checksum: u16,
 }
 
 impl GameBoy {
     const EXEC_DURATION: Duration = Duration::from_millis(1000 / 4);
-    const EXEC_CYCLES: u32 = (CPU_FREQ / 4);
+    const EXEC_CLOCKS: u32 = (CPU_FREQ / 4);
 
     pub fn new(manifest: Manifest) -> Self {
         let Manifest { cart, sample_rate } = manifest;
 
         let cart_header_checksum = cart.header.checksum;
+        let cart_global_checksum = cart.header.global_checksum;
         let bus = Bus::new(cart, sample_rate);
 
         let mut cpu = Cpu::new(bus.clone());
@@ -48,7 +50,7 @@ impl GameBoy {
             cpu.reg_f = 0x80;
         }
 
-        Self { cpu, bus, clocks: 0, ts: Instant::now() }
+        Self { cpu, bus, clocks: 0, ts: Instant::now(), cart_checksum: cart_global_checksum }
     }
 
     pub fn set_handles(
@@ -57,9 +59,12 @@ impl GameBoy {
         audio_out_handle: Option<Box<AudioOutHandle>>,
     ) {
         self.bus.ppu.set_frame_out_handle(frame_out_handle);
-        if let Some(apu) = self.bus.apu.as_mut() {
-            apu.set_audio_out_handle(audio_out_handle);
-        }
+        self.bus.apu.set_audio_out_handle(audio_out_handle);
+    }
+
+    #[inline]
+    pub fn cart_checksum(&self) -> u16 {
+        self.cart_checksum
     }
 
     pub fn play(
@@ -74,8 +79,8 @@ impl GameBoy {
         loop {
             self.cpu.step();
 
-            let cycles = self.clocks + self.cpu.take_clocks() as u32;
-            self.clocks = cycles % Self::EXEC_CYCLES;
+            let clocks = self.clocks + self.cpu.take_clocks() as u32;
+            self.clocks = clocks % Self::EXEC_CLOCKS;
 
             match pull_command()? {
                 Some(Command::Exit) => return Ok(()),
@@ -83,7 +88,7 @@ impl GameBoy {
                 None => {}
             }
 
-            if cycles >= Self::EXEC_CYCLES {
+            if clocks >= Self::EXEC_CLOCKS {
                 let duration = self.ts.elapsed();
                 if duration < Self::EXEC_DURATION {
                     std::thread::sleep(Self::EXEC_DURATION - duration);
@@ -91,5 +96,52 @@ impl GameBoy {
                 self.ts = Instant::now();
             }
         }
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct GameBoySnapshot {
+    cart_checksum: u16,
+    bus: BusSnapshot,
+    cpu: CpuSnapshot,
+}
+
+impl GameBoySnapshot {
+    #[inline]
+    pub fn cart_checksum(&self) -> u16 {
+        self.cart_checksum
+    }
+}
+
+impl Snapshot for GameBoy {
+    type Snapshot = GameBoySnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        Self::Snapshot {
+            bus: self.bus.snapshot(),
+            cpu: self.cpu.snapshot(),
+            cart_checksum: self.cart_checksum,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.bus.restore(snapshot.bus);
+        self.cpu.restore(snapshot.cpu);
+    }
+}
+
+impl TryFrom<&[u8]> for GameBoySnapshot {
+    type Error = bincode::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        bincode::deserialize(value)
+    }
+}
+
+impl TryFrom<&GameBoySnapshot> for Vec<u8> {
+    type Error = bincode::Error;
+
+    fn try_from(value: &GameBoySnapshot) -> Result<Self, Self::Error> {
+        bincode::serialize(value)
     }
 }

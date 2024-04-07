@@ -117,6 +117,16 @@ class GameBoyControl {
       this.keyState = state;
     }
   }
+
+  takeSnapshot() {
+    this.ensureInstalled();
+    return this.instance_!.takeSnapshot();
+  }
+
+  restoreSnapshot(snapshot: Uint8Array) {
+    this.ensureInstalled();
+    this.instance_!.restoreSnapshot(snapshot);
+  }
 }
 
 export { GameBoyControl, JoypadKey };

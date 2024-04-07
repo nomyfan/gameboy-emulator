@@ -4,8 +4,10 @@ mod utils;
 use cpal::traits::StreamTrait;
 use cpal::Stream;
 use gb::wasm::{Cartridge, GameBoy, Manifest};
+use gb::GameBoySnapshot;
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
+use gb_shared::Snapshot;
 use js_sys::Uint8ClampedArray;
 use wasm_bindgen::{prelude::*, Clamped};
 use web_sys::{js_sys, CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
@@ -39,10 +41,9 @@ impl ScaleImageData {
         let y_end = y_begin + scale;
 
         for y in y_begin..y_end {
-            for x in x_begin..x_end {
-                let offset = (y * 160 * scale + x) * 4;
-                self.0[offset..(offset + 4)].copy_from_slice(color);
-            }
+            let begin = (y * 160 * scale + x_begin) * 4;
+            let end = (y * 160 * scale + x_end) * 4;
+            self.0[begin..end].chunks_mut(4).for_each(|chunk| chunk.copy_from_slice(color));
         }
     }
 
@@ -135,5 +136,28 @@ impl GameBoyHandle {
     #[wasm_bindgen(js_name = changeKeyState)]
     pub fn change_key_state(&mut self, state: u8) {
         self.gb.exec_command(Command::Joypad(JoypadCommand::State(state)));
+    }
+
+    #[wasm_bindgen(js_name = takeSnapshot)]
+    pub fn take_snapshot(&self) -> js_sys::Uint8Array {
+        let snapshot = self.gb.snapshot();
+        let bytes: Vec<u8> = Vec::try_from(&snapshot).unwrap();
+
+        js_sys::Uint8Array::from(bytes.as_slice())
+    }
+
+    #[wasm_bindgen(js_name = restoreSnapshot)]
+    pub fn restore_snapshot(&mut self, snapshot: js_sys::Uint8Array) -> Result<(), JsError> {
+        match GameBoySnapshot::try_from(snapshot.to_vec().as_slice()) {
+            Ok(snapshot) => {
+                if snapshot.cart_checksum() != self.gb.cart_checksum() {
+                    return Err(JsError::new("[ESS2]The snapshot doesn't match the game"));
+                }
+                self.gb.restore(snapshot);
+
+                Ok(())
+            }
+            Err(_) => Err(JsError::new("[ESS1]Snapshot is broken")),
+        }
     }
 }

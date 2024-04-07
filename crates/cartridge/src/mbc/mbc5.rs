@@ -103,8 +103,8 @@ impl Mbc for Mbc5 {
         }
     }
 
+    #[cfg(not(target_family = "wasm"))]
     fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
-        #[cfg(not(target_family = "wasm"))]
         if self.with_battery {
             use std::io::Write;
             let mut file = std::fs::File::create(path)?;
@@ -117,8 +117,8 @@ impl Mbc for Mbc5 {
         Ok(())
     }
 
+    #[cfg(not(target_family = "wasm"))]
     fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
-        #[cfg(not(target_family = "wasm"))]
         if self.with_battery {
             use std::io::Read;
             let mut file = std::fs::File::open(path)?;

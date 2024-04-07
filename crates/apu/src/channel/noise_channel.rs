@@ -1,9 +1,11 @@
-use gb_shared::{is_bit_set, unset_bits, Memory};
+use gb_shared::{is_bit_set, unset_bits, Memory, Snapshot};
+use serde::{Deserialize, Serialize};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::{Frame, NoiseChannelLengthCounter as LengthCounter, Envelope};
+use super::{Envelope, Frame, NoiseChannelLengthCounter as LengthCounter};
 
+#[derive(Clone, Serialize, Deserialize)]
 struct Lfsr {
     value: u16,
     clock: Clock,
@@ -80,7 +82,7 @@ pub(crate) struct NoiseChannel {
     /// Bit7, Trigger.
     /// Bit6, Length enable.
     nrx4: u8,
-    blipbuf: blipbuf::BlipBuf,
+    blipbuf: Option<blipbuf::BlipBuf>,
     length_counter: LengthCounter,
     envelope: Envelope,
     lfsr: Lfsr,
@@ -99,13 +101,14 @@ impl std::fmt::Debug for NoiseChannel {
 }
 
 impl NoiseChannel {
-    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
+    pub(crate) fn new(frequency: u32, sample_rate: Option<u32>) -> Self {
         let nrx1 = 0;
         let nrx2 = 0;
         let nrx3 = 0;
         let nrx4 = 0;
         Self {
-            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
+            blipbuf: sample_rate
+                .map(|sample_rate| blipbuf::BlipBuf::new(frequency, sample_rate, 0)),
             nrx1,
             nrx2,
             nrx3,
@@ -125,12 +128,11 @@ impl NoiseChannel {
     #[inline]
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if let Some(use_volume) = self.lfsr.step(self.nrx3) {
-            let volume = if use_volume && (self.active()) {
-                self.envelope.volume() as i32
-            } else {
-                0
-            };
-            self.blipbuf.add_delta(self.lfsr.clock.div(), volume);
+            let volume =
+                if use_volume && (self.active()) { self.envelope.volume() as i32 } else { 0 };
+            if let Some(blipbuf) = &mut self.blipbuf {
+                blipbuf.add_delta(self.lfsr.clock.div(), volume);
+            }
         }
 
         if let Some(frame) = frame {
@@ -144,7 +146,7 @@ impl NoiseChannel {
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) -> usize {
-        self.blipbuf.end(buffer, duration)
+        self.blipbuf.as_mut().map_or(0, |blipbuf| blipbuf.end(buffer, duration))
     }
 
     pub(crate) fn power_off(&mut self) {
@@ -204,6 +206,50 @@ impl Memory for NoiseChannel {
             3 => self.nrx3,
             4 => self.nrx4,
             _ => unreachable!("Invalid address for NoiseChannel: {:#X}", addr),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct NoiseChannelSnapshot {
+    nrx1: u8,
+    nrx2: u8,
+    nrx3: u8,
+    nrx4: u8,
+    length_counter: LengthCounter,
+    envelope: Envelope,
+    lfsr: Lfsr,
+    active: bool,
+}
+
+impl Snapshot for NoiseChannel {
+    type Snapshot = NoiseChannelSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        NoiseChannelSnapshot {
+            nrx1: self.nrx1,
+            nrx2: self.nrx2,
+            nrx3: self.nrx3,
+            nrx4: self.nrx4,
+            length_counter: self.length_counter.clone(),
+            envelope: self.envelope.clone(),
+            lfsr: self.lfsr.clone(),
+            active: self.active,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.nrx1 = snapshot.nrx1;
+        self.nrx2 = snapshot.nrx2;
+        self.nrx3 = snapshot.nrx3;
+        self.nrx4 = snapshot.nrx4;
+        self.length_counter = snapshot.length_counter;
+        self.envelope = snapshot.envelope;
+        self.lfsr = snapshot.lfsr;
+        self.active = snapshot.active;
+
+        if let Some(blipbuf) = &mut self.blipbuf {
+            blipbuf.clear();
         }
     }
 }

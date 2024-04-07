@@ -1,8 +1,9 @@
-use gb_shared::{is_bit_set, Memory};
+use gb_shared::{is_bit_set, Memory, Snapshot};
+use serde::{Deserialize, Serialize};
 
 use crate::{blipbuf, clock::Clock};
 
-use super::{Frame, Sweep, PulseChannelLengthCounter as LengthCounter, Envelope};
+use super::{Envelope, Frame, PulseChannelLengthCounter as LengthCounter, Sweep};
 
 struct PulseChannelClock(Clock);
 
@@ -32,6 +33,7 @@ impl PulseChannelClock {
     }
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize)]
 struct DutyCycle {
     index: u8,
 }
@@ -82,7 +84,7 @@ where
     /// Bit4..=7, initial volume. Used to set volume envelope's volume.
     /// When Bit3..=7 are all 0, the DAC is off.
     nrx2: u8,
-    blipbuf: blipbuf::BlipBuf,
+    blipbuf: Option<blipbuf::BlipBuf>,
     channel_clock: PulseChannelClock,
     length_counter: LengthCounter,
     duty_cycle: DutyCycle,
@@ -114,7 +116,7 @@ impl<SWEEP> PulseChannel<SWEEP>
 where
     SWEEP: Sweep,
 {
-    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
+    pub(crate) fn new(frequency: u32, sample_rate: Option<u32>) -> Self {
         let nrx0 = 0;
         let nrx1 = 0;
         let nrx2 = 0;
@@ -126,7 +128,9 @@ where
         let channel_clock = PulseChannelClock::from_period(sweep.period_value());
 
         Self {
-            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, envelope.volume() as i32),
+            blipbuf: sample_rate.map(|sample_rate| {
+                blipbuf::BlipBuf::new(frequency, sample_rate, envelope.volume() as i32)
+            }),
             channel_clock,
             length_counter: LengthCounter::new_expired(),
             nrx0,
@@ -151,13 +155,19 @@ where
 
     pub(crate) fn step(&mut self, frame: Option<Frame>) {
         if self.channel_clock.step() {
-            if self.active() {
+            let volume = if self.active() {
                 let is_high_signal = self.duty_cycle.step(self.nrx1);
                 let volume = self.envelope.volume() as i32;
-                let volume = if is_high_signal { volume } else { -volume };
-                self.blipbuf.add_delta(self.channel_clock.div(), volume);
+                if is_high_signal {
+                    volume
+                } else {
+                    -volume
+                }
             } else {
-                self.blipbuf.add_delta(self.channel_clock.div(), 0);
+                0
+            };
+            if let Some(blipbuf) = &mut self.blipbuf {
+                blipbuf.add_delta(self.channel_clock.div(), volume);
             }
         }
 
@@ -177,7 +187,7 @@ where
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) -> usize {
-        self.blipbuf.end(buffer, duration)
+        self.blipbuf.as_mut().map_or(0, |blipbuf| blipbuf.end(buffer, duration))
     }
 
     /// Called when the APU is turned off which resets all registers.
@@ -250,6 +260,59 @@ where
             3 => 0,
             4 => (self.length_counter.enabled() as u8) << 6,
             _ => unreachable!("Invalid address for PulseChannel: {:#X}", addr),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct PulseChannelSnapshot<SWEEP>
+where
+    SWEEP: Sweep,
+{
+    nrx0: u8,
+    nrx1: u8,
+    nrx2: u8,
+    channel_clock: Clock,
+    lenght_counter: LengthCounter,
+    duty_cycle: DutyCycle,
+    envelope: Envelope,
+    sweep: SWEEP,
+    active: bool,
+}
+
+impl<SWEEP> Snapshot for PulseChannel<SWEEP>
+where
+    SWEEP: Sweep + Clone,
+{
+    type Snapshot = PulseChannelSnapshot<SWEEP>;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        PulseChannelSnapshot {
+            nrx0: self.nrx0,
+            nrx1: self.nrx1,
+            nrx2: self.nrx2,
+            channel_clock: self.channel_clock.0.clone(),
+            lenght_counter: self.length_counter.clone(),
+            duty_cycle: self.duty_cycle,
+            envelope: self.envelope.clone(),
+            sweep: self.sweep.clone(),
+            active: self.active,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.nrx0 = snapshot.nrx0;
+        self.nrx1 = snapshot.nrx1;
+        self.nrx2 = snapshot.nrx2;
+        self.channel_clock.0 = snapshot.channel_clock;
+        self.length_counter = snapshot.lenght_counter;
+        self.duty_cycle = snapshot.duty_cycle;
+        self.envelope = snapshot.envelope;
+        self.sweep = snapshot.sweep;
+        self.active = snapshot.active;
+
+        if let Some(blipbuf) = &mut self.blipbuf {
+            blipbuf.clear();
         }
     }
 }

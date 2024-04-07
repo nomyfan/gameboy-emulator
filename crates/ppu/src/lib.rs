@@ -1,5 +1,4 @@
 mod config;
-mod fps;
 mod lcd;
 mod object;
 mod tile;
@@ -7,9 +6,10 @@ mod tile;
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
-use fps::Fps;
 use gb_shared::boxed::BoxedArray;
-use gb_shared::{is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory};
+use gb_shared::{is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory, Snapshot};
+use lcd::LCDSnapshot;
+use object::ObjectSnapshot;
 
 pub type VideoFrame = BoxedArray<u8, 23040>; // 160 * 144
 
@@ -39,7 +39,6 @@ pub(crate) struct PpuWorkState {
     /// Whether window is used in current scanline.
     /// Used for incrementing window_line.
     window_used: bool,
-    fps: Fps,
 }
 
 #[derive(Default)]
@@ -192,7 +191,6 @@ impl Ppu {
             self.video_buffer.iter_mut().for_each(|pixel| {
                 *pixel = 0;
             });
-            self.work_state.fps.stop();
             self.frame_id = 0;
             self.push_frame();
         }
@@ -410,9 +408,6 @@ impl Ppu {
                 // https://gbdev.io/pandocs/Rendering.html#obj-penalty-algorithm:~:text=one%20frame%20takes%20~-,16.74,-ms%20instead%20of
                 // (456 * 154) * (1/(2**22)) * 1000 = 16.74ms
                 // Notify that a frame is rendered.
-                if let Some(fps) = self.work_state.fps.update() {
-                    log::info!("Render FPS: {:.2}", fps);
-                }
                 self.frame_id = self.frame_id.wrapping_add(1);
                 self.push_frame();
             }
@@ -491,6 +486,73 @@ impl Memory for Ppu {
             0xFF4B => self.lcd.wx,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PpuSnapshot {
+    vram: Vec<u8>, // 0x2000
+    oam: Vec<u8>,  // 0xA0
+    lcd: LCDSnapshot,
+    bgp: u8,
+    obp0: u8,
+    obp1: u8,
+    // #region Work state
+    scanline_x: u8,
+    scanline_dots: u16,
+    scanline_objects: Vec<ObjectSnapshot>,
+    window_line: u8,
+    window_used: bool,
+    // #endregion
+    video_buffer: Vec<u8>, // 160 * 144
+}
+
+impl Snapshot for Ppu {
+    type Snapshot = PpuSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        PpuSnapshot {
+            vram: self.vram.to_vec(),
+            oam: self.oam.to_vec(),
+            lcd: self.lcd.snapshot(),
+            bgp: self.bgp,
+            obp0: self.obp0,
+            obp1: self.obp1,
+            scanline_x: self.work_state.scanline_x,
+            scanline_dots: self.work_state.scanline_dots,
+            scanline_objects: self
+                .work_state
+                .scanline_objects
+                .iter()
+                .map(|o| o.snapshot())
+                .collect(),
+            window_line: self.work_state.window_line,
+            window_used: self.work_state.window_used,
+            video_buffer: self.video_buffer.to_vec(),
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.vram = BoxedArray::try_from_vec(snapshot.vram).unwrap();
+        self.oam = BoxedArray::try_from_vec(snapshot.oam).unwrap();
+        self.lcd.restore(snapshot.lcd);
+        self.bgp = snapshot.bgp;
+        self.obp0 = snapshot.obp0;
+        self.obp1 = snapshot.obp1;
+        self.work_state.scanline_x = snapshot.scanline_x;
+        self.work_state.scanline_dots = snapshot.scanline_dots;
+        self.work_state.scanline_objects = snapshot
+            .scanline_objects
+            .into_iter()
+            .map(|o| {
+                let mut object = Object::default();
+                object.restore(o);
+                object
+            })
+            .collect();
+        self.work_state.window_line = snapshot.window_line;
+        self.work_state.window_used = snapshot.window_used;
+        self.video_buffer = BoxedArray::try_from_vec(snapshot.video_buffer).unwrap();
     }
 }
 

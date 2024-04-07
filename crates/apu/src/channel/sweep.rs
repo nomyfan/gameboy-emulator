@@ -1,4 +1,5 @@
 use gb_shared::is_bit_set;
+use serde::{Deserialize, Serialize};
 
 use super::Frame;
 
@@ -13,6 +14,7 @@ pub(crate) trait Sweep: std::fmt::Debug {
     fn period_value(&self) -> u16;
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct SomeSweep {
     /// Complete one iteration when it reaches zero.
     /// Initialized and reset with `pace`.
@@ -194,6 +196,7 @@ impl Sweep for SomeSweep {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct NoneSweep {
     nrx3: u8,
     nrx4: u8,

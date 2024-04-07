@@ -1,4 +1,4 @@
-use gb_shared::is_bit_set;
+use gb_shared::{is_bit_set, Snapshot};
 
 /// https://gbdev.io/pandocs/OAM.html
 #[repr(C)]
@@ -45,6 +45,29 @@ impl ObjectAttrs {
 impl From<u8> for ObjectAttrs {
     fn from(value: u8) -> Self {
         Self(value)
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct ObjectSnapshot {
+    y: u8,
+    x: u8,
+    tile_index: u8,
+    attrs: u8,
+}
+
+impl Snapshot for Object {
+    type Snapshot = ObjectSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        ObjectSnapshot { y: self.y, x: self.x, tile_index: self.tile_index, attrs: self.attrs.0 }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.y = snapshot.y;
+        self.x = snapshot.x;
+        self.tile_index = snapshot.tile_index;
+        self.attrs = ObjectAttrs(snapshot.attrs);
     }
 }
 

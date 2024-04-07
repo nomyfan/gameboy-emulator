@@ -16,7 +16,17 @@ use pulse_channel::PulseChannel;
 use sweep::Sweep;
 use wave_channel::WaveChannel;
 
+use self::{
+    noise_channel::NoiseChannelSnapshot, pulse_channel::PulseChannelSnapshot,
+    wave_channel::WaveChannelSnapshot,
+};
+
 pub(crate) type Channel1 = PulseChannel<sweep::SomeSweep>;
 pub(crate) type Channel2 = PulseChannel<sweep::NoneSweep>;
 pub(crate) type Channel3 = WaveChannel;
 pub(crate) type Channel4 = NoiseChannel;
+
+pub(crate) type Channel1Snapshot = PulseChannelSnapshot<sweep::SomeSweep>;
+pub(crate) type Channel2Snapshot = PulseChannelSnapshot<sweep::NoneSweep>;
+pub(crate) type Channel3Snapshot = WaveChannelSnapshot;
+pub(crate) type Channel4Snapshot = NoiseChannelSnapshot;

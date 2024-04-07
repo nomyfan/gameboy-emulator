@@ -1,7 +1,6 @@
 pub mod bitwise;
 pub mod boxed;
 pub mod command;
-pub mod event;
 
 pub fn boxed_array<T: Copy, const SIZE: usize>(val: T) -> Box<[T; SIZE]> {
     let boxed_slice = vec![val; SIZE].into_boxed_slice();
@@ -19,6 +18,17 @@ pub fn boxed_array_fn<T, F: Fn(usize) -> T, const SIZE: usize>(init_fn: F) -> Bo
     let ptr = Box::into_raw(boxed_slice) as *mut [T; SIZE];
 
     unsafe { Box::from_raw(ptr) }
+}
+
+pub fn boxed_array_try_from_vec<T, const SIZE: usize>(vec: Vec<T>) -> Result<Box<[T; SIZE]>, Vec<T>> {
+    if vec.len() == SIZE {
+        let boxed_slice = vec.into_boxed_slice();
+        let ptr = Box::into_raw(boxed_slice) as *mut [T; SIZE];
+
+        Ok(unsafe { Box::from_raw(ptr) })
+    } else {
+        Err(vec)
+    }
 }
 
 pub trait Memory {
@@ -84,3 +94,9 @@ pub const fn mib(m: usize) -> usize {
 }
 
 pub const CPU_FREQ: u32 = 4_194_304;
+
+pub trait Snapshot {
+    type Snapshot;
+    fn snapshot(&self) -> Self::Snapshot;
+    fn restore(&mut self, snapshot: Self::Snapshot);
+}
