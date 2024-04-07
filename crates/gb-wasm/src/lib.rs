@@ -4,8 +4,10 @@ mod utils;
 use cpal::traits::StreamTrait;
 use cpal::Stream;
 use gb::wasm::{Cartridge, GameBoy, Manifest};
+use gb::GameBoySnapshot;
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
+use gb_shared::Snapshot;
 use js_sys::Uint8ClampedArray;
 use wasm_bindgen::{prelude::*, Clamped};
 use web_sys::{js_sys, CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
@@ -134,5 +136,19 @@ impl GameBoyHandle {
     #[wasm_bindgen(js_name = changeKeyState)]
     pub fn change_key_state(&mut self, state: u8) {
         self.gb.exec_command(Command::Joypad(JoypadCommand::State(state)));
+    }
+
+    #[wasm_bindgen(js_name = takeSnapshot)]
+    pub fn take_snapshot(&self) -> js_sys::Uint8Array {
+        let snapshot = self.gb.snapshot();
+        let bytes: Vec<u8> = Vec::try_from(&snapshot).unwrap();
+
+        js_sys::Uint8Array::from(bytes.as_slice())
+    }
+
+    #[wasm_bindgen(js_name = restoreSnapshot)]
+    pub fn restore_snapshot(&mut self, snapshot: js_sys::Uint8Array) {
+        let snapshot = GameBoySnapshot::try_from(snapshot.to_vec().as_slice()).unwrap();
+        self.gb.restore(snapshot);
     }
 }
