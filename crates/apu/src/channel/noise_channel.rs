@@ -5,7 +5,7 @@ use crate::{blipbuf, clock::Clock};
 
 use super::{Envelope, Frame, NoiseChannelLengthCounter as LengthCounter};
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Lfsr {
     value: u16,
     clock: Clock,
@@ -231,9 +231,9 @@ impl Snapshot for NoiseChannel {
             nrx2: self.nrx2,
             nrx3: self.nrx3,
             nrx4: self.nrx4,
-            length_counter: self.length_counter,
-            envelope: self.envelope,
-            lfsr: self.lfsr,
+            length_counter: self.length_counter.clone(),
+            envelope: self.envelope.clone(),
+            lfsr: self.lfsr.clone(),
             active: self.active,
         }
     }

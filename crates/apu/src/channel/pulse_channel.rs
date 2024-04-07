@@ -287,10 +287,10 @@ where
             nrx0: self.nrx0,
             nrx1: self.nrx1,
             nrx2: self.nrx2,
-            channel_clock: self.channel_clock.0,
-            lenght_counter: self.length_counter,
+            channel_clock: self.channel_clock.0.clone(),
+            lenght_counter: self.length_counter.clone(),
             duty_cycle: self.duty_cycle,
-            envelope: self.envelope,
+            envelope: self.envelope.clone(),
             sweep: self.sweep.clone(),
             active: self.active,
         }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Frame;
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub(super) struct Envelope {
     frame: Frame,
     /// Complete one iteration when it reaches zero.

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Frame;
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct LengthCounter<const MAX: u16> {
     pub(super) frame: Frame,
     /// When the length timer reaches MAX, the channel is turned off.

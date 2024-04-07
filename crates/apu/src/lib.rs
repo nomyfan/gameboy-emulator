@@ -337,7 +337,7 @@ impl Snapshot for Apu {
             ch2: self.ch2.snapshot(),
             ch3: self.ch3.snapshot(),
             ch4: self.ch4.snapshot(),
-            mixer_clock: self.mixer_clock,
+            mixer_clock: self.mixer_clock.clone(),
             nr50: self.nr50,
             nr51: self.nr51,
             nr52: self.nr52,

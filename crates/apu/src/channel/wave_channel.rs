@@ -280,8 +280,8 @@ impl Snapshot for WaveChannel {
             nrx4: self.nrx4,
             wave_ram: self.wave_ram.ram,
             wave_ram_index: self.wave_ram.index,
-            length_counter: self.length_counter,
-            channel_clock: self.channel_clock,
+            length_counter: self.length_counter.clone(),
+            channel_clock: self.channel_clock.clone(),
             active: self.active,
         }
     }
