@@ -1,4 +1,5 @@
-use gb_shared::{is_bit_set, Memory};
+use gb_shared::{is_bit_set, Memory, Snapshot};
+use serde::{Deserialize, Serialize};
 
 use crate::{blipbuf, clock::Clock};
 
@@ -13,7 +14,7 @@ enum OutputLevel {
 
 pub(crate) struct WaveRam {
     ram: [u8; 16],
-    index: usize,
+    index: u8,
 }
 
 impl std::fmt::Debug for WaveRam {
@@ -32,7 +33,7 @@ impl WaveRam {
     }
 
     fn next_position(&mut self) -> u8 {
-        let value = self.ram[self.index / 2];
+        let value = self.ram[self.index as usize / 2];
         let value = if self.index % 2 == 0 { value >> 4 } else { value & 0x0F };
 
         self.index = (self.index + 1) % 32;
@@ -62,7 +63,7 @@ impl Memory for WaveRam {
     }
 }
 
-pub struct WaveChannel {
+pub(crate) struct WaveChannel {
     /// DAC enable.
     /// Bit7, 1: On, 0: Off
     nrx0: u8,
@@ -90,7 +91,7 @@ pub struct WaveChannel {
     /// Bit 6: Length enable.
     /// Bit 2..=0: The upper 3 bits of the period value.
     nrx4: u8,
-    blipbuf: blipbuf::BlipBuf,
+    blipbuf: Option<blipbuf::BlipBuf>,
     pub(crate) wave_ram: WaveRam,
     length_counter: LengthCounter,
     channel_clock: Clock,
@@ -117,7 +118,7 @@ impl WaveChannel {
 }
 
 impl WaveChannel {
-    pub(crate) fn new(frequency: u32, sample_rate: u32) -> Self {
+    pub(crate) fn new(frequency: u32, sample_rate: Option<u32>) -> Self {
         let nrx0 = 0;
         let nrx1 = 0;
         let nrx2 = 0;
@@ -125,7 +126,8 @@ impl WaveChannel {
         let nrx4 = 0;
 
         Self {
-            blipbuf: blipbuf::BlipBuf::new(frequency, sample_rate, 0),
+            blipbuf: sample_rate
+                .map(|sample_rate| blipbuf::BlipBuf::new(frequency, sample_rate, 0)),
             nrx0,
             nrx1,
             nrx2,
@@ -168,9 +170,11 @@ impl WaveChannel {
                     OutputLevel::Half => volume >> 1,
                     OutputLevel::Quarter => volume >> 2,
                 };
-                self.blipbuf.add_delta(self.channel_clock.div(), volume as i32);
-            } else {
-                self.blipbuf.add_delta(self.channel_clock.div(), 0);
+                if let Some(blipbuf) = &mut self.blipbuf {
+                    blipbuf.add_delta(self.channel_clock.div(), volume as i32);
+                }
+            } else if let Some(blipbuf) = &mut self.blipbuf {
+                blipbuf.add_delta(self.channel_clock.div(), 0);
             }
         }
 
@@ -182,7 +186,7 @@ impl WaveChannel {
     }
 
     pub(crate) fn read_samples(&mut self, buffer: &mut [i16], duration: u32) -> usize {
-        self.blipbuf.end(buffer, duration)
+        self.blipbuf.as_mut().map_or(0, |blipbuf| blipbuf.end(buffer, duration))
     }
 
     pub(crate) fn power_off(&mut self) {
@@ -246,6 +250,56 @@ impl Memory for WaveChannel {
             3 => self.nrx3,
             4 => self.nrx4,
             _ => unreachable!("Invalid address for WaveChannel: {:#X}", addr),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct WaveChannelSnapshot {
+    nrx0: u8,
+    nrx1: u8,
+    nrx2: u8,
+    nrx3: u8,
+    nrx4: u8,
+    wave_ram: [u8; 16],
+    wave_ram_index: u8,
+    length_counter: LengthCounter,
+    channel_clock: Clock,
+    active: bool,
+}
+
+impl Snapshot for WaveChannel {
+    type Snapshot = WaveChannelSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        WaveChannelSnapshot {
+            nrx0: self.nrx0,
+            nrx1: self.nrx1,
+            nrx2: self.nrx2,
+            nrx3: self.nrx3,
+            nrx4: self.nrx4,
+            wave_ram: self.wave_ram.ram,
+            wave_ram_index: self.wave_ram.index,
+            length_counter: self.length_counter,
+            channel_clock: self.channel_clock,
+            active: self.active,
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.nrx0 = snapshot.nrx0;
+        self.nrx1 = snapshot.nrx1;
+        self.nrx2 = snapshot.nrx2;
+        self.nrx3 = snapshot.nrx3;
+        self.nrx4 = snapshot.nrx4;
+        self.wave_ram.ram = snapshot.wave_ram;
+        self.wave_ram.index = snapshot.wave_ram_index;
+        self.length_counter = snapshot.length_counter;
+        self.channel_clock = snapshot.channel_clock;
+        self.active = snapshot.active;
+
+        if let Some(blipbuf) = &mut self.blipbuf {
+            blipbuf.clear();
         }
     }
 }

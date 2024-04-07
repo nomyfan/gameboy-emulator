@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{clock::Clock, utils::freq_to_period};
 
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct FrameSequencer {
     clock: Clock,
     frame: Frame,
@@ -26,7 +29,7 @@ impl FrameSequencer {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct Frame(u8);
 
 impl Default for Frame {

@@ -29,4 +29,8 @@ impl BlipBuf {
         self.clock_time = 0;
         self.buf.read_samples(buffer, samples_avail, false) as usize
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.buf.clear();
+    }
 }

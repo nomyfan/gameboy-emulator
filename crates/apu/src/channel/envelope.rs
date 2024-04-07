@@ -1,7 +1,9 @@
 use gb_shared::is_bit_set;
+use serde::{Deserialize, Serialize};
 
 use super::Frame;
 
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub(super) struct Envelope {
     frame: Frame,
     /// Complete one iteration when it reaches zero.

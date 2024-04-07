@@ -3,9 +3,12 @@ mod channel;
 mod clock;
 mod utils;
 
-use channel::{Channel1, Channel2, Channel3, Channel4, FrameSequencer};
+use channel::{
+    Channel1, Channel1Snapshot, Channel2, Channel2Snapshot, Channel3, Channel3Snapshot, Channel4,
+    Channel4Snapshot, FrameSequencer,
+};
 use clock::Clock;
-use gb_shared::{is_bit_set, Memory, CPU_FREQ};
+use gb_shared::{is_bit_set, Memory, Snapshot, CPU_FREQ};
 
 pub type AudioOutHandle = dyn FnMut(&[(f32, f32)]);
 
@@ -52,9 +55,10 @@ impl Apu {
         Clock::new(gb_shared::CPU_FREQ / Self::MIXER_FREQ)
     }
 
-    pub fn new(sample_rate: u32) -> Self {
+    pub fn new(sample_rate: Option<u32>) -> Self {
         let frequency = CPU_FREQ;
-        let buffer_size = sample_rate.div_ceil(Self::MIXER_FREQ) as usize;
+        let buffer_size =
+            sample_rate.map_or(0, |sample_rate| sample_rate.div_ceil(Self::MIXER_FREQ) as usize);
         let fs = FrameSequencer::new();
         let instance = Self {
             ch1: Channel1::new(frequency, sample_rate),
@@ -119,7 +123,7 @@ impl Apu {
         self.ch3.step(frame);
         self.ch4.step(frame);
 
-        if self.mixer_clock.step() {
+        if self.mixer_clock.step() && !self.samples_buffer.is_empty() {
             let left_volume_coefficient =
                 ((self.master_left_volume() + 1) as f32 / 8.0) * (1.0 / 15.0) * 0.25;
             let right_volume_coefficient =
@@ -308,5 +312,48 @@ impl std::fmt::Debug for Apu {
             .field("CH4", &self.ch4)
             .field("NR52", &format_args!("{:#X}", nrx52))
             .finish()
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ApuSnapshot {
+    ch1: Channel1Snapshot,
+    ch2: Channel2Snapshot,
+    ch3: Channel3Snapshot,
+    ch4: Channel4Snapshot,
+    mixer_clock: Clock,
+    nr50: u8,
+    nr51: u8,
+    nr52: u8,
+    fs: FrameSequencer,
+}
+
+impl Snapshot for Apu {
+    type Snapshot = ApuSnapshot;
+
+    fn snapshot(&self) -> Self::Snapshot {
+        ApuSnapshot {
+            ch1: self.ch1.snapshot(),
+            ch2: self.ch2.snapshot(),
+            ch3: self.ch3.snapshot(),
+            ch4: self.ch4.snapshot(),
+            mixer_clock: self.mixer_clock,
+            nr50: self.nr50,
+            nr51: self.nr51,
+            nr52: self.nr52,
+            fs: self.fs.clone(),
+        }
+    }
+
+    fn restore(&mut self, snapshot: Self::Snapshot) {
+        self.ch1.restore(snapshot.ch1);
+        self.ch2.restore(snapshot.ch2);
+        self.ch3.restore(snapshot.ch3);
+        self.ch4.restore(snapshot.ch4);
+        self.mixer_clock = snapshot.mixer_clock;
+        self.nr50 = snapshot.nr50;
+        self.nr51 = snapshot.nr51;
+        self.nr52 = snapshot.nr52;
+        self.fs = snapshot.fs;
     }
 }

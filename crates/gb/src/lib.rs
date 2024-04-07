@@ -13,7 +13,7 @@ mod wram;
 use web_time::{Duration, Instant};
 
 use bus::{Bus, BusSnapshot};
-use gb_apu::AudioOutHandle;
+use gb_apu::{ApuSnapshot, AudioOutHandle};
 use gb_cartridge::Cartridge;
 use gb_cpu_sm83::{Cpu, CpuSnapshot};
 pub use gb_ppu::FrameOutHandle;
@@ -59,9 +59,7 @@ impl GameBoy {
         audio_out_handle: Option<Box<AudioOutHandle>>,
     ) {
         self.bus.ppu.set_frame_out_handle(frame_out_handle);
-        if let Some(apu) = self.bus.apu.as_mut() {
-            apu.set_audio_out_handle(audio_out_handle);
-        }
+        self.bus.apu.set_audio_out_handle(audio_out_handle);
     }
 
     #[inline]
@@ -101,7 +99,7 @@ impl GameBoy {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct GameBoySnapshot {
     checksum: u16,
     bus: BusSnapshot,

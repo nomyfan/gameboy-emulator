@@ -1,3 +1,4 @@
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Clock {
     div: u32,
     clocks: u32,

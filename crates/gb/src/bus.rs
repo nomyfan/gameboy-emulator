@@ -1,4 +1,4 @@
-use gb_apu::Apu;
+use gb_apu::{Apu, ApuSnapshot};
 use gb_cartridge::Cartridge;
 use gb_ppu::{Ppu, PpuSnapshot};
 use gb_shared::{command::Command, Memory, Snapshot};
@@ -44,8 +44,7 @@ pub(crate) struct BusInner {
     joypad: Joypad,
     timer: Timer,
     pub(crate) ppu: Ppu,
-    // TODO: Make APU always available excepting that it may not output audio to the device.
-    pub(crate) apu: Option<Apu>,
+    pub(crate) apu: Apu,
     ref_count: usize,
 }
 
@@ -87,9 +86,7 @@ impl Memory for BusInner {
                         self.interrupt_flag = 0xE0 | value
                     }
                     0xFF10..=0xFF3F => {
-                        if let Some(apu) = &mut self.apu {
-                            apu.write(addr, value);
-                        }
+                        self.apu.write(addr, value);
                     }
                     0xFF46 => {
                         // DMA
@@ -158,13 +155,7 @@ impl Memory for BusInner {
                         // IF
                         self.interrupt_flag
                     }
-                    0xFF10..=0xFF3F => {
-                        if let Some(apu) = &self.apu {
-                            apu.read(addr)
-                        } else {
-                            0
-                        }
-                    }
+                    0xFF10..=0xFF3F => self.apu.read(addr),
                     0xFF46 => self.dma.read(addr),
                     0xFF40..=0xFF4B => self.ppu.read(addr),
                     _ => {
@@ -218,7 +209,7 @@ impl Bus {
                 joypad: Joypad::new(),
                 timer: Timer::new(),
                 ppu: Ppu::new(),
-                apu: sample_rate.map(Apu::new),
+                apu: Apu::new(sample_rate),
                 ref_count: 1,
             })),
         }
@@ -263,9 +254,7 @@ impl gb_shared::Component for Bus {
                 let irq = self.timer.take_irq();
                 self.set_irq(irq);
 
-                if let Some(apu) = self.apu.as_mut() {
-                    apu.step();
-                }
+                self.apu.step();
             }
 
             // It costs 160 machine cycles to transfer 160 bytes of data.
@@ -308,7 +297,7 @@ impl Memory for Bus {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct BusSnapshot {
     interrupt_enable: u8,
     interrupt_flag: u8,
@@ -319,7 +308,7 @@ pub(crate) struct BusSnapshot {
     joypad: JoypadSnapshot,
     timer: TimerSnapshot,
     ppu: PpuSnapshot,
-    // TODO: APU snapshot
+    apu: ApuSnapshot,
 }
 
 impl Snapshot for Bus {
@@ -336,6 +325,7 @@ impl Snapshot for Bus {
             joypad: self.joypad.snapshot(),
             timer: self.timer.snapshot(),
             ppu: self.ppu.snapshot(),
+            apu: self.apu.snapshot(),
         }
     }
 
@@ -349,5 +339,6 @@ impl Snapshot for Bus {
         self.joypad.restore(snapshot.joypad);
         self.timer.restore(snapshot.timer);
         self.ppu.restore(snapshot.ppu);
+        self.apu.restore(snapshot.apu);
     }
 }
