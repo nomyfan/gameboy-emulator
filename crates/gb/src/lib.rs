@@ -29,6 +29,7 @@ pub struct GameBoy {
     bus: Bus,
     clocks: u32,
     ts: Instant,
+    checksum: u16,
 }
 
 impl GameBoy {
@@ -39,6 +40,7 @@ impl GameBoy {
         let Manifest { cart, sample_rate } = manifest;
 
         let cart_header_checksum = cart.header.checksum;
+        let checksum = cart.header.global_checksum;
         let bus = Bus::new(cart, sample_rate);
 
         let mut cpu = Cpu::new(bus.clone());
@@ -48,7 +50,7 @@ impl GameBoy {
             cpu.reg_f = 0x80;
         }
 
-        Self { cpu, bus, clocks: 0, ts: Instant::now() }
+        Self { cpu, bus, clocks: 0, ts: Instant::now(), checksum }
     }
 
     pub fn set_handles(
@@ -60,6 +62,11 @@ impl GameBoy {
         if let Some(apu) = self.bus.apu.as_mut() {
             apu.set_audio_out_handle(audio_out_handle);
         }
+    }
+
+    #[inline]
+    pub fn checksum(&self) -> u16 {
+        self.checksum
     }
 
     pub fn play(
@@ -96,16 +103,27 @@ impl GameBoy {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GameBoySnapshot {
-    // TODO: add checksum metadata and validate when restoring
+    checksum: u16,
     bus: BusSnapshot,
     cpu: CpuSnapshot,
+}
+
+impl GameBoySnapshot {
+    #[inline]
+    pub fn checksum(&self) -> u16 {
+        self.checksum
+    }
 }
 
 impl Snapshot for GameBoy {
     type Snapshot = GameBoySnapshot;
 
     fn snapshot(&self) -> Self::Snapshot {
-        Self::Snapshot { bus: self.bus.snapshot(), cpu: self.cpu.snapshot() }
+        Self::Snapshot {
+            bus: self.bus.snapshot(),
+            cpu: self.cpu.snapshot(),
+            checksum: self.checksum,
+        }
     }
 
     fn restore(&mut self, snapshot: Self::Snapshot) {

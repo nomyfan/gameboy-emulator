@@ -116,7 +116,7 @@ function App() {
       </button>
       <input
         type="file"
-        accept=".snapshot"
+        accept=".ss"
         onChange={(evt) => {
           const file = evt.target.files?.[0];
           if (!file) {
@@ -126,8 +126,17 @@ function App() {
           const reader = new FileReader();
           reader.onload = () => {
             const buffer = new Uint8Array(reader.result as ArrayBuffer);
-            gameboy.restoreSnapshot(buffer);
-            evt.target.value = "";
+            try {
+              gameboy.restoreSnapshot(buffer);
+              evt.target.value = "";
+            } catch (err) {
+              if (err instanceof Error) {
+                const message = err.message;
+                console.error(message);
+              }
+
+              throw err;
+            }
           };
           reader.readAsArrayBuffer(file);
         }}
