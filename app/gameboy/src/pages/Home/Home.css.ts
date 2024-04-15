@@ -1,9 +1,9 @@
 import { style } from "@vanilla-extract/css";
 
-import { rem } from "./styles";
-import * as vars from "./styles/vars.css";
+import { rem } from "../../styles";
+import * as vars from "../../styles/vars.css";
 
-export const app = style({
+export const home = style({
   backgroundColor: vars.colorBackground,
   height: "100vh",
   width: "100vw",
