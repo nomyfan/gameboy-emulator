@@ -26,3 +26,7 @@ export const flexCenter = () => ({
 export const lightShadow = (value: string) => `${value} ${lightShadowColor}`;
 
 export const darkShadow = (value: string) => `${value} ${darkShadowColor}`;
+
+export const rem = (px: number): `${number}rem` =>
+  (Math.floor(((px * (375 / 1080)) / 18) * 100) / 100 +
+    "rem") as `${number}rem`;
