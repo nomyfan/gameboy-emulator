@@ -15,7 +15,12 @@ export function Item(props: IListItemProps) {
         styles.listItem,
         props.selected && styles.listItemSelected,
       )}
-      onClick={() => props.onSelected?.()}
+      onClick={(evt) => {
+        if (props.onSelected) {
+          evt.stopPropagation();
+          props.onSelected();
+        }
+      }}
     >
       <img src={props.coverURL} style={{ height: "100%", width: "100%" }} />
     </div>

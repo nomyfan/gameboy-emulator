@@ -10,7 +10,7 @@ import {
   IconSettings,
 } from "../../components/Icons";
 import { OperationBar } from "../../components/OperationBar";
-import { store } from "../../store";
+import { actions, store } from "../../store";
 
 import * as styles from "./Home.css";
 
@@ -53,7 +53,12 @@ export function Home() {
   );
 
   return (
-    <main className={styles.home}>
+    <main
+      className={styles.home}
+      onClick={() => {
+        actions.selectCartridge();
+      }}
+    >
       <section className={styles.statusBar}>
         <Avatar />
       </section>
