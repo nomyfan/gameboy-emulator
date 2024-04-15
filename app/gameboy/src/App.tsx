@@ -1,5 +1,19 @@
+import { useStore } from "zustand";
+
+import { SnapshotsDrawer } from "./components/Snapshots";
 import { Home } from "./pages/Home";
+import { store, actions } from "./store";
 
 export function App() {
-  return <Home />;
+  const open = useStore(store, (st) => Boolean(st.ui.snapshotsDrawerOpen));
+
+  return (
+    <>
+      <Home />
+      <SnapshotsDrawer
+        open={open}
+        onClose={() => actions.toggleSnapshotsDrawer(false)}
+      />
+    </>
+  );
 }

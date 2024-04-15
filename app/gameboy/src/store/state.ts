@@ -45,8 +45,11 @@ function create() {
   return createStore(
     subscribeWithSelector(
       immer<{
-        games: {
+        ui: {
           selectedCartridgeId?: string;
+          snapshotsDrawerOpen?: boolean;
+        };
+        games: {
           cartridges: {
             id: string;
             /**
@@ -59,6 +62,7 @@ function create() {
         };
       }>(() => {
         return {
+          ui: {},
           games: {
             cartridges: mockGames,
           },

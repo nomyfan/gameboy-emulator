@@ -49,16 +49,11 @@ const barItemsNormal = [
 export function Home() {
   const selected = useStore(
     store,
-    (state) => state.games.selectedCartridgeId !== undefined,
+    (state) => state.ui.selectedCartridgeId !== undefined,
   );
 
   return (
-    <main
-      className={styles.home}
-      onClick={() => {
-        actions.selectCartridge();
-      }}
-    >
+    <main className={styles.home}>
       <section className={styles.statusBar}>
         <Avatar />
       </section>
@@ -69,6 +64,9 @@ export function Home() {
         className={styles.operationBar}
         onClick={(id) => {
           console.log("bar " + id + " clicked");
+          if (id === "snapshots") {
+            actions.toggleSnapshotsDrawer(true);
+          }
         }}
         items={selected ? barItemsWithSelectedGame : barItemsNormal}
       />

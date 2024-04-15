@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.0.5",
     "@vanilla-extract/css": "^1.14.2",
     "clsx": "^2.1.0",
     "gb-wasm": "link:../../crates/gb-wasm/npm",
