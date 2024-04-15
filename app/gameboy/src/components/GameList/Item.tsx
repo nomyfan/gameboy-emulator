@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 import * as styles from "./GameList.css";
 
 export interface IListItemProps {
-  src: string;
+  coverURL: string;
   selected?: boolean;
   onSelected?: () => void;
 }
@@ -17,7 +17,7 @@ export function Item(props: IListItemProps) {
       )}
       onClick={() => props.onSelected?.()}
     >
-      <img src={props.src} style={{ height: "100%", width: "100%" }} />
+      <img src={props.coverURL} style={{ height: "100%", width: "100%" }} />
     </div>
   );
 }

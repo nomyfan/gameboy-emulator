@@ -1,32 +1,27 @@
 import { clsx } from "clsx";
-import { useState } from "react";
+import { useStore } from "zustand";
 
-import mockGame1 from "./assets/game1.jpeg";
-import mockGame2 from "./assets/game2.png";
-import mockGame3 from "./assets/game3.jpeg";
-import mockGame4 from "./assets/game4.jpeg";
-import mockGame5 from "./assets/game5.jpeg";
+import { store, actions } from "../../store";
+
 import * as styles from "./GameList.css";
 import { Item } from "./Item";
-
-const mockImages = [mockGame1, mockGame2, mockGame3, mockGame4, mockGame5];
 
 export interface IListProps {
   className?: string;
 }
 
 export function GameList(props: IListProps) {
-  // TODO: data source
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = useStore(store, (st) => st.games.selectedCartridgeId);
+  const games = useStore(store, (st) => st.games.cartridges);
 
   const renderItems = () => {
-    return mockImages.map((src) => {
+    return games.map(({ id, coverURL, name, path }) => {
       return (
         <Item
-          key={src}
-          src={src}
-          selected={selectedId === src}
-          onSelected={() => setSelectedId(src)}
+          key={id}
+          coverURL={coverURL}
+          selected={selectedId === id}
+          onSelected={() => actions.selectCartridge(id)}
         />
       );
     });
