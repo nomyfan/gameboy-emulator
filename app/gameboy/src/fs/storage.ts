@@ -48,9 +48,7 @@ export async function deleteGame(path: string) {
 }
 
 export async function loadAllGames() {
-  const gamesDir = (await fs.resolve(
-    "/gbos/games/",
-  )) as FileSystemDirectoryHandle;
+  const gamesDir = await fs.createDir("/gbos/games/");
 
   const manifests: IGameManifest[] = [];
   for await (const entry of gamesDir.values()) {
