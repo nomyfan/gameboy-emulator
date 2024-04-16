@@ -33,7 +33,10 @@ export function OperationBar<ID extends string | number>(
             key={item.id}
             icon={item.icon}
             className={clsx(item.alert && styles.barItemAlert)}
-            onClick={() => props.onClick?.(item.id)}
+            onClick={(evt) => {
+              evt.stopPropagation();
+              props.onClick?.(item.id);
+            }}
           />
         );
       });
