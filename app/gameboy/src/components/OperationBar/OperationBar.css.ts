@@ -18,17 +18,21 @@ export const barItem = style({
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
+  margin: `0 ${rem(10)}`,
 });
 
 export const barItemAlert = style({
   color: cssVars.colorAlert,
 });
 
-globalStyle(`${barItem}:not(:last-child)`, {
-  marginRight: rem(20),
-});
-
 globalStyle(`${barItem} > svg`, {
   width: rem(72),
   height: rem(72),
+});
+
+export const separator = style({
+  width: 2,
+  height: rem(50),
+  backgroundColor: "whitesmoke",
+  margin: "0 5px",
 });

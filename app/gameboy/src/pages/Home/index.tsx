@@ -10,41 +10,47 @@ import {
   IconSettings,
 } from "../../components/Icons";
 import { OperationBar } from "../../components/OperationBar";
-import { actions, store } from "../../store";
 import * as fs from "../../fs";
+import { actions, store } from "../../store";
 
 import * as styles from "./Home.css";
 
 const barItemsWithSelectedGame = [
-  {
-    id: "play",
-    icon: <IconPlay />,
-  },
-  { id: "snapshots", icon: <IconHistory /> },
-  {
-    id: "delete",
-    icon: <IconDelete />,
-    alert: true,
-  },
-  {
-    id: "add",
-    icon: <IconAdd />,
-  },
-  {
-    id: "settings",
-    icon: <IconSettings />,
-  },
+  [
+    {
+      id: "play",
+      icon: <IconPlay />,
+    },
+    { id: "snapshots", icon: <IconHistory /> },
+    {
+      id: "delete",
+      icon: <IconDelete />,
+      alert: true,
+    },
+  ],
+  [
+    {
+      id: "add",
+      icon: <IconAdd />,
+    },
+    {
+      id: "settings",
+      icon: <IconSettings />,
+    },
+  ],
 ];
 
 const barItemsNormal = [
-  {
-    id: "add",
-    icon: <IconAdd />,
-  },
-  {
-    id: "settings",
-    icon: <IconSettings />,
-  },
+  [
+    {
+      id: "add",
+      icon: <IconAdd />,
+    },
+    {
+      id: "settings",
+      icon: <IconSettings />,
+    },
+  ],
 ];
 
 export function Home() {
