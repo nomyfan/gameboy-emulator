@@ -13,6 +13,8 @@ export const home = style({
 
 export const statusBar = style({
   padding: `${rem(30)} ${rem(50)}`,
+  display: "flex",
+  justifyContent: "space-between",
 });
 
 export const gameList = style({
