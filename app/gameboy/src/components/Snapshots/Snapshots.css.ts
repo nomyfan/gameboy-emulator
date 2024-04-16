@@ -29,7 +29,7 @@ export const drawer = style({
   right: 0,
   top: 0,
   height: "100vh",
-  width: rem(800),
+  width: rem(1000),
   backgroundColor: cssVars.colorBackground,
   animation: `${contentShow} 500ms cubic-bezier(0.16, 1, 0.3, 1)`,
 });
