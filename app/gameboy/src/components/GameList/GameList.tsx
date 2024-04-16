@@ -62,6 +62,9 @@ export function GameList(props: IListProps) {
       style={{
         justifyContent: !games || games.length === 0 ? "center" : undefined,
       }}
+      onClick={() => {
+        actions.selectCartridge();
+      }}
     >
       {renderItems()}
     </div>
