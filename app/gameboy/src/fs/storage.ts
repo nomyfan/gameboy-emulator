@@ -3,7 +3,7 @@ import * as utils from "../utils";
 
 import * as fs from ".";
 
-export async function initCartStorage(file: File) {
+export async function installGame(file: File) {
   const hash = await utils.hashFile(file);
   const rootPath = `/gbos/games/cart-${hash}/`;
   if (await fs.exists(rootPath)) {
@@ -43,7 +43,7 @@ export async function initCartStorage(file: File) {
   return true;
 }
 
-export async function deleteGame(path: string) {
+export async function uninstallGame(path: string) {
   await fs.rmrf(path);
 }
 

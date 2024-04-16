@@ -107,7 +107,7 @@ export function Home() {
             } else if (id === "add") {
               const file = await fs.pickFile({ accept: ".gb" });
               if (file) {
-                await storage.initCartStorage(file);
+                await storage.installGame(file);
                 await actions.loadGames();
               }
             } else if (id === "fullscreen") {

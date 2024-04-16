@@ -39,7 +39,7 @@ export async function deleteGame(id: string) {
     return;
   }
 
-  await storage.deleteGame(target.path);
+  await storage.uninstallGame(target.path);
 
   store.setState((state) => {
     state.games.cartridges = cartridges?.filter((c) => c.id !== id);
