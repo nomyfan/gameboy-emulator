@@ -14,7 +14,7 @@ export function SnapshotsDrawer(props: {
           onClick={() => props.onClose?.()}
           className={styles.overlay}
         />
-        <Dialog.Content>
+        <Dialog.Content style={{ pointerEvents: "auto" }}>
           <div className={styles.drawer}>
             <Snapshots />
           </div>
