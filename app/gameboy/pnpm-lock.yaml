@@ -20,6 +20,9 @@ dependencies:
   gb-wasm:
     specifier: link:../../crates/gb-wasm/npm
     version: link:../../crates/gb-wasm/npm
+  hash-wasm:
+    specifier: ^4.11.0
+    version: 4.11.0
   immer:
     specifier: ^10.0.4
     version: 10.0.4
@@ -2690,6 +2693,10 @@ packages:
     dependencies:
       has-symbols: 1.0.3
     dev: true
+
+  /hash-wasm@4.11.0:
+    resolution: {integrity: sha512-HVusNXlVqHe0fzIzdQOGolnFN6mX/fqcrSAOcTBXdvzrXVHwTz11vXeKRmkR5gTuwVpvHZEIyKoePDvuAR+XwQ==}
+    dev: false
 
   /hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}

@@ -14,6 +14,7 @@ import {
 } from "../../components/Icons";
 import { OperationBar } from "../../components/OperationBar";
 import * as fs from "../../fs";
+import * as storage from "../../fs/storage";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { actions, store } from "../../store";
 
@@ -99,19 +100,20 @@ export function Home() {
       >
         <OperationBar
           className={styles.operationBar}
-          onClick={(id) => {
+          onClick={async (id) => {
             console.log("bar " + id + " clicked");
             if (id === "snapshots") {
               actions.toggleSnapshotsDrawer(true);
             } else if (id === "add") {
-              fs.pickFile({ accept: ".gb" }).then((file) => {
-                console.log("file", file);
-              });
-              fs.rootDir().then((root) => fs.createDir(root, "gbos/games"));
+              const file = await fs.pickFile({ accept: ".gb" });
+              if (file) {
+                const inited = await storage.initCartStorage(file);
+                console.log("inited", inited);
+              }
             } else if (id === "fullscreen") {
-              document.body.requestFullscreen();
+              await document.body.requestFullscreen();
             } else if (id === "exit-fullscreen") {
-              document.exitFullscreen();
+              await document.exitFullscreen();
             }
           }}
           items={items}

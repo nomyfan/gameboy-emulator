@@ -2,6 +2,24 @@ export async function rootDir() {
   return await navigator.storage.getDirectory();
 }
 
+export async function getParentDir(
+  path: string,
+  parent?: FileSystemDirectoryHandle,
+) {
+  if (path.startsWith("/")) {
+    if (parent) {
+      console.warn("`parent` will be ignored if `path` is absolute");
+    }
+    parent = await rootDir();
+  } else {
+    if (!parent) {
+      throw new Error("Parent directory is required");
+    }
+  }
+
+  return parent;
+}
+
 /**
  * @param options
  */
@@ -32,15 +50,16 @@ export async function pickFile(options?: { accept?: string }) {
 }
 
 export async function createDir(
-  parent: FileSystemDirectoryHandle,
-  name: string,
+  path: string,
+  parent?: FileSystemDirectoryHandle,
 ) {
-  const children = name.split("/").filter(Boolean);
+  parent = await getParentDir(path, parent);
+
+  const children = path.split("/").filter(Boolean);
   if (!children.length) {
     return parent;
   }
 
-  // TODO: detect if the sub-path type
   for (const child of children) {
     parent = await parent.getDirectoryHandle(child, { create: true });
   }
@@ -49,19 +68,61 @@ export async function createDir(
 }
 
 export async function createFile(
-  parent: FileSystemDirectoryHandle,
-  name: string,
+  path: string,
+  parent?: FileSystemDirectoryHandle,
 ) {
-  const children = name.split("/").filter(Boolean);
+  parent = await getParentDir(path, parent);
+
+  const children = path.split("/").filter(Boolean);
   if (!children.length) {
-    throw new Error("Empty filename");
+    throw new Error("Empty path");
   }
 
-  // TODO: detect if the sub-path type
   for (const child of children.slice(0, -1)) {
     parent = await parent.getDirectoryHandle(child, { create: true });
   }
   return await parent.getFileHandle(children[children.length - 1], {
     create: true,
   });
+}
+
+/**
+ * @param path If your path is directory, please make sure it ends with `/`
+ * @param parent
+ */
+export async function exists(path: string, parent?: FileSystemDirectoryHandle) {
+  parent = await getParentDir(path, parent);
+
+  const children = path.split("/").filter(Boolean);
+  if (!children.length) {
+    throw new Error("Empty path");
+  }
+
+  const isDir = path.endsWith("/");
+
+  for (let i = 0; i < children.length - 1; i++) {
+    try {
+      parent = await parent.getDirectoryHandle(children[i]);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "NotFoundError") {
+        return false;
+      }
+      throw err;
+    }
+  }
+
+  try {
+    if (isDir) {
+      await parent.getDirectoryHandle(children[children.length - 1]);
+    } else {
+      await parent.getFileHandle(children[children.length - 1]);
+    }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "NotFoundError") {
+      return false;
+    }
+    throw err;
+  }
+
+  return true;
 }
