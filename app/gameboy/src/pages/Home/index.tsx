@@ -107,13 +107,15 @@ export function Home() {
             } else if (id === "add") {
               const file = await fs.pickFile({ accept: ".gb" });
               if (file) {
-                const inited = await storage.initCartStorage(file);
-                console.log("inited", inited);
+                await storage.initCartStorage(file);
+                await actions.loadGames();
               }
             } else if (id === "fullscreen") {
               await document.body.requestFullscreen();
             } else if (id === "exit-fullscreen") {
               await document.exitFullscreen();
+            } else if (id === "delete") {
+              await actions.deleteSelectedGame();
             }
           }}
           items={items}

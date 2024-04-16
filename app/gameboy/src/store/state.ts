@@ -50,7 +50,7 @@ function create() {
           snapshotsDrawerOpen?: boolean;
         };
         games: {
-          cartridges: {
+          cartridges?: {
             id: string;
             /**
              * Path in OPFS
@@ -63,9 +63,7 @@ function create() {
       }>(() => {
         return {
           ui: {},
-          games: {
-            cartridges: mockGames,
-          },
+          games: {},
         };
       }),
     ),

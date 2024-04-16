@@ -126,3 +126,69 @@ export async function exists(path: string, parent?: FileSystemDirectoryHandle) {
 
   return true;
 }
+
+export async function resolve(
+  path: string,
+  parent?: FileSystemDirectoryHandle,
+) {
+  parent = await getParentDir(path, parent);
+
+  const children = path.split("/").filter(Boolean);
+  if (!children.length) {
+    return parent;
+  }
+
+  const isDir = path.endsWith("/");
+  for (let i = 0; i < children.length - 1; i++) {
+    parent = await parent.getDirectoryHandle(children[i]);
+  }
+
+  if (isDir) {
+    return await parent.getDirectoryHandle(children[children.length - 1]);
+  } else {
+    return await parent.getFileHandle(children[children.length - 1]);
+  }
+}
+
+export async function dir(path: string, parent?: FileSystemDirectoryHandle) {
+  const handle = await resolve(path + "/", parent);
+  if (handle.kind !== "directory") {
+    throw new Error("Not a directory");
+  }
+  return handle as FileSystemDirectoryHandle;
+}
+
+export async function file(path: string, parent?: FileSystemDirectoryHandle) {
+  const handle = await resolve(path, parent);
+  if (handle.kind !== "file") {
+    throw new Error("Not a file");
+  }
+  return handle as FileSystemFileHandle;
+}
+
+export async function rm(
+  path: string,
+  parent?: FileSystemDirectoryHandle,
+  options?: {
+    recursive?: boolean;
+  },
+) {
+  parent = await getParentDir(path, parent);
+
+  const children = path.split("/").filter(Boolean);
+  if (!children.length) {
+    throw new Error("Empty path");
+  }
+
+  for (let i = 0; i < children.length - 1; i++) {
+    parent = await parent.getDirectoryHandle(children[i]);
+  }
+
+  await parent.removeEntry(children[children.length - 1], {
+    recursive: options?.recursive,
+  });
+}
+
+export async function rmrf(path: string, parent?: FileSystemDirectoryHandle) {
+  return rm(path, parent, { recursive: true });
+}

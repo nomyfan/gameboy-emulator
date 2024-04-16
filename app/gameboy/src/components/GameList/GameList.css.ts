@@ -1,4 +1,4 @@
-import { globalStyle, style } from "@vanilla-extract/css";
+import { globalStyle, style, keyframes } from "@vanilla-extract/css";
 
 import { rem } from "../../styles";
 import * as cssVars from "../../styles/vars.css";
@@ -31,4 +31,14 @@ globalStyle(`${listItem} > img`, {
 
 globalStyle(`${listItemSelected} > img`, {
   borderRadius: 0,
+});
+
+export const placeholderItem = style({
+  boxShadow: "none",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: rem(500),
+  width: "fit-content",
+  color: cssVars.colorPrimary,
 });

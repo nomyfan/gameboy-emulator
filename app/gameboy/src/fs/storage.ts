@@ -42,3 +42,27 @@ export async function initCartStorage(file: File) {
 
   return true;
 }
+
+export async function deleteGame(path: string) {
+  await fs.rmrf(path);
+}
+
+export async function loadAllGames() {
+  const gamesDir = (await fs.resolve(
+    "/gbos/games/",
+  )) as FileSystemDirectoryHandle;
+
+  const manifests: IGameManifest[] = [];
+  for await (const entry of gamesDir.values()) {
+    if (entry.kind === "directory") {
+      const handle = entry as FileSystemDirectoryHandle;
+      const manifestFile = await handle.getFileHandle("manifest.json");
+      const manifest = JSON.parse(
+        await (await manifestFile.getFile()).text(),
+      ) as IGameManifest;
+      manifests.push(manifest);
+    }
+  }
+
+  return manifests;
+}
