@@ -107,6 +107,7 @@ export function Home() {
               fs.pickFile({ accept: ".gb" }).then((file) => {
                 console.log("file", file);
               });
+              fs.rootDir().then((root) => fs.createDir(root, "gbos/games"));
             } else if (id === "fullscreen") {
               document.body.requestFullscreen();
             } else if (id === "exit-fullscreen") {

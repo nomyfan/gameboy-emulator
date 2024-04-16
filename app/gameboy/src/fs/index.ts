@@ -30,3 +30,38 @@ export async function pickFile(options?: { accept?: string }) {
     input.click();
   });
 }
+
+export async function createDir(
+  parent: FileSystemDirectoryHandle,
+  name: string,
+) {
+  const children = name.split("/").filter(Boolean);
+  if (!children.length) {
+    return parent;
+  }
+
+  // TODO: detect if the sub-path type
+  for (const child of children) {
+    parent = await parent.getDirectoryHandle(child, { create: true });
+  }
+
+  return parent;
+}
+
+export async function createFile(
+  parent: FileSystemDirectoryHandle,
+  name: string,
+) {
+  const children = name.split("/").filter(Boolean);
+  if (!children.length) {
+    throw new Error("Empty filename");
+  }
+
+  // TODO: detect if the sub-path type
+  for (const child of children.slice(0, -1)) {
+    parent = await parent.getDirectoryHandle(child, { create: true });
+  }
+  return await parent.getFileHandle(children[children.length - 1], {
+    create: true,
+  });
+}
