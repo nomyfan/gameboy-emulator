@@ -11,6 +11,7 @@ import {
 } from "../../components/Icons";
 import { OperationBar } from "../../components/OperationBar";
 import { actions, store } from "../../store";
+import * as fs from "../../fs";
 
 import * as styles from "./Home.css";
 
@@ -66,6 +67,10 @@ export function Home() {
           console.log("bar " + id + " clicked");
           if (id === "snapshots") {
             actions.toggleSnapshotsDrawer(true);
+          } else if (id === "add") {
+            fs.pickFile({ accept: ".gb" }).then((file) => {
+              console.log("file", file);
+            });
           }
         }}
         items={selected ? barItemsWithSelectedGame : barItemsNormal}
