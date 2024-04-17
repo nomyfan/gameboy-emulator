@@ -1,10 +1,9 @@
 import { globalStyle, style } from "@vanilla-extract/css";
 
-import { flexCenter, py } from "../styles";
+import { flexCenter } from "../styles";
 
 export const screen = style({
   ...flexCenter(),
-  ...py(20),
 });
 
 globalStyle(`${screen} > canvas`, {

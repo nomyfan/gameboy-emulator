@@ -11,7 +11,6 @@ export const button = style({
 
 export const directionButton = style({
   display: "grid",
-  padding: 15,
   gridTemplateColumns: "44px 40px 44px",
   gridTemplateRows: "43px 40px 43px",
 });

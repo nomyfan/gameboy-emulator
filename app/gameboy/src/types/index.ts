@@ -1,3 +1,5 @@
+export type IncludeFrom<T, U extends T> = Extract<T, U>;
+
 export type IGameBoyButton =
   | "UP"
   | "RIGHT"

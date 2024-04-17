@@ -17,7 +17,7 @@ export async function installGame(file: File) {
     create: true,
   });
 
-  await fs.createFile(`cart-${hash}.gb`, rootHandle).then(async (handle) => {
+  await fs.createFile("rom.gb", rootHandle).then(async (handle) => {
     const writer = await handle.createWritable();
     await writer.write(file);
     await writer.close();

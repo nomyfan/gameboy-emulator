@@ -4,8 +4,10 @@ import { immer } from "zustand/middleware/immer";
 
 export interface IStore {
   ui: {
+    // TODO: not belong to ui
     selectedCartridgeId?: string;
     snapshotsDrawerOpen?: boolean;
+    playModalOpen?: boolean;
   };
   games: {
     cartridges?: {

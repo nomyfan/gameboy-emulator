@@ -116,6 +116,10 @@ export function Home() {
               await document.exitFullscreen();
             } else if (id === "delete") {
               await actions.deleteSelectedGame();
+            } else if (id === "play") {
+              // FIXME: fullscreen modal only
+              document.getElementById("root")?.requestFullscreen();
+              actions.togglePlayModal(true);
             }
           }}
           items={items}

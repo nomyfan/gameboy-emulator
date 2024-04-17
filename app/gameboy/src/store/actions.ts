@@ -16,6 +16,12 @@ export function toggleSnapshotsDrawer(open?: boolean) {
   });
 }
 
+export function togglePlayModal(open?: boolean) {
+  store.setState((state) => {
+    state.ui.playModalOpen = open ?? !state.ui.playModalOpen;
+  });
+}
+
 export async function loadGames(beforeSetState?: () => Promise<void>) {
   const manifests = await storage.loadAllGames();
   await beforeSetState?.();

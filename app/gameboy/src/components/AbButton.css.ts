@@ -14,16 +14,13 @@ export const buttonLabel = style({
   textShadow: `${lightShadow("-2px -2px 4px")}, ${darkShadow("3px 3px 4px")}`,
 });
 
-export const abButton = style({
-  position: "relative",
-});
+export const abButton = style({});
 
 export const buttonGroup = style({
   position: "relative",
   display: "flex",
   width: "fit-content",
   borderRadius: 50,
-  margin: "10px 15px",
 });
 
 export const labelGroup = style({
