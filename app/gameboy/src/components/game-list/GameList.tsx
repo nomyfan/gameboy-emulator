@@ -13,8 +13,8 @@ export interface IListProps {
 }
 
 export function GameList(props: IListProps) {
-  const selectedId = useStore(store, (st) => st.ui.selectedCartridgeId);
-  const games = useStore(store, (st) => st.games.cartridges);
+  const selectedId = useStore(store, (st) => st.selectedGameId);
+  const games = useStore(store, (st) => st.games);
 
   useEffect(() => {
     const start = Date.now();

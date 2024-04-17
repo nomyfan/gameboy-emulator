@@ -21,10 +21,7 @@ import { actions, store } from "../../store";
 import * as styles from "./Home.css";
 
 export function Home() {
-  const selected = useStore(
-    store,
-    (state) => state.ui.selectedCartridgeId !== undefined,
-  );
+  const selected = useStore(store, (st) => st.selectedGameId !== undefined);
 
   const isFullscreen = useFullscreen();
 

@@ -72,7 +72,7 @@ export function PagePlay(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const info = useStore(store, (st) => {
-    return st.games.cartridges?.find((c) => c.id === st.ui.selectedCartridgeId);
+    return st.games?.find((c) => c.id === st.selectedGameId);
   });
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export function PagePlay(props: IPagePlayProps) {
 
     let canceled = false;
     (async () => {
-      const file = await fs.file("rom.gb", await fs.dir(info.path));
+      const file = await fs.file("rom.gb", await fs.dir(info.directory));
       const rom = await file
         .getFile()
         .then((file) => file.arrayBuffer())

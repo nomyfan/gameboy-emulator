@@ -6,7 +6,7 @@ import { store } from "./state";
 
 export function selectCartridge(id?: string) {
   store.setState((state) => {
-    state.ui.selectedCartridgeId = id;
+    state.selectedGameId = id;
   });
 }
 
@@ -26,41 +26,40 @@ export async function loadGames(beforeSetState?: () => Promise<void>) {
   const manifests = await storage.loadAllGames();
   await beforeSetState?.();
 
-  const cartridges: IStore["games"]["cartridges"] = [];
+  const games: NonNullable<IStore["games"]> = [];
   for (const manifest of manifests) {
     const cover = await fs.file("cover.jpeg", await fs.dir(manifest.directory));
     const coverURL = await cover.getFile().then((file) => {
       return URL.createObjectURL(file);
     });
-    cartridges.push({
+    games.push({
       id: manifest.directory,
-      path: manifest.directory,
       coverURL: coverURL,
-      name: manifest.name,
+      ...manifest,
     });
   }
   store.setState((st) => {
-    st.games.cartridges = cartridges;
+    st.games = games;
   });
 }
 
 export async function deleteGame(id: string) {
-  const cartridges = store.getState().games.cartridges;
-  const target = cartridges?.find((c) => c.id === id);
+  const games = store.getState().games;
+  const target = games?.find((c) => c.id === id);
   if (!target) {
     return;
   }
 
-  await storage.uninstallGame(target.path);
+  await storage.uninstallGame(target.directory);
 
   store.setState((state) => {
-    state.games.cartridges = cartridges?.filter((c) => c.id !== target.id);
+    state.games = games?.filter((c) => c.id !== target.id);
     URL.revokeObjectURL(target.coverURL);
   });
 }
 
 export async function deleteSelectedGame() {
-  const id = store.getState().ui.selectedCartridgeId;
+  const id = store.getState().selectedGameId;
   if (!id) {
     return;
   }

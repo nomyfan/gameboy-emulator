@@ -2,24 +2,15 @@ import { createStore } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
+import { IGameManifest } from "../types";
+
 export interface IStore {
   ui: {
-    // TODO: not belong to ui
-    selectedCartridgeId?: string;
     snapshotsDrawerOpen?: boolean;
     playModalOpen?: boolean;
   };
-  games: {
-    cartridges?: {
-      id: string;
-      /**
-       * Path in OPFS
-       */
-      path: string;
-      coverURL: string;
-      name: string;
-    }[];
-  };
+  games?: (IGameManifest & { id: string; coverURL: string })[];
+  selectedGameId?: string;
 }
 
 function create() {
@@ -28,7 +19,6 @@ function create() {
       immer<IStore>(() => {
         return {
           ui: {},
-          games: {},
         };
       }),
     ),
