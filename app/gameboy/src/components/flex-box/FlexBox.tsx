@@ -22,10 +22,10 @@ export function FlexBox(
     ...props.style,
   };
 
-  const Element = props.element ?? "div";
+  const Type = props.element ?? "div";
 
   return createElement(
-    Element,
+    Type,
     { className: props.className, style },
     props.children,
   );

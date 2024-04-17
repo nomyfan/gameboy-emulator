@@ -63,11 +63,12 @@ export async function loadAllGames() {
   const manifests: IGameManifest[] = [];
   for await (const entry of gamesDir.values()) {
     if (entry.kind === "directory") {
-      const handle = entry as FileSystemDirectoryHandle;
-      const manifestFile = await handle.getFileHandle("manifest.json");
-      const manifest = JSON.parse(
-        await (await manifestFile.getFile()).text(),
-      ) as IGameManifest;
+      const dirHandle = entry as FileSystemDirectoryHandle;
+      const manifest = await dirHandle
+        .getFileHandle("manifest.json")
+        .then((handle) => handle.getFile())
+        .then((file) => file.text())
+        .then((text) => JSON.parse(text) as IGameManifest);
       manifests.push(manifest);
     }
   }

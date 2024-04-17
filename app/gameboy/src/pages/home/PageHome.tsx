@@ -115,7 +115,7 @@ export function PageHome() {
               await actions.deleteSelectedGame();
             } else if (id === "play") {
               // FIXME: fullscreen modal only
-              document.getElementById("root")?.requestFullscreen();
+              document.body.requestFullscreen();
               actions.togglePlayModal(true);
             }
           }}

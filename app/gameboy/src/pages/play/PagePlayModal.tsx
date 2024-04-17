@@ -1,19 +1,23 @@
+import * as Dialog from "@radix-ui/react-dialog";
+
 import { PagePlay } from "./PagePlay";
 
 export function PagePlayModal(props: { open?: boolean }) {
-  if (!props.open) {
-    return null;
-  }
-
   return (
-    <PagePlay
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      }}
-    />
+    <Dialog.Root open={props.open}>
+      <Dialog.Portal>
+        <Dialog.Content>
+          <PagePlay
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+            }}
+          />
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

@@ -24,7 +24,6 @@ export function togglePlayModal(open?: boolean) {
 
 export async function loadGames(beforeSetState?: () => Promise<void>) {
   const manifests = await storage.loadAllGames();
-  await beforeSetState?.();
 
   const games: NonNullable<IStore["games"]> = [];
   for (const manifest of manifests) {
@@ -38,6 +37,8 @@ export async function loadGames(beforeSetState?: () => Promise<void>) {
       ...manifest,
     });
   }
+
+  await beforeSetState?.();
   store.setState((st) => {
     st.games = games;
   });
