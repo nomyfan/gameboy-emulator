@@ -2,31 +2,35 @@ import type { CSSProperties } from "@vanilla-extract/css";
 
 import { lightShadowColor, darkShadowColor } from "./vars.css";
 
-export const px = (value: CSSProperties["paddingLeft"]) => ({
+export const px = <T extends CSSProperties["paddingLeft"]>(value: T) => ({
   paddingLeft: value,
   paddingRight: value,
 });
 
-export const py = (value: CSSProperties["paddingTop"]) => ({
+export const py = <T extends CSSProperties["paddingTop"]>(value: T) => ({
   paddingTop: value,
   paddingBottom: value,
 });
 
-export const size = (value: CSSProperties["width"]) => ({
+export const size = <T extends CSSProperties["width"]>(value: T) => ({
   width: value,
   height: value,
 });
 
-export const flexCenter = () => ({
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-});
+export const flexCenter = () =>
+  ({
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  }) as const;
 
-export const lightShadow = (value: string) => `${value} ${lightShadowColor}`;
+export const lightShadow = <T extends string>(
+  value: T,
+): `${T} ${typeof lightShadowColor}` => `${value} ${lightShadowColor}`;
 
-export const darkShadow = (value: string) => `${value} ${darkShadowColor}`;
+export const darkShadow = <T extends string>(
+  value: T,
+): `${T} ${typeof darkShadowColor}` => `${value} ${darkShadowColor}`;
 
-export const rem = (px: number): `${number}rem` =>
-  (Math.floor(((px * (375 / 1080)) / 18) * 100) / 100 +
-    "rem") as `${number}rem`;
+export const rem = <T extends number>(px: T): `${T}rem` =>
+  (Math.floor(((px * (375 / 1080)) / 18) * 100) / 100 + "rem") as `${T}rem`;
