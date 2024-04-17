@@ -18,9 +18,9 @@ import * as storage from "../../fs/storage";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { actions, store } from "../../store";
 
-import * as styles from "./Home.css";
+import * as styles from "./PageHome.css";
 
-export function Home() {
+export function PageHome() {
   const selected = useStore(store, (st) => st.selectedGameId !== undefined);
 
   const isFullscreen = useFullscreen();

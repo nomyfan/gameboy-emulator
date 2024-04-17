@@ -1,7 +1,7 @@
 import { useStore } from "zustand";
 
 import { SnapshotsDrawer } from "./components/snapshots";
-import { Home } from "./pages/home";
+import { PageHome } from "./pages/home";
 import { PagePlayModal } from "./pages/play";
 import { store, actions } from "./store";
 
@@ -13,7 +13,7 @@ export function App() {
 
   return (
     <>
-      <Home />
+      <PageHome />
       <SnapshotsDrawer
         open={drawerOpen}
         onClose={() => actions.toggleSnapshotsDrawer(false)}
