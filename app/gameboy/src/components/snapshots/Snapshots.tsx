@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 import type { CSSProperties } from "react";
 
 import mockSnapshot from "../../../assets/capture.png";
-import { IconDelete } from "../Icons";
+import { IconDelete } from "../icons";
 
 import * as styles from "./Snapshots.css";
 

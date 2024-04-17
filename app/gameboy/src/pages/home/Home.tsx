@@ -1,8 +1,8 @@
 import { ReactNode, useMemo } from "react";
 import { useStore } from "zustand";
 
-import { Avatar } from "../../components/Avatar";
-import { GameList } from "../../components/GameList";
+import { Avatar } from "../../components/avatar";
+import { GameList } from "../../components/game-list";
 import {
   IconAdd,
   IconDelete,
@@ -11,8 +11,8 @@ import {
   IconSettings,
   IconFullscreen,
   IconFullscreenExit,
-} from "../../components/Icons";
-import { OperationBar } from "../../components/OperationBar";
+} from "../../components/icons";
+import { OperationBar } from "../../components/operation-bar";
 import * as fs from "../../fs";
 import * as storage from "../../fs/storage";
 import { useFullscreen } from "../../hooks/useFullscreen";

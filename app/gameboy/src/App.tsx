@@ -1,7 +1,7 @@
 import { useStore } from "zustand";
 
-import { SnapshotsDrawer } from "./components/Snapshots";
-import { Home } from "./pages/Home";
+import { SnapshotsDrawer } from "./components/snapshots";
+import { Home } from "./pages/home";
 import { store, actions } from "./store";
 
 export function App() {

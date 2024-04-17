@@ -2,11 +2,11 @@ import { createStore } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
-import mockGame1 from "../components/GameList/assets/game1.jpeg";
-import mockGame2 from "../components/GameList/assets/game2.png";
-import mockGame3 from "../components/GameList/assets/game3.jpeg";
-import mockGame4 from "../components/GameList/assets/game4.jpeg";
-import mockGame5 from "../components/GameList/assets/game5.jpeg";
+import mockGame1 from "../components/game-list/assets/game1.jpeg";
+import mockGame2 from "../components/game-list/assets/game2.png";
+import mockGame3 from "../components/game-list/assets/game3.jpeg";
+import mockGame4 from "../components/game-list/assets/game4.jpeg";
+import mockGame5 from "../components/game-list/assets/game5.jpeg";
 
 const mockGames = [
   {

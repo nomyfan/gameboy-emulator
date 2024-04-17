@@ -1,4 +1,4 @@
-import { mockGames } from "../components/GameList/assets/cover";
+import { mockGames } from "../components/game-list/assets/cover";
 import * as storage from "../fs/storage";
 
 import { store } from "./state";
