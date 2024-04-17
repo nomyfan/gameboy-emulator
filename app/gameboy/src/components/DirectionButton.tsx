@@ -1,11 +1,11 @@
 import { clsx } from "clsx";
 import type { CSSProperties } from "react";
 
+import { lightShadow, darkShadow } from "../styles";
 import type { IDirectionButton } from "../types";
 
 import * as styles from "./DirectionButton.css";
 
-import { lightShadow, darkShadow } from "../styles";
 
 function Button(props: {
   className?: string;

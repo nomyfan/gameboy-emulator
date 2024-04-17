@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "precommit": "npm run lint",
+    "lint": "eslint --ext .ts,.tsx src"
   },
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
