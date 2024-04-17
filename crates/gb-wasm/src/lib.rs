@@ -131,8 +131,8 @@ impl GameBoyHandle {
     }
 
     #[wasm_bindgen(js_name = continue)]
-    pub fn r#continue(&mut self) {
-        self.gb.continue_clocks(70224); // 70224 clocks per frame
+    pub fn r#continue(&mut self, clocks: Option<u32>) {
+        self.gb.continue_clocks(clocks.unwrap_or(70224)); // 70224 clocks per frame
     }
 
     #[wasm_bindgen(js_name = changeKeyState)]
@@ -184,7 +184,7 @@ impl GameBoyMetadata {
 }
 
 #[wasm_bindgen(js_name = obtainMetadata)]
-pub async fn obtain_metadata(rom: Uint8ClampedArray) -> GameBoyMetadata {
+pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> GameBoyMetadata {
     let rom = rom.to_vec();
     let cart = Cartridge::try_from(rom).unwrap();
 
@@ -230,7 +230,7 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray) -> GameBoyMetadata {
     );
 
     // Play n frames
-    gb.continue_clocks(70224 * 120);
+    gb.continue_clocks(70224 * frame_at.unwrap_or(60));
 
     let mut encode_options = ImageEncodeOptions::new();
     encode_options.type_(&"image/jpeg").quality(1.0);

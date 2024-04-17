@@ -25,6 +25,7 @@ export async function installGame(file: File) {
 
   const metadata = await obtainMetadata(
     new Uint8ClampedArray(await file.arrayBuffer()),
+    90,
   );
 
   await fs.createFile("cover.jpeg", rootHandle).then(async (handle) => {
