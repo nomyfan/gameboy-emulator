@@ -13,7 +13,6 @@ import {
   IconFullscreenExit,
 } from "../../components/Icons";
 import { OperationBar } from "../../components/OperationBar";
-import { NetworkStatus } from "../../components/NetworkStatus";
 import * as fs from "../../fs";
 import * as storage from "../../fs/storage";
 import { useFullscreen } from "../../hooks/useFullscreen";
@@ -90,8 +89,6 @@ export function Home() {
         }}
       >
         <Avatar />
-
-        <NetworkStatus />
       </section>
 
       <GameList className={styles.gameList} />
