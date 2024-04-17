@@ -1,6 +1,7 @@
-import { mockGames } from "../components/game-list/assets/cover";
+import * as fs from "../fs";
 import * as storage from "../fs/storage";
 
+import type { IStore } from "./state";
 import { store } from "./state";
 
 export function selectCartridge(id?: string) {
@@ -18,17 +19,22 @@ export function toggleSnapshotsDrawer(open?: boolean) {
 export async function loadGames(beforeSetState?: () => Promise<void>) {
   const manifests = await storage.loadAllGames();
   await beforeSetState?.();
-  store.setState((st) => {
-    st.games.cartridges = manifests.map((manifest) => {
-      // TODO:
-      const coverURL = mockGames[0];
-      return {
-        id: manifest.directory,
-        path: manifest.directory,
-        coverURL: coverURL,
-        name: manifest.name,
-      };
+
+  const cartridges: IStore["games"]["cartridges"] = [];
+  for (const manifest of manifests) {
+    const cover = await fs.file("cover.jpeg", await fs.dir(manifest.directory));
+    const coverURL = await cover.getFile().then((file) => {
+      return URL.createObjectURL(file);
     });
+    cartridges.push({
+      id: manifest.directory,
+      path: manifest.directory,
+      coverURL: coverURL,
+      name: manifest.name,
+    });
+  }
+  store.setState((st) => {
+    st.games.cartridges = cartridges;
   });
 }
 
@@ -42,7 +48,8 @@ export async function deleteGame(id: string) {
   await storage.uninstallGame(target.path);
 
   store.setState((state) => {
-    state.games.cartridges = cartridges?.filter((c) => c.id !== id);
+    state.games.cartridges = cartridges?.filter((c) => c.id !== target.id);
+    URL.revokeObjectURL(target.coverURL);
   });
 }
 

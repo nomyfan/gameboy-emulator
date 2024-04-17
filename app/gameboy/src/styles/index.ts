@@ -34,3 +34,10 @@ export const darkShadow = <T extends string>(
 
 export const rem = <T extends number>(px: T): `${T}rem` =>
   (Math.floor(((px * (375 / 1080)) / 18) * 100) / 100 + "rem") as `${T}rem`;
+
+export const textEllipsis = () =>
+  ({
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }) as const;

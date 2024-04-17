@@ -1,6 +1,6 @@
-import { globalStyle, style, keyframes } from "@vanilla-extract/css";
+import { globalStyle, style } from "@vanilla-extract/css";
 
-import { rem } from "../../styles";
+import { rem, textEllipsis } from "../../styles";
 import * as cssVars from "../../styles/vars.css";
 
 export const list = style({
@@ -12,25 +12,39 @@ export const list = style({
 });
 
 export const listItem = style({
-  height: rem(500),
   width: rem(500),
   flexGrow: 0,
   flexShrink: 0,
   boxShadow: "0 4px 4px rgba(0,0,0,.25)",
   borderRadius: rem(5),
   boxSizing: "border-box",
+  border: `${rem(10)} solid ${cssVars.colorPrimary}`,
 });
 
 export const listItemSelected = style({
   border: `${rem(10)} solid ${cssVars.colorHighlight}`,
 });
 
-globalStyle(`${listItem} > img`, {
-  borderRadius: rem(5),
+globalStyle(`${listItem} > figure`, {
+  height: "100%",
+  width: "100%",
+  margin: 0,
 });
 
-globalStyle(`${listItemSelected} > img`, {
+globalStyle(`${listItem} > figure > figcaption`, {
+  fontSize: rem(40),
+  fontWeight: 500,
+  backgroundColor: cssVars.colorPrimary,
+  color: "white",
+  padding: rem(10),
+  ...textEllipsis(),
+});
+
+globalStyle(`${listItem} > figure > img`, {
+  width: "100%",
+  objectFit: "cover",
   borderRadius: 0,
+  verticalAlign: "top",
 });
 
 export const placeholderItem = style({
@@ -41,4 +55,5 @@ export const placeholderItem = style({
   minWidth: rem(500),
   width: "fit-content",
   color: cssVars.colorPrimary,
+  border: "none",
 });

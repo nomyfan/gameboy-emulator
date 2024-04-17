@@ -5,6 +5,7 @@ import * as styles from "./GameList.css";
 
 export type IListItemProps = PropsWithChildren<{
   coverURL?: string;
+  name?: string;
   selected?: boolean;
   onSelected?: () => void;
   style?: CSSProperties;
@@ -13,7 +14,10 @@ export type IListItemProps = PropsWithChildren<{
 
 export function Item(props: IListItemProps) {
   const children = props.children ?? (
-    <img src={props.coverURL} style={{ height: "100%", width: "100%" }} />
+    <figure>
+      <img alt={props.name} src={props.coverURL} />
+      <figcaption>{props.name}</figcaption>
+    </figure>
   );
 
   return (

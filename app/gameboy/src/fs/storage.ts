@@ -1,3 +1,5 @@
+import { obtainMetadata } from "gb-wasm";
+
 import type { IGameManifest } from "../types";
 import * as utils from "../utils";
 
@@ -15,20 +17,25 @@ export async function installGame(file: File) {
     create: true,
   });
 
-  await rootHandle
-    .getFileHandle(`cart-${hash}.gb`, {
-      create: true,
-    })
-    .then(async (handle) => {
-      const writer = await handle.createWritable();
-      await writer.write(file);
-      await writer.close();
-    });
-  // TODO: cover.jpg
+  await fs.createFile(`cart-${hash}.gb`, rootHandle).then(async (handle) => {
+    const writer = await handle.createWritable();
+    await writer.write(file);
+    await writer.close();
+  });
+
+  const metadata = await obtainMetadata(
+    new Uint8ClampedArray(await file.arrayBuffer()),
+  );
+
+  await fs.createFile("cover.jpeg", rootHandle).then(async (handle) => {
+    const writer = await handle.createWritable();
+    await writer.write(metadata.cover);
+    await writer.close();
+  });
 
   const manifest: IGameManifest = {
     directory: rootPath,
-    name: "Unknown", // TODO: read name from cartridge
+    name: metadata.name,
     snapshots: [],
   };
 
@@ -39,6 +46,8 @@ export async function installGame(file: File) {
       await writer.write(JSON.stringify(manifest, null, 2));
       await writer.close();
     });
+
+  metadata.free();
 
   return true;
 }

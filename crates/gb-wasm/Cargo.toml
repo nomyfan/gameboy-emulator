@@ -25,6 +25,10 @@ web-sys = { version = "0.3.69", features = [
   "CanvasRenderingContext2d",
   "Performance",
   "ImageData",
+  "OffscreenCanvas",
+  "OffscreenCanvasRenderingContext2d",
+  "ImageEncodeOptions",
+  "Blob",
 ] }
 anyhow = "1.0.81"
 wasm-bindgen-futures = "0.4.42"

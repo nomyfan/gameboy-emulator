@@ -44,11 +44,12 @@ export function GameList(props: IListProps) {
       );
     }
 
-    return games.map(({ id, coverURL, name, path }) => {
+    return games.map(({ id, coverURL, name }) => {
       return (
         <Item
           key={id}
           coverURL={coverURL}
+          name={name}
           selected={selectedId === id}
           onSelected={() => actions.selectCartridge(id)}
         />

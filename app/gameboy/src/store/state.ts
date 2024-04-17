@@ -41,26 +41,28 @@ const mockGames = [
   },
 ];
 
+export interface IStore {
+  ui: {
+    selectedCartridgeId?: string;
+    snapshotsDrawerOpen?: boolean;
+  };
+  games: {
+    cartridges?: {
+      id: string;
+      /**
+       * Path in OPFS
+       */
+      path: string;
+      coverURL: string;
+      name: string;
+    }[];
+  };
+}
+
 function create() {
   return createStore(
     subscribeWithSelector(
-      immer<{
-        ui: {
-          selectedCartridgeId?: string;
-          snapshotsDrawerOpen?: boolean;
-        };
-        games: {
-          cartridges?: {
-            id: string;
-            /**
-             * Path in OPFS
-             */
-            path: string;
-            coverURL: string;
-            name: string;
-          }[];
-        };
-      }>(() => {
+      immer<IStore>(() => {
         return {
           ui: {},
           games: {},
