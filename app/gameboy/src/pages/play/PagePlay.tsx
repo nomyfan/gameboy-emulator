@@ -15,6 +15,7 @@ import { storage } from "../../storage/indexdb";
 import { store, actions } from "../../store";
 import { rem } from "../../styles";
 import { IGameBoyButton } from "../../types";
+import * as utils from "../../utils";
 
 import * as styles from "./PagePlay.css";
 
@@ -151,9 +152,23 @@ export function PagePlay(props: IPagePlayProps) {
           height: 36,
           width: 36,
         }}
-        onClick={() => {
-          document.exitFullscreen();
-          actions.togglePlayModal(false);
+        onClick={async () => {
+          const canvas = canvasRef.current;
+          if (gameId && canvas) {
+            const snapshot = gameboy.takeSnapshot();
+            const time = Date.now();
+            const cover = await utils.blobFromCanvas(canvas, "image/jpeg", 0.7);
+            storage.snapshotStore.insert({
+              data: new Blob([snapshot]),
+              game_id: gameId,
+              time,
+              name: "Snapshot",
+              cover,
+            });
+
+            document.exitFullscreen();
+            actions.togglePlayModal(false);
+          }
         }}
       />
     </FlexBox>

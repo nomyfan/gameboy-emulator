@@ -1,17 +1,38 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { clsx } from "clsx";
-import type { CSSProperties } from "react";
+import { CSSProperties, useCallback, useEffect, useState } from "react";
+import ScaleLoader from "react-spinners/ScaleLoader";
+import useSWR from "swr";
+import { useStore } from "zustand";
 
-import mockSnapshot from "../../../assets/capture.png";
+import type { ISnapshot } from "../../model";
+import { storage } from "../../storage/indexdb";
+import { store } from "../../store";
+import { FlexBox } from "../flex-box";
 import { IconDelete } from "../icons";
 
 import * as styles from "./Snapshots.css";
 
 function Item(props: {
-  id: string;
+  snapshot: ISnapshot;
   className?: string;
   style?: CSSProperties;
+  onDelete: () => void;
 }) {
+  const snapshot = props.snapshot;
+  const cover = snapshot.cover;
+
+  const [coverURL, setCoverURL] = useState<string>();
+
+  useEffect(() => {
+    const url = URL.createObjectURL(cover);
+    setCoverURL(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [cover]);
+
   return (
     <ContextMenu.Root
       onOpenChange={(open) => {
@@ -20,11 +41,13 @@ function Item(props: {
     >
       <ContextMenu.Trigger asChild>
         <div className={styles.item}>
-          <img src={mockSnapshot} className={styles.itemImage} />
+          <img src={coverURL} className={styles.itemImage} />
           <div className={styles.itemDesc}>
             <span>
-              存档11111111111111111111111
-              <span className={styles.itemSubDesc}>（2020/10/10）</span>
+              {snapshot.name}
+              <span className={styles.itemSubDesc}>
+                （{new Date(snapshot.time).toLocaleDateString()}）
+              </span>
             </span>
           </div>
         </div>
@@ -37,6 +60,9 @@ function Item(props: {
           </ContextMenu.Item>
           <ContextMenu.Item
             className={clsx(styles.menuItem, styles.menuItemAlert)}
+            onClick={() => {
+              props.onDelete();
+            }}
           >
             <IconDelete className={styles.menuItemIcon} />
             删除
@@ -48,9 +74,44 @@ function Item(props: {
 }
 
 export function Snapshots() {
+  const gameId = useStore(store, (st) => st.selectedGameId);
+
+  const { data, isLoading, mutate } = useSWR([gameId], async ([gameId]) => {
+    if (!gameId) {
+      return [];
+    }
+
+    const data = await storage.snapshotStore.queryByGameId(gameId);
+    data.sort((x, y) => {
+      return y.time - x.time;
+    });
+
+    return data;
+  });
+
+  const handleDeleteSnapshot = useCallback((id: number) => {
+    storage.snapshotStore.delete(id);
+  }, []);
+
   const renderItems = () => {
-    return Array.from({ length: 20 }).map((_, i) => {
-      return <Item key={i} id={i.toString()} />;
+    if (!data || isLoading) {
+      return (
+        <FlexBox justify="center" style={{ padding: 10 }}>
+          <ScaleLoader />
+        </FlexBox>
+      );
+    }
+    return data.map((snapshot) => {
+      return (
+        <Item
+          key={snapshot.id}
+          snapshot={snapshot}
+          onDelete={async () => {
+            handleDeleteSnapshot(snapshot.id);
+            await mutate();
+          }}
+        />
+      );
     });
   };
 

@@ -66,8 +66,8 @@ class SnapshotStore {
     return this.db.snapshots.where("game_id").equals(gameId).toArray();
   }
 
-  async upsert(snapshot: ISnapshot) {
-    return this.db.snapshots.put(snapshot);
+  async insert(snapshot: Omit<ISnapshot, "id">) {
+    return this.db.snapshots.add(snapshot as ISnapshot);
   }
 
   async delete(id: number) {
