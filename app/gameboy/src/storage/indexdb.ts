@@ -36,8 +36,8 @@ class GameStore {
     return db.games.get(id);
   }
 
-  async upsert(game: IGame) {
-    this.db.games.put(game, game.id);
+  async insert(game: IGame) {
+    this.db.games.add(game, game.id);
   }
 
   async update(game: RequiredSome<IGame, "id">) {
@@ -91,7 +91,7 @@ class GameBoyStorage implements IGameBoyStorage {
       .then((buf) => obtainMetadata(buf, 90));
 
     const id = await utils.hashFile(file);
-    await this.gameStore.upsert({
+    await this.gameStore.insert({
       id,
       cover: metadata.cover,
       create_time: Date.now(),
