@@ -169,8 +169,6 @@ export function PagePlay(props: IPagePlayProps) {
               name: "Snapshot",
               cover,
             });
-
-            document.exitFullscreen();
             actions.togglePlayModal(false, null);
           }
         }}
