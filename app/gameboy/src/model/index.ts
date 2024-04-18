@@ -12,7 +12,7 @@ export interface ISnapshot {
   id: number;
   name: string;
   time: number;
-  data: Blob;
+  data: Uint8Array;
   cover: Blob;
   game_id: IGame["id"];
 }

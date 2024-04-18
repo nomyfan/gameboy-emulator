@@ -163,7 +163,7 @@ export function PagePlay(props: IPagePlayProps) {
             const time = Date.now();
             const cover = await utils.blobFromCanvas(canvas, "image/jpeg", 0.7);
             storage.snapshotStore.insert({
-              data: new Blob([snapshot]),
+              data: snapshot,
               game_id: gameId,
               time,
               name: "Snapshot",

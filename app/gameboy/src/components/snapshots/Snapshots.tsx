@@ -122,12 +122,9 @@ export function Snapshots() {
             await mutate();
           }}
           onPlay={async (snapshot) => {
-            const snapshotData = await snapshot.data
-              .arrayBuffer()
-              .then((buf) => new Uint8Array(buf));
             actions.togglePlayModal(true, {
               gameId: snapshot.game_id,
-              data: snapshotData,
+              data: snapshot.data,
             });
           }}
         />
