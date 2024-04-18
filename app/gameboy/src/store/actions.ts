@@ -19,17 +19,57 @@ export function togglePlayModal(
   open?: true,
   snapshot?: IStore["snapshot"],
 ): void;
-export function togglePlayModal(open?: false): void;
-export function togglePlayModal(open?: boolean, snapshot?: IStore["snapshot"]) {
+export function togglePlayModal(open?: false, invoke?: boolean): void;
+export function togglePlayModal(
+  open?: boolean,
+  unknown?: boolean | IStore["snapshot"],
+) {
   store.setState((st) => {
-    const playModalOpen = open ?? !st.ui.playModalOpen;
-    st.ui.playModalOpen = playModalOpen;
-    if (!playModalOpen) {
+    let invoke: boolean | undefined;
+    let snapshot: IStore["snapshot"] | undefined;
+    if (open === undefined) {
+      open = !st.ui.playModalOpen;
+    } else if (open) {
+      snapshot = unknown as IStore["snapshot"] | undefined;
+    } else {
+      invoke = unknown as boolean | undefined;
+    }
+
+    st.ui.playModalOpen = open;
+    if (open) {
+      st.snapshot = snapshot;
+    } else {
       const onClose = st.snapshot?.onClose;
       st.snapshot = undefined;
-      onClose?.();
-    } else if (snapshot) {
-      st.snapshot = snapshot;
+      invoke && onClose?.();
+    }
+  });
+}
+
+export function toggleExitModal(open?: true, onClose?: () => void): void;
+export function toggleExitModal(open?: false, invoke?: boolean): void;
+export function toggleExitModal(
+  open?: boolean,
+  unknown?: (() => void) | boolean,
+) {
+  store.setState((st) => {
+    let onClose: (() => void) | undefined;
+    let invoke: boolean | undefined;
+    if (open === undefined) {
+      open = !st.ui.exitModalOpen;
+    } else if (open) {
+      onClose = unknown as (() => void) | undefined;
+    } else {
+      invoke = unknown as boolean | undefined;
+    }
+
+    st.ui.exitModalOpen = open;
+    if (open) {
+      st.ui.exitModalOnClose = onClose;
+    } else {
+      const onClose = st.ui.exitModalOnClose;
+      st.ui.exitModalOnClose = undefined;
+      invoke && onClose?.();
     }
   });
 }

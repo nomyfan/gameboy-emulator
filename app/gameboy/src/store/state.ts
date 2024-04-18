@@ -6,6 +6,8 @@ export interface IStore {
   ui: {
     snapshotsDrawerOpen?: boolean;
     playModalOpen?: boolean;
+    exitModalOpen?: boolean;
+    exitModalOnClose?: () => void;
   };
   games?: Array<{
     id: string;

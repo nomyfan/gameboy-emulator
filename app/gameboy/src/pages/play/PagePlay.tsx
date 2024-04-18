@@ -7,6 +7,7 @@ import { DirectionButton } from "../../components/DirectionButton";
 import { FlexBox } from "../../components/flex-box";
 import { FnButton } from "../../components/FnButton";
 import { IconFullscreenExit } from "../../components/icons";
+import { Modal } from "../../components/modal";
 import { Screen } from "../../components/Screen";
 import { GameBoyControl, JoypadKey } from "../../gameboy";
 import { useGamepadController } from "../../hooks/useGamepadController";
@@ -118,61 +119,69 @@ export function PagePlay(props: IPagePlayProps) {
   useGamepadController({ gameboy });
 
   return (
-    <FlexBox
-      justify="right"
-      className={clsx(styles.root, props.className)}
-      style={props.style}
-    >
-      <FlexBox justify="end" className={styles.side}>
-        <div className={styles.leftSide}>
-          <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
-        </div>
-      </FlexBox>
+    <>
+      <FlexBox
+        justify="right"
+        className={clsx(styles.root, props.className)}
+        style={props.style}
+      >
+        <FlexBox justify="end" className={styles.side}>
+          <div className={styles.leftSide}>
+            <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
+          </div>
+        </FlexBox>
 
-      <FlexBox align="center" className={styles.screen}>
-        <Screen ref={canvasRef} />
-      </FlexBox>
+        <FlexBox align="center" className={styles.screen}>
+          <Screen ref={canvasRef} />
+        </FlexBox>
 
-      <FlexBox className={styles.side}>
-        <div className={styles.rightSide}>
-          <AbButton
-            style={{ transform: "rotate(-25deg)" }}
-            onDown={handleButtonDown}
-            onUp={handleButtonUp}
-          />
-          <FnButton
-            style={{ marginTop: rem(400) }}
-            onDown={handleButtonDown}
-            onUp={handleButtonUp}
-          />
-        </div>
-      </FlexBox>
+        <FlexBox className={styles.side}>
+          <div className={styles.rightSide}>
+            <AbButton
+              style={{ transform: "rotate(-25deg)" }}
+              onDown={handleButtonDown}
+              onUp={handleButtonUp}
+            />
+            <FnButton
+              style={{ marginTop: rem(400) }}
+              onDown={handleButtonDown}
+              onUp={handleButtonUp}
+            />
+          </div>
+        </FlexBox>
 
-      <IconFullscreenExit
-        style={{
-          position: "absolute",
-          right: 10,
-          top: 10,
-          height: 36,
-          width: 36,
-        }}
-        onClick={async () => {
-          const canvas = canvasRef.current;
-          if (gameId && canvas) {
-            const snapshot = gameboy.takeSnapshot();
-            const time = Date.now();
-            const cover = await utils.blobFromCanvas(canvas, "image/jpeg", 0.7);
-            storage.snapshotStore.insert({
-              data: snapshot,
-              gameId,
-              time,
-              name: "Snapshot",
-              cover,
+        <IconFullscreenExit
+          style={{
+            position: "absolute",
+            right: 10,
+            top: 10,
+            height: 36,
+            width: 36,
+          }}
+          onClick={async () => {
+            actions.toggleExitModal(true, async () => {
+              const canvas = canvasRef.current;
+              if (gameId && canvas) {
+                const snapshot = gameboy.takeSnapshot();
+                const time = Date.now();
+                const cover = await utils.blobFromCanvas(
+                  canvas,
+                  "image/jpeg",
+                  0.7,
+                );
+                storage.snapshotStore.insert({
+                  data: snapshot,
+                  gameId,
+                  time,
+                  name: "Snapshot",
+                  cover,
+                });
+                actions.togglePlayModal(false);
+              }
             });
-            actions.togglePlayModal(false);
-          }
-        }}
-      />
-    </FlexBox>
+          }}
+        />
+      </FlexBox>
+    </>
   );
 }

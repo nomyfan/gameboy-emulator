@@ -12,6 +12,16 @@ export const py = <T extends CSSProperties["paddingTop"]>(value: T) => ({
   paddingBottom: value,
 });
 
+export const mx = <T extends CSSProperties["marginLeft"]>(value: T) => ({
+  marginLeft: value,
+  marginRight: value,
+});
+
+export const my = <T extends CSSProperties["marginTop"]>(value: T) => ({
+  marginTop: value,
+  marginBottom: value,
+});
+
 export const size = <T extends CSSProperties["width"]>(value: T) => ({
   width: value,
   height: value,
