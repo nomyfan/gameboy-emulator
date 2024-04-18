@@ -14,7 +14,7 @@ class DB extends Dexie {
     super("gbos");
     this.version(1).stores({
       games: "&id",
-      snapshots: "++id,game_id",
+      snapshots: "++id,gameId",
     });
   }
 }
@@ -63,7 +63,7 @@ class SnapshotStore {
   }
 
   async queryByGameId(gameId: string) {
-    return this.db.snapshots.where("game_id").equals(gameId).toArray();
+    return this.db.snapshots.where({ gameId }).toArray();
   }
 
   async insert(snapshot: Omit<ISnapshot, "id">) {
@@ -94,8 +94,8 @@ class GameBoyStorage implements IGameBoyStorage {
     await this.gameStore.insert({
       id,
       cover: metadata.cover,
-      create_time: Date.now(),
-      last_play_time: 0,
+      createTime: Date.now(),
+      lastPlayTime: 0,
       name: metadata.name,
       rom: file,
     });
@@ -105,10 +105,10 @@ class GameBoyStorage implements IGameBoyStorage {
   async loadAllGames(): Promise<IGame[]> {
     const games = await this.gameStore.queryAll();
     games.sort((x, y) => {
-      const xLastPlayTime = x.last_play_time ?? 0;
-      const yLastPlayTime = y.last_play_time ?? 0;
+      const xLastPlayTime = x.lastPlayTime ?? 0;
+      const yLastPlayTime = y.lastPlayTime ?? 0;
       if (yLastPlayTime === xLastPlayTime) {
-        return y.create_time - x.create_time;
+        return y.createTime - x.createTime;
       }
       return yLastPlayTime - xLastPlayTime;
     });

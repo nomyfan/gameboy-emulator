@@ -39,8 +39,8 @@ export async function loadGames(beforeSetState?: () => Promise<void>) {
       id: manifest.id,
       name: manifest.name,
       coverURL,
-      time: manifest.create_time,
-      lastPlayTime: manifest.last_play_time,
+      time: manifest.createTime,
+      lastPlayTime: manifest.lastPlayTime,
     });
   }
 

@@ -102,7 +102,7 @@ export function PagePlay(props: IPagePlayProps) {
         gameboy.play();
         await storage.gameStore.update({
           id: gameId,
-          last_play_time: Date.now(),
+          lastPlayTime: Date.now(),
         });
       }
     })();
@@ -164,7 +164,7 @@ export function PagePlay(props: IPagePlayProps) {
             const cover = await utils.blobFromCanvas(canvas, "image/jpeg", 0.7);
             storage.snapshotStore.insert({
               data: snapshot,
-              game_id: gameId,
+              gameId,
               time,
               name: "Snapshot",
               cover,

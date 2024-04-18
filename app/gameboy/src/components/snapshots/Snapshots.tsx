@@ -123,7 +123,7 @@ export function Snapshots() {
           }}
           onPlay={async (snapshot) => {
             actions.togglePlayModal(true, {
-              gameId: snapshot.game_id,
+              gameId: snapshot.gameId,
               data: snapshot.data,
             });
           }}

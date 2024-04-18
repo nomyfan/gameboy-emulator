@@ -4,8 +4,8 @@ export interface IGame {
   sav?: Blob;
   cover: Blob;
   name: string;
-  create_time: number;
-  last_play_time?: number;
+  createTime: number;
+  lastPlayTime?: number;
 }
 
 export interface ISnapshot {
@@ -14,7 +14,7 @@ export interface ISnapshot {
   time: number;
   data: Uint8Array;
   cover: Blob;
-  game_id: IGame["id"];
+  gameId: IGame["id"];
 }
 
 export interface IGameBoyStorage {
