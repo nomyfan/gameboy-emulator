@@ -1,17 +1,19 @@
-import * as styles from "./Avatar.css";
-import MockAvatar from "./mock.jpg";
+import * as RadixAvatar from "@radix-ui/react-avatar";
+import type { ReactNode } from "react";
 
-export function Avatar() {
+import { FlexBox } from "../flex-box";
+
+import * as styles from "./Avatar.css";
+
+export function Avatar(props: { src?: string; fallback?: ReactNode }) {
   return (
-    <div className={styles.avatar}>
-      <img
-        alt="avatar"
-        src={MockAvatar}
-        style={{
-          height: "100%",
-          width: "100%",
-        }}
-      />
-    </div>
+    <RadixAvatar.Root className={styles.avatar}>
+      <RadixAvatar.Image src={props.src} alt="avatar" />
+      <RadixAvatar.Fallback asChild>
+        <FlexBox className={styles.fallback} justify="center" align="center">
+          {props.fallback}
+        </FlexBox>
+      </RadixAvatar.Fallback>
+    </RadixAvatar.Root>
   );
 }

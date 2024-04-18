@@ -7,6 +7,7 @@ import { SnapshotsDrawer } from "./components/snapshots";
 import { PageHome } from "./pages/home";
 import { PagePlayModal } from "./pages/play";
 import { store, actions } from "./store";
+import "./App.css";
 
 export function App() {
   const drawerOpen = useStore(store, (st) =>

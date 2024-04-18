@@ -85,7 +85,7 @@ export function PageHome() {
           actions.selectCartridge();
         }}
       >
-        <Avatar />
+        <Avatar fallback="O" />
       </section>
 
       <GameList className={styles.gameList} />
