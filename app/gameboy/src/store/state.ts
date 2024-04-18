@@ -18,6 +18,7 @@ export interface IStore {
   snapshot?: {
     gameId: string;
     data: Uint8Array;
+    onClose: () => void;
   };
 }
 

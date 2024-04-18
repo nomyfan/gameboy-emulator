@@ -125,6 +125,7 @@ export function Snapshots() {
             actions.togglePlayModal(true, {
               gameId: snapshot.gameId,
               data: snapshot.data,
+              onClose: () => mutate(),
             });
           }}
         />

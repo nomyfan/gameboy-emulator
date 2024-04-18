@@ -169,7 +169,7 @@ export function PagePlay(props: IPagePlayProps) {
               name: "Snapshot",
               cover,
             });
-            actions.togglePlayModal(false, null);
+            actions.togglePlayModal(false);
           }
         }}
       />

@@ -10,21 +10,26 @@ export function selectCartridge(id?: string) {
 }
 
 export function toggleSnapshotsDrawer(open?: boolean) {
-  store.setState((state) => {
-    state.ui.snapshotsDrawerOpen = open ?? !state.ui.snapshotsDrawerOpen;
+  store.setState((st) => {
+    st.ui.snapshotsDrawerOpen = open ?? !st.ui.snapshotsDrawerOpen;
   });
 }
 
 export function togglePlayModal(
-  open?: boolean,
-  snapshot?: IStore["snapshot"] | null,
-) {
-  store.setState((state) => {
-    state.ui.playModalOpen = open ?? !state.ui.playModalOpen;
-    if (snapshot === null) {
-      state.snapshot = undefined;
+  open?: true,
+  snapshot?: IStore["snapshot"],
+): void;
+export function togglePlayModal(open?: false): void;
+export function togglePlayModal(open?: boolean, snapshot?: IStore["snapshot"]) {
+  store.setState((st) => {
+    const playModalOpen = open ?? !st.ui.playModalOpen;
+    st.ui.playModalOpen = playModalOpen;
+    if (!playModalOpen) {
+      const onClose = st.snapshot?.onClose;
+      st.snapshot = undefined;
+      onClose?.();
     } else if (snapshot) {
-      state.snapshot = snapshot;
+      st.snapshot = snapshot;
     }
   });
 }
@@ -59,8 +64,8 @@ export async function deleteGame(id: string) {
 
   await storage.uninstallGame(target.id);
 
-  store.setState((state) => {
-    state.games = games?.filter((c) => c.id !== target.id);
+  store.setState((st) => {
+    st.games = games?.filter((c) => c.id !== target.id);
     URL.revokeObjectURL(target.coverURL);
   });
 }
