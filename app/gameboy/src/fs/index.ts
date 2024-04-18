@@ -11,7 +11,6 @@ export async function pickFile(options?: { accept?: string }) {
   return new Promise<File | null>((resolve, reject) => {
     input.addEventListener("change", () => {
       const file = input.files?.[0] ?? null;
-      input.remove();
       resolve(file);
     });
 
@@ -19,10 +18,10 @@ export async function pickFile(options?: { accept?: string }) {
      * @see https://caniuse.com/mdn-api_htmlinputelement_cancel_event
      */
     input.addEventListener("cancel", () => {
-      input.remove();
       reject();
     });
 
     input.click();
+    input.remove();
   });
 }
