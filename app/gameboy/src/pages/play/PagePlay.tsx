@@ -71,19 +71,19 @@ export interface IPagePlayProps {
 export function PagePlay(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const info = useStore(store, (st) => {
-    return st.games?.find((c) => c.id === st.selectedGameId);
+  const gameId = useStore(store, (st) => {
+    return st.games?.find((c) => c.id === st.selectedGameId)?.id;
   });
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!info || !canvas) {
+    if (!gameId || !canvas) {
       return;
     }
 
     let canceled = false;
     (async () => {
-      const file = await storage.gameStore.queryById(info.id);
+      const file = await storage.gameStore.queryById(gameId);
       if (!file) {
         // TODO:
         return;
@@ -95,14 +95,19 @@ export function PagePlay(props: IPagePlayProps) {
         gameboy.uninstall();
         gameboy.install(rom, canvas, 2);
         gameboy.play();
+        await storage.gameStore.update({
+          id: gameId,
+          last_play_time: Date.now(),
+        });
       }
     })();
 
     return () => {
       canceled = true;
       gameboy.uninstall();
+      actions.loadGames();
     };
-  }, [info]);
+  }, [gameId]);
 
   useKeyboardController({ gameboy });
   useGamepadController({ gameboy });

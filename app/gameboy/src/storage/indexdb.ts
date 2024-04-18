@@ -102,8 +102,18 @@ class GameBoyStorage implements IGameBoyStorage {
     return true;
   }
 
-  loadAllGames(): Promise<IGame[]> {
-    return this.gameStore.queryAll();
+  async loadAllGames(): Promise<IGame[]> {
+    const games = await this.gameStore.queryAll();
+    games.sort((x, y) => {
+      const xLastPlayTime = x.last_play_time ?? 0;
+      const yLastPlayTime = y.last_play_time ?? 0;
+      if (yLastPlayTime === xLastPlayTime) {
+        return y.create_time - x.create_time;
+      }
+      return yLastPlayTime - xLastPlayTime;
+    });
+
+    return games;
   }
 
   async uninstallGame(id: string): Promise<void> {
