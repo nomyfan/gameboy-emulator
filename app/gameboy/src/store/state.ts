@@ -15,6 +15,10 @@ export interface IStore {
     lastPlayTime?: number;
   }>;
   selectedGameId?: string;
+  snapshot?: {
+    gameId: string;
+    data: Uint8Array;
+  };
 }
 
 function create() {

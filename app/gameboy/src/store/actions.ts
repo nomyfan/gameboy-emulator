@@ -15,9 +15,17 @@ export function toggleSnapshotsDrawer(open?: boolean) {
   });
 }
 
-export function togglePlayModal(open?: boolean) {
+export function togglePlayModal(
+  open?: boolean,
+  snapshot?: IStore["snapshot"] | null,
+) {
   store.setState((state) => {
     state.ui.playModalOpen = open ?? !state.ui.playModalOpen;
+    if (snapshot === null) {
+      state.snapshot = undefined;
+    } else if (snapshot) {
+      state.snapshot = snapshot;
+    }
   });
 }
 

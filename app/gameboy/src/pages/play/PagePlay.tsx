@@ -95,6 +95,10 @@ export function PagePlay(props: IPagePlayProps) {
       if (!canceled) {
         gameboy.uninstall();
         gameboy.install(rom, canvas, 2);
+        const snapshot = store.getState().snapshot;
+        if (snapshot && snapshot.gameId === gameId) {
+          gameboy.restoreSnapshot(snapshot.data);
+        }
         gameboy.play();
         await storage.gameStore.update({
           id: gameId,
@@ -106,7 +110,7 @@ export function PagePlay(props: IPagePlayProps) {
     return () => {
       canceled = true;
       gameboy.uninstall();
-      actions.loadGames();
+      actions.loadGames(); // TODO: maybe it should be reload from home page
     };
   }, [gameId]);
 
@@ -167,7 +171,7 @@ export function PagePlay(props: IPagePlayProps) {
             });
 
             document.exitFullscreen();
-            actions.togglePlayModal(false);
+            actions.togglePlayModal(false, null);
           }
         }}
       />
