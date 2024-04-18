@@ -2,14 +2,18 @@ import { createStore } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
-import { IGameManifest } from "../types";
-
 export interface IStore {
   ui: {
     snapshotsDrawerOpen?: boolean;
     playModalOpen?: boolean;
   };
-  games?: (IGameManifest & { id: string; coverURL: string })[];
+  games?: Array<{
+    id: string;
+    name: string;
+    time: number;
+    coverURL: string;
+    lastPlayTime?: number;
+  }>;
   selectedGameId?: string;
 }
 

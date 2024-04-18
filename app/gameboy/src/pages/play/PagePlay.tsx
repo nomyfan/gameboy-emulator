@@ -8,10 +8,10 @@ import { FlexBox } from "../../components/flex-box";
 import { FnButton } from "../../components/FnButton";
 import { IconFullscreenExit } from "../../components/icons";
 import { Screen } from "../../components/Screen";
-import * as fs from "../../fs";
 import { GameBoyControl, JoypadKey } from "../../gameboy";
 import { useGamepadController } from "../../hooks/useGamepadController";
 import { useKeyboardController } from "../../hooks/useKeyboardController";
+import { storage } from "../../storage/indexdb";
 import { store, actions } from "../../store";
 import { rem } from "../../styles";
 import { IGameBoyButton } from "../../types";
@@ -83,10 +83,13 @@ export function PagePlay(props: IPagePlayProps) {
 
     let canceled = false;
     (async () => {
-      const file = await fs.file("rom.gb", await fs.dir(info.directory));
-      const rom = await file
-        .getFile()
-        .then((file) => file.arrayBuffer())
+      const file = await storage.gameStore.queryById(info.id);
+      if (!file) {
+        // TODO:
+        return;
+      }
+      const rom = await file.rom
+        .arrayBuffer()
         .then((buf) => new Uint8ClampedArray(buf));
       if (!canceled) {
         gameboy.uninstall();

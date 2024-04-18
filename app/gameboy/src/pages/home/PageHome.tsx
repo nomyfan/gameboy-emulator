@@ -14,8 +14,8 @@ import {
 } from "../../components/icons";
 import { OperationBar } from "../../components/operation-bar";
 import * as fs from "../../fs";
-import * as storage from "../../fs/storage";
 import { useFullscreen } from "../../hooks/useFullscreen";
+import { storage } from "../../storage/indexdb";
 import { actions, store } from "../../store";
 
 import * as styles from "./PageHome.css";

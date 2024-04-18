@@ -1,5 +1,4 @@
-import * as fs from "../fs";
-import * as storage from "../fs/storage";
+import { storage } from "../storage/indexdb";
 
 import type { IStore } from "./state";
 import { store } from "./state";
@@ -27,14 +26,13 @@ export async function loadGames(beforeSetState?: () => Promise<void>) {
 
   const games: NonNullable<IStore["games"]> = [];
   for (const manifest of manifests) {
-    const cover = await fs.file("cover.jpeg", await fs.dir(manifest.directory));
-    const coverURL = await cover.getFile().then((file) => {
-      return URL.createObjectURL(file);
-    });
+    const coverURL = URL.createObjectURL(manifest.cover);
     games.push({
-      id: manifest.directory,
-      coverURL: coverURL,
-      ...manifest,
+      id: manifest.id,
+      name: manifest.name,
+      coverURL,
+      time: manifest.create_time,
+      lastPlayTime: manifest.last_play_time,
     });
   }
 
@@ -51,7 +49,7 @@ export async function deleteGame(id: string) {
     return;
   }
 
-  await storage.uninstallGame(target.directory);
+  await storage.uninstallGame(target.id);
 
   store.setState((state) => {
     state.games = games?.filter((c) => c.id !== target.id);
