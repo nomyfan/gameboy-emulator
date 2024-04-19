@@ -1,6 +1,5 @@
 import { globalStyle, style } from "@vanilla-extract/css";
-
-import { lightShadow, darkShadow } from "../styles";
+import { lightShadow, darkShadow } from "gameboy/styles";
 
 export const button = style({
   width: "fit-content",

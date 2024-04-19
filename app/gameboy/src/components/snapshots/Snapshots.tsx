@@ -1,15 +1,14 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { clsx } from "clsx";
+import { FlexBox } from "gameboy/components/flex-box";
+import { IconDelete } from "gameboy/components/icons";
+import type { ISnapshot } from "gameboy/model";
+import { storage } from "gameboy/storage/indexdb";
+import { store, actions } from "gameboy/store";
 import { CSSProperties, useCallback, useEffect, useState } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 import { useStore } from "zustand";
-
-import type { ISnapshot } from "../../model";
-import { storage } from "../../storage/indexdb";
-import { store, actions } from "../../store";
-import { FlexBox } from "../flex-box";
-import { IconDelete } from "../icons";
 
 import * as styles from "./Snapshots.css";
 

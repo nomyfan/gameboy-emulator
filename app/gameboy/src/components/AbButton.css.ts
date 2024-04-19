@@ -1,6 +1,5 @@
 import { style } from "@vanilla-extract/css";
-
-import { size, lightShadow, darkShadow } from "../styles";
+import { size, lightShadow, darkShadow } from "gameboy/styles";
 
 export const button = style({
   borderRadius: "50%",

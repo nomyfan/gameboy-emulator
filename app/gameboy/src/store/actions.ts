@@ -1,4 +1,4 @@
-import { storage } from "../storage/indexdb";
+import { storage } from "gameboy/storage/indexdb";
 
 import type { IStore } from "./state";
 import { store } from "./state";

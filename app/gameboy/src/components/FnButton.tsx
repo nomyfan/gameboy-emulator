@@ -1,6 +1,5 @@
+import type { IFnButton } from "gameboy/types";
 import type { CSSProperties } from "react";
-
-import type { IFnButton } from "../types";
 
 import * as styles from "./FnButton.css";
 

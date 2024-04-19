@@ -1,9 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { clsx } from "clsx";
+import { Button } from "gameboy/components/button";
+import { FlexBox } from "gameboy/components/flex-box";
 import type { ReactNode } from "react";
-
-import { Button } from "../button";
-import { FlexBox } from "../flex-box";
 
 import * as styles from "./Modal.css";
 

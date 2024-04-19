@@ -1,8 +1,7 @@
+import type { GameBoyControl } from "gameboy/gameboy";
 import { JoypadKey } from "gb-wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
-
-import type { GameBoyControl } from "../gameboy";
 
 /**
  * @see https://w3c.github.io/gamepad/#remapping

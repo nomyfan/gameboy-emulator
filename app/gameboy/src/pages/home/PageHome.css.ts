@@ -1,10 +1,8 @@
 import { style } from "@vanilla-extract/css";
-
-import { rem } from "../../styles";
-import * as vars from "../../styles/vars.css";
+import { rem, cssVars } from "gameboy/styles";
 
 export const home = style({
-  backgroundColor: vars.colorBackground,
+  backgroundColor: cssVars.colorBackground,
   height: "100vh",
   width: "100vw",
   display: "flex",

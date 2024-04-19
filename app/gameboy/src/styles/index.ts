@@ -51,3 +51,5 @@ export const textEllipsis = () =>
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   }) as const;
+
+export * as cssVars from "./vars.css";

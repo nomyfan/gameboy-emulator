@@ -1,11 +1,9 @@
 import { clsx } from "clsx";
+import { lightShadow, darkShadow } from "gameboy/styles";
+import type { IDirectionButton } from "gameboy/types";
 import type { CSSProperties } from "react";
 
-import { lightShadow, darkShadow } from "../styles";
-import type { IDirectionButton } from "../types";
-
 import * as styles from "./DirectionButton.css";
-
 
 function Button(props: {
   className?: string;

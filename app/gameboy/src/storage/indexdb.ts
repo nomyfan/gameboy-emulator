@@ -1,10 +1,9 @@
 import type { Table } from "dexie";
 import { Dexie } from "dexie";
+import type { IGame, IGameBoyStorage, ISnapshot } from "gameboy/model";
+import type { RequiredSome } from "gameboy/types";
+import * as utils from "gameboy/utils";
 import { obtainMetadata } from "gb-wasm";
-
-import type { IGame, IGameBoyStorage, ISnapshot } from "../model";
-import type { RequiredSome } from "../types";
-import * as utils from "../utils";
 
 class DB extends Dexie {
   games!: Table<IGame, string>;

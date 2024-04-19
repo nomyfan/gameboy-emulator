@@ -1,8 +1,5 @@
-import { ReactNode, useMemo } from "react";
-import { useStore } from "zustand";
-
-import { Avatar } from "../../components/avatar";
-import { GameList } from "../../components/game-list";
+import { Avatar } from "gameboy/components/avatar";
+import { GameList } from "gameboy/components/game-list";
 import {
   IconAdd,
   IconDelete,
@@ -11,12 +8,14 @@ import {
   IconSettings,
   IconFullscreen,
   IconFullscreenExit,
-} from "../../components/icons";
-import { OperationBar } from "../../components/operation-bar";
-import * as fs from "../../fs";
-import { useFullscreen } from "../../hooks/useFullscreen";
-import { storage } from "../../storage/indexdb";
-import { actions, store } from "../../store";
+} from "gameboy/components/icons";
+import { OperationBar } from "gameboy/components/operation-bar";
+import * as fs from "gameboy/fs";
+import { useFullscreen } from "gameboy/hooks/useFullscreen";
+import { storage } from "gameboy/storage/indexdb";
+import { actions, store } from "gameboy/store";
+import { ReactNode, useMemo } from "react";
+import { useStore } from "zustand";
 
 import * as styles from "./PageHome.css";
 

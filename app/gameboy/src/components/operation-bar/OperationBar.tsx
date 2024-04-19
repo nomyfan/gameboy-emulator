@@ -1,10 +1,8 @@
 import { Separator } from "@radix-ui/react-separator";
 import { clsx } from "clsx";
+import { join } from "gameboy/utils";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
-
-import { join } from "../../utils";
-import { item } from "../snapshots/Snapshots.css";
 
 import { Item } from "./Item";
 import * as styles from "./OperationBar.css";

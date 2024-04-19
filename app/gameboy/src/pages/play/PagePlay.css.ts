@@ -1,6 +1,5 @@
 import { style } from "@vanilla-extract/css";
-
-import * as cssVars from "../../styles/vars.css";
+import { cssVars } from "gameboy/styles";
 
 export const root = style({
   backgroundColor: cssVars.colorBackground,

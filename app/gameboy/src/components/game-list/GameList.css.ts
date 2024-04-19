@@ -1,7 +1,5 @@
 import { globalStyle, style } from "@vanilla-extract/css";
-
-import { rem, textEllipsis } from "../../styles";
-import * as cssVars from "../../styles/vars.css";
+import { rem, textEllipsis, cssVars } from "gameboy/styles";
 
 export const list = style({
   display: "flex",

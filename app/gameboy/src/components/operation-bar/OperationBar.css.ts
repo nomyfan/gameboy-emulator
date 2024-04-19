@@ -1,7 +1,6 @@
 import { globalStyle, style } from "@vanilla-extract/css";
-
-import { rem } from "../../styles";
-import * as cssVars from "../../styles/vars.css";
+import { rem } from "gameboy/styles";
+import * as cssVars from "gameboy/styles/vars.css";
 
 export const bar = style({
   display: "flex",

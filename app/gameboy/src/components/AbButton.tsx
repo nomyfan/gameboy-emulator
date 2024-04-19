@@ -1,7 +1,6 @@
 import { clsx } from "clsx";
+import type { IAbButton } from "gameboy/types";
 import type { CSSProperties, ReactNode } from "react";
-
-import type { IAbButton } from "../types";
 
 import * as styles from "./AbButton.css";
 

@@ -1,22 +1,20 @@
 import { clsx } from "clsx";
+import { AbButton } from "gameboy/components/AbButton";
+import { DirectionButton } from "gameboy/components/DirectionButton";
+import { FlexBox } from "gameboy/components/flex-box";
+import { FnButton } from "gameboy/components/FnButton";
+import { IconFullscreenExit } from "gameboy/components/icons";
+import { Screen } from "gameboy/components/Screen";
+import { GameBoyControl, JoypadKey } from "gameboy/gameboy";
+import { useGamepadController } from "gameboy/hooks/useGamepadController";
+import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
+import { storage } from "gameboy/storage/indexdb";
+import { store, actions } from "gameboy/store";
+import { rem } from "gameboy/styles";
+import { IGameBoyButton } from "gameboy/types";
+import * as utils from "gameboy/utils";
 import { CSSProperties, useEffect, useRef } from "react";
 import { useStore } from "zustand";
-
-import { AbButton } from "../../components/AbButton";
-import { DirectionButton } from "../../components/DirectionButton";
-import { FlexBox } from "../../components/flex-box";
-import { FnButton } from "../../components/FnButton";
-import { IconFullscreenExit } from "../../components/icons";
-import { Modal } from "../../components/modal";
-import { Screen } from "../../components/Screen";
-import { GameBoyControl, JoypadKey } from "../../gameboy";
-import { useGamepadController } from "../../hooks/useGamepadController";
-import { useKeyboardController } from "../../hooks/useKeyboardController";
-import { storage } from "../../storage/indexdb";
-import { store, actions } from "../../store";
-import { rem } from "../../styles";
-import { IGameBoyButton } from "../../types";
-import * as utils from "../../utils";
 
 import * as styles from "./PagePlay.css";
 

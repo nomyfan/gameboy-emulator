@@ -1,6 +1,5 @@
 import { style } from "@vanilla-extract/css";
-
-import { flexCenter, size } from "../styles";
+import { flexCenter, size } from "gameboy/styles";
 
 export const button = style({
   backgroundColor: "black",

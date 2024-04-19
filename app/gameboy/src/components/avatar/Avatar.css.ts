@@ -1,7 +1,5 @@
 import { style, globalStyle } from "@vanilla-extract/css";
-
-import { rem } from "../../styles";
-import * as cssVars from "../../styles/vars.css";
+import { rem, cssVars } from "gameboy/styles";
 
 const size = rem(100);
 

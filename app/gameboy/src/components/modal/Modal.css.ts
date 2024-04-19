@@ -1,7 +1,5 @@
 import { keyframes, style } from "@vanilla-extract/css";
-
-import { rem, my } from "../../styles";
-import * as cssVars from "../../styles/vars.css";
+import { rem, my, cssVars } from "gameboy/styles";
 
 const overlayShow = keyframes({
   from: { opacity: 0 },

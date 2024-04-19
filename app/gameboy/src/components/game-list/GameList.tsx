@@ -1,9 +1,8 @@
 import { clsx } from "clsx";
+import { store, actions } from "gameboy/store";
 import { useEffect } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { useStore } from "zustand";
-
-import { store, actions } from "../../store";
 
 import * as styles from "./GameList.css";
 import { Item } from "./Item";
