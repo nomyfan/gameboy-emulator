@@ -16,7 +16,7 @@ import * as utils from "gameboy/utils";
 import { CSSProperties, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
-import * as styles from "./PagePlay.css";
+import * as styles from "./Play.css";
 
 const gameboy = new GameBoyControl();
 
@@ -68,7 +68,7 @@ export interface IPagePlayProps {
   style?: CSSProperties;
 }
 
-export function PagePlay(props: IPagePlayProps) {
+export function Play(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const gameId = useStore(store, (st) => {

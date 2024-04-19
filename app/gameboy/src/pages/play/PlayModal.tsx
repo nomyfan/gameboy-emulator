@@ -1,13 +1,17 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { store } from "gameboy/store";
+import { useStore } from "zustand";
 
-import { PagePlay } from "./PagePlay";
+import { Play } from "./Play";
 
-export function PagePlayModal(props: { open?: boolean }) {
+export function PlayModal() {
+  const playModalOpen = useStore(store, (st) => st.ui.playModalOpen);
+
   return (
-    <Dialog.Root open={props.open}>
+    <Dialog.Root open={playModalOpen}>
       <Dialog.Portal>
         <Dialog.Content>
-          <PagePlay
+          <Play
             style={{
               position: "fixed",
               top: 0,

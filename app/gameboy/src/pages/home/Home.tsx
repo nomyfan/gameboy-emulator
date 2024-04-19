@@ -17,9 +17,9 @@ import { actions, store } from "gameboy/store";
 import { ReactNode, useMemo } from "react";
 import { useStore } from "zustand";
 
-import * as styles from "./PageHome.css";
+import * as styles from "./Home.css";
 
-export function PageHome() {
+export function Home() {
   const selected = useStore(store, (st) => st.selectedGameId !== undefined);
 
   const isFullscreen = useFullscreen();
