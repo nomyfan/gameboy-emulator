@@ -23,8 +23,7 @@ export function Item(props: IListItemProps) {
   return (
     <div
       className={clsx(
-        styles.listItem,
-        props.selected && styles.listItemSelected,
+        props.selected ? styles.listItemSelected : styles.listItem,
         props.className,
       )}
       style={props.style}

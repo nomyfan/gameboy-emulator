@@ -12,8 +12,7 @@ export function Button(
     <button
       {...restProps}
       className={clsx(
-        styles.button,
-        type === "primary" && styles.buttonPrimary,
+        type === "primary" ? styles.buttonPrimary : styles.button,
         props.className,
       )}
     >

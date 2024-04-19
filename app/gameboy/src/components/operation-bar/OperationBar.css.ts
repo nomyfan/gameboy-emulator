@@ -21,9 +21,12 @@ export const barItem = style({
   margin: `0 ${rem(10)}`,
 });
 
-export const barItemAlert = style({
-  color: cssVars.colorAlert,
-});
+export const barItemAlert = style([
+  barItem,
+  {
+    color: cssVars.colorAlert,
+  },
+]);
 
 globalStyle(`${barItem} > svg`, {
   width: rem(72),

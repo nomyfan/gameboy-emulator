@@ -10,7 +10,10 @@ export const button = style({
   color: cssVars.colorPrimary,
 });
 
-export const buttonPrimary = style({
-  backgroundColor: cssVars.colorPrimary,
-  color: "white",
-});
+export const buttonPrimary = style([
+  button,
+  {
+    backgroundColor: cssVars.colorPrimary,
+    color: "white",
+  },
+]);

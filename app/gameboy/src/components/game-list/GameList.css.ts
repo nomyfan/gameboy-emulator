@@ -21,9 +21,12 @@ export const listItem = style({
   border: `${rem(10)} solid ${cssVars.colorPrimary}`,
 });
 
-export const listItemSelected = style({
-  border: `${rem(10)} solid ${cssVars.colorHighlight}`,
-});
+export const listItemSelected = style([
+  listItem,
+  {
+    border: `${rem(10)} solid ${cssVars.colorHighlight}`,
+  },
+]);
 
 globalStyle(`${listItem} > figure`, {
   height: "100%",
