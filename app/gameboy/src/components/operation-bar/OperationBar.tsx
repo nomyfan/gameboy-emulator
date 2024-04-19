@@ -3,6 +3,9 @@ import { clsx } from "clsx";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
+import { join } from "../../utils";
+import { item } from "../snapshots/Snapshots.css";
+
 import { Item } from "./Item";
 import * as styles from "./OperationBar.css";
 
@@ -24,35 +27,33 @@ export function OperationBar<ID extends string | number>(
   const renderItems = () => {
     const nodes: ReactNode[] = [];
 
-    const groups = props.items.filter((it) => !!it.length);
-    for (let i = 0; i < groups.length; i++) {
-      const groupKey = props.items[i].map((item) => item.id).join("-");
-      const group = props.items[i].map((item) => {
-        return (
-          <Item
-            key={item.id}
-            icon={item.icon}
-            className={clsx(item.alert && styles.barItemAlert)}
-            onClick={(evt) => {
-              evt.stopPropagation();
-              props.onClick?.(item.id);
-            }}
-          />
-        );
+    const items = props.items
+      .filter((group) => !!group.length)
+      .map((group) => {
+        const key = group.map((item) => item.id).join("-");
+        const items = group.map((item) => {
+          return (
+            <Item
+              key={item.id}
+              icon={item.icon}
+              className={clsx(item.alert && styles.barItemAlert)}
+              onClick={(evt) => {
+                evt.stopPropagation();
+                props.onClick?.(item.id);
+              }}
+            />
+          );
+        });
+        return <Fragment key={key}>{items}</Fragment>;
       });
-      nodes.push(<Fragment key={groupKey}>{group}</Fragment>);
-      if (i !== groups.length - 1) {
-        nodes.push(
-          <Separator
-            key={groupKey + "-separator"}
-            orientation="vertical"
-            className={styles.separator}
-          />,
-        );
-      }
-    }
 
-    return nodes;
+    return join(items, (_, item) => (
+      <Separator
+        key={item.key + "-separator"}
+        orientation="vertical"
+        className={styles.separator}
+      />
+    ));
   };
   return (
     <div className={clsx(styles.bar, props.className)}>{renderItems()}</div>

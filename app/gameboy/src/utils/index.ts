@@ -25,3 +25,19 @@ export async function blobFromCanvas(
     );
   });
 }
+
+export function join<T>(
+  array: T[],
+  separator: (index: number, value: T) => T,
+): T[] {
+  const newArray: T[] = [];
+  for (let i = 0; i < array.length - 1; i++) {
+    newArray.push(array[i], separator(i, array[i]));
+  }
+
+  if (array.length > 0) {
+    newArray.push(array[array.length - 1]);
+  }
+
+  return newArray;
+}
