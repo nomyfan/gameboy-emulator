@@ -25,8 +25,6 @@ export function OperationBar<ID extends string | number>(
   props: IOperationBarProps<ID>,
 ) {
   const renderItems = () => {
-    const nodes: ReactNode[] = [];
-
     const items = props.items
       .filter((group) => !!group.length)
       .map((group) => {
