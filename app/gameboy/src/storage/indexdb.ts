@@ -18,8 +18,6 @@ class DB extends Dexie {
   }
 }
 
-const db = new DB();
-
 class GameStore {
   private readonly db: { games: Table<IGame, string> };
 
@@ -28,11 +26,11 @@ class GameStore {
   }
 
   async queryAll() {
-    return db.games.toArray();
+    return this.db.games.toArray();
   }
 
   async queryById(id: string) {
-    return db.games.get(id);
+    return this.db.games.get(id);
   }
 
   async insert(game: IGame) {
@@ -75,10 +73,12 @@ class SnapshotStore {
 }
 
 class GameBoyStorage implements IGameBoyStorage {
+  db: DB;
   gameStore: GameStore;
   snapshotStore: SnapshotStore;
 
-  constructor() {
+  constructor(db: DB) {
+    this.db = db;
     this.gameStore = new GameStore(db);
     this.snapshotStore = new SnapshotStore(db);
   }
@@ -116,8 +116,20 @@ class GameBoyStorage implements IGameBoyStorage {
   }
 
   async uninstallGame(id: string): Promise<void> {
-    await this.gameStore.delete(id);
+    await this.db.transaction(
+      "rw",
+      [this.db.games, this.db.snapshots],
+      async (tx) => {
+        // Delete the game
+        tx.games.delete(id);
+
+        // Delete snapshots associated with the game
+        const snapshots = await tx.snapshots.where({ gameId: id }).toArray();
+        const snapshotIds = snapshots.map((s) => s.id);
+        tx.snapshots.bulkDelete(snapshotIds);
+      },
+    );
   }
 }
 
-export const storage = new GameBoyStorage();
+export const storage = new GameBoyStorage(new DB());
