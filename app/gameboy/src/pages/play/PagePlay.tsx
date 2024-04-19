@@ -161,11 +161,7 @@ export function PagePlay(props: IPagePlayProps) {
             if (gameId && canvas) {
               const snapshot = gameboy.takeSnapshot();
               const time = Date.now();
-              const cover = await utils.blobFromCanvas(
-                canvas,
-                "image/jpeg",
-                0.7,
-              );
+              const cover = await utils.canvasToBlob(canvas, "image/jpeg", 0.7);
               storage.snapshotStore.insert({
                 data: snapshot,
                 gameId,

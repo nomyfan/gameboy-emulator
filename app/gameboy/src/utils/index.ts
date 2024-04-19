@@ -6,7 +6,7 @@ export async function hashFile(file: File) {
   return await xxhash32(data);
 }
 
-export async function blobFromCanvas(
+export async function canvasToBlob(
   canvas: HTMLCanvasElement,
   type?: string,
   quality?: number,
