@@ -84,11 +84,7 @@ export function Play(props: IPagePlayProps) {
     let canceled = false;
     (async () => {
       const file = await storage.gameStore.queryById(gameId);
-      if (!file) {
-        // TODO:
-        return;
-      }
-      const rom = await file.rom
+      const rom = await file!.rom
         .arrayBuffer()
         .then((buf) => new Uint8ClampedArray(buf));
       if (!canceled) {
