@@ -1,33 +1,39 @@
-import type { CSSProperties, PropsWithChildren } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 import { createElement } from "react";
 
-export function FlexBox(
-  props: PropsWithChildren<{
-    className?: string;
-    style?: CSSProperties;
+export function FlexBox<T>(
+  props: HTMLAttributes<T> & {
     element?: string;
     direction?: CSSProperties["flexDirection"];
     align?: CSSProperties["alignItems"];
     justify?: CSSProperties["justifyContent"];
     grow?: CSSProperties["flexGrow"];
     shrink?: CSSProperties["flexShrink"];
-  }>,
+  },
 ) {
+  const {
+    children,
+    style: styleProp,
+    element,
+    direction,
+    align,
+    justify,
+    grow,
+    shrink,
+    ...restProps
+  } = props;
+
   const style: CSSProperties = {
     display: "flex",
-    flexDirection: props.direction,
-    alignItems: props.align,
-    justifyContent: props.justify,
-    flexGrow: props.grow,
-    flexShrink: props.shrink,
-    ...props.style,
+    flexDirection: direction,
+    alignItems: align,
+    justifyContent: justify,
+    flexGrow: grow,
+    flexShrink: shrink,
+    ...styleProp,
   };
 
-  const Type = props.element ?? "div";
+  const Type = element ?? "div";
 
-  return createElement(
-    Type,
-    { className: props.className, style },
-    props.children,
-  );
+  return createElement(Type, { style, ...restProps }, children);
 }

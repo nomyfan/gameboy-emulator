@@ -1,3 +1,4 @@
+import { FlexBox } from "gameboy/components/flex-box";
 import { store, actions } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
 import { useEffect } from "react";
@@ -57,16 +58,15 @@ export function GameList(props: IListProps) {
   };
 
   return (
-    <div
+    <FlexBox
       className={cn(styles.list, props.className)}
-      style={{
-        justifyContent: !games || games.length === 0 ? "center" : undefined,
-      }}
+      align="center"
+      justify={!games || games.length === 0 ? "center" : undefined}
       onClick={() => {
         actions.selectCartridge();
       }}
     >
       {renderItems()}
-    </div>
+    </FlexBox>
   );
 }

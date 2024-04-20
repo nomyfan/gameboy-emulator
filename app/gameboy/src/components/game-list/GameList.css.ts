@@ -2,9 +2,7 @@ import { globalStyle, style } from "@vanilla-extract/css";
 import { textEllipsis, cssVars, px } from "gameboy/styles";
 
 export const list = style({
-  display: "flex",
   gap: 10,
-  alignItems: "center",
   ...px(10),
   overflowX: "auto",
 });
