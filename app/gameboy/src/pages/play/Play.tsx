@@ -151,8 +151,8 @@ export function Play(props: IPagePlayProps) {
           height: 36,
           width: 36,
         }}
-        onClick={async () => {
-          actions.toggleExitModal(true, async () => {
+        onClick={() => {
+          actions.toggleExitGameModal(true, async () => {
             const canvas = canvasRef.current;
             if (gameId && canvas) {
               const snapshot = gameboy.takeSnapshot();

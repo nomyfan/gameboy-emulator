@@ -46,9 +46,9 @@ export function togglePlayModal(
   });
 }
 
-export function toggleExitModal(open?: true, onClose?: () => void): void;
-export function toggleExitModal(open?: false, invoke?: boolean): void;
-export function toggleExitModal(
+export function toggleExitGameModal(open?: true, onClose?: () => void): void;
+export function toggleExitGameModal(open?: false, invoke?: boolean): void;
+export function toggleExitGameModal(
   open?: boolean,
   unknown?: (() => void) | boolean,
 ) {

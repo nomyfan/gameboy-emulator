@@ -16,7 +16,7 @@ export function ExitGameModal() {
           <Button
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.toggleExitModal(false, false);
+              actions.toggleExitGameModal(false, false);
             }}
           >
             取消
@@ -25,7 +25,7 @@ export function ExitGameModal() {
             type="primary"
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.toggleExitModal(false, false);
+              actions.toggleExitGameModal(false, false);
               actions.togglePlayModal(false, false);
             }}
           >
@@ -34,7 +34,7 @@ export function ExitGameModal() {
           <Button
             type="primary"
             onClick={() => {
-              actions.toggleExitModal(false, true);
+              actions.toggleExitGameModal(false, true);
             }}
           >
             确定
