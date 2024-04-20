@@ -82,7 +82,6 @@ function Item(props: {
   );
 }
 
-// TODO: notify this component to revalidate snapshot list
 export function Snapshots() {
   const gameId = useStore(store, (st) => st.selectedGameId);
 

@@ -105,7 +105,7 @@ export function Play(props: IPagePlayProps) {
     return () => {
       canceled = true;
       gameboy.uninstall();
-      actions.loadGames(); // TODO: maybe it should be reload from home page
+      actions.loadGames();
     };
   }, [gameId]);
 
