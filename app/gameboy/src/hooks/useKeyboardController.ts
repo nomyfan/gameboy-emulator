@@ -1,8 +1,7 @@
+import type { GameBoyControl } from "gameboy/gameboy";
+import { JoypadKey } from "gameboy/gameboy";
 import { useEffect } from "react";
 import { fromEvent, map, merge, filter, distinctUntilChanged } from "rxjs";
-
-import type { GameBoyControl } from "../gameboy";
-import { JoypadKey } from "../gameboy";
 
 const keyMapping: Record<string, JoypadKey> = {
   ArrowRight: JoypadKey.Right,

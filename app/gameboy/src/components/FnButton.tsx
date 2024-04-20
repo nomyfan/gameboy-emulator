@@ -1,6 +1,5 @@
+import type { IFnButton } from "gameboy/types";
 import type { CSSProperties } from "react";
-
-import type { IFnButton } from "../types";
 
 import * as styles from "./FnButton.css";
 
@@ -27,9 +26,10 @@ function Button(props: {
 function FnButton(props: {
   onDown?: (button: IFnButton) => void;
   onUp?: (button: IFnButton) => void;
+  style?: CSSProperties;
 }) {
   return (
-    <div className={styles.fnButton}>
+    <div className={styles.fnButton} style={props.style}>
       <Button
         label="SELECT"
         style={{ marginRight: 20 }}

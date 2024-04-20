@@ -1,7 +1,5 @@
-import { clsx } from "clsx";
+import type { IDirectionButton } from "gameboy/types";
 import type { CSSProperties } from "react";
-
-import type { IDirectionButton } from "../types";
 
 import * as styles from "./DirectionButton.css";
 
@@ -13,7 +11,7 @@ function Button(props: {
 }) {
   return (
     <button
-      className={clsx(styles.button, props.className)}
+      className={props.className}
       style={props.style}
       onMouseDown={() => props.onDown?.()}
       onTouchStart={() => props.onDown?.()}
@@ -31,24 +29,13 @@ function DirectionButton(props: {
     <div className={styles.directionButton}>
       <Button
         key="top"
-        style={{
-          boxShadow: "-4px -4px 4px rgba(255,255,255,.25)",
-          gridColumnStart: 2,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-        }}
+        className={styles.buttonTop}
         onDown={() => props.onDown?.("UP")}
         onUp={() => props.onUp?.("UP")}
       />
       <Button
         key="left"
-        style={{
-          boxShadow:
-            "0px 4px 4px rgba(0,0,0,.25),-4px -4px 4px rgba(255,255,255,.25)",
-          gridRowStart: 2,
-          borderTopRightRadius: 0,
-          borderBottomRightRadius: 0,
-        }}
+        className={styles.buttonLeft}
         onDown={() => props.onDown?.("LEFT")}
         onUp={() => props.onUp?.("LEFT")}
       />
@@ -57,27 +44,13 @@ function DirectionButton(props: {
       </div>
       <Button
         key="right"
-        style={{
-          boxShadow:
-            "4px 0px 4px rgba(0,0,0,.25),0px 4px 4px rgba(0,0,0,.25),4px -4px 4px rgba(255,255,255,.25)",
-          gridRowStart: 2,
-          gridColumnStart: 3,
-          borderTopLeftRadius: 0,
-          borderBottomLeftRadius: 0,
-        }}
+        className={styles.buttonRight}
         onDown={() => props.onDown?.("RIGHT")}
         onUp={() => props.onUp?.("RIGHT")}
       />
       <Button
         key="bottom"
-        style={{
-          boxShadow:
-            "0px 4px 4px rgba(0,0,0,.25),-4px 4px 4px rgba(255,255,255,.25)",
-          gridRowStart: 3,
-          gridColumnStart: 2,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-        }}
+        className={styles.buttonBottom}
         onDown={() => props.onDown?.("DOWN")}
         onUp={() => props.onUp?.("DOWN")}
       />

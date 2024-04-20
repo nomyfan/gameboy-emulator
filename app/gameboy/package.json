@@ -1,21 +1,31 @@
 {
-  "name": "vite-react-ts",
+  "name": "gameboy",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@8.15.6",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "precommit": "npx lint-staged",
+    "lint": "eslint ./src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-context-menu": "^2.1.5",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-separator": "^1.0.3",
     "@vanilla-extract/css": "^1.14.2",
-    "clsx": "^2.1.0",
-    "gb-wasm": "link:../../crates/gb-wasm/npm",
+    "dexie": "^4.0.4",
+    "gb-wasm": "workspace:*",
+    "hash-wasm": "^4.11.0",
     "immer": "^10.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-spinners": "^0.13.8",
     "rxjs": "^7.8.1",
+    "swr": "^2.2.5",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
@@ -25,11 +35,18 @@
     "@vanilla-extract/vite-plugin": "^4.0.7",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
-    "eslint-plugin-nomyfan": "^0.1.2",
+    "eslint-plugin-nomyfan": "^0.1.3",
+    "lint-staged": "^15.2.2",
     "postcss": "^8.4.38",
     "prettier": "^3.2.5",
     "typescript": "^5.4.3",
-    "vite": "^5.2.6"
+    "vite": "^5.2.6",
+    "vite-plugin-svgr": "^4.2.0",
+    "vite-tsconfig-paths": "^4.3.2"
   },
-  "packageManager": "pnpm@8.15.6"
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ]
+  }
 }

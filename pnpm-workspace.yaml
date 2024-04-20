@@ -1,0 +1,3 @@
+packages:
+  - app/gameboy
+  - crates/gb-wasm/npm

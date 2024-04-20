@@ -28,3 +28,4 @@ serde = { version = "1.0", features = ["derive"] }
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+debug = true
