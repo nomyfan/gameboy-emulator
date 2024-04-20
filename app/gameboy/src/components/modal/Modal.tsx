@@ -22,8 +22,12 @@ export function Modal(props: {
 
     return (
       <FlexBox justify="end">
-        <Button style={{ marginRight: 10 }}>取消</Button>
-        <Button type="primary">确定</Button>
+        <Button style={{ marginRight: 10 }} onClick={() => props.onCancel?.()}>
+          取消
+        </Button>
+        <Button type="primary" onClick={() => props.onOk?.()}>
+          确定
+        </Button>
       </FlexBox>
     );
   };
