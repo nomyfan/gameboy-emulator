@@ -1,5 +1,4 @@
 import { globalStyle, style } from "@vanilla-extract/css";
-import { rem } from "gameboy/styles";
 import * as cssVars from "gameboy/styles/vars.css";
 
 export const bar = style({
@@ -12,12 +11,12 @@ export const barItem = style({
   color: cssVars.colorPrimary,
   backgroundColor: "white",
   borderRadius: "50%",
-  width: rem(100),
-  height: rem(100),
+  height: 36,
+  width: 36,
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  margin: `0 ${rem(10)}`,
+  margin: `0 5px`,
 });
 
 export const barItemAlert = style([
@@ -28,13 +27,13 @@ export const barItemAlert = style([
 ]);
 
 globalStyle(`${barItem} > svg`, {
-  width: rem(72),
-  height: rem(72),
+  width: 24,
+  height: 24,
 });
 
 export const separator = style({
   width: 2,
-  height: rem(50),
-  backgroundColor: "whitesmoke",
+  height: 18,
+  backgroundColor: "#fff",
   margin: "0 5px",
 });

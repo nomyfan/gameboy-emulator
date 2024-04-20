@@ -18,7 +18,7 @@ globalStyle(`${button} > button`, {
 });
 
 globalStyle(`${button} > label`, {
-  fontWeight: 600,
+  fontWeight: "bold",
   fontSize: 12,
   display: "block",
   width: "100%",

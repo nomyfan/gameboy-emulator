@@ -1,28 +1,28 @@
 import { globalStyle, style } from "@vanilla-extract/css";
-import { rem, textEllipsis, cssVars } from "gameboy/styles";
+import { textEllipsis, cssVars, px } from "gameboy/styles";
 
 export const list = style({
   display: "flex",
-  gap: rem(20),
+  gap: 10,
   alignItems: "center",
-  padding: `${rem(100)} ${rem(50)}`,
-  overflow: "auto",
+  ...px(10),
+  overflowX: "auto",
 });
 
 export const listItem = style({
-  width: rem(500),
+  width: 180,
   flexGrow: 0,
   flexShrink: 0,
   boxShadow: "0 4px 4px rgba(0,0,0,.25)",
-  borderRadius: rem(5),
+  borderRadius: 1,
   boxSizing: "border-box",
-  border: `${rem(10)} solid ${cssVars.colorPrimary}`,
+  border: `3px solid ${cssVars.colorPrimary}`,
 });
 
 export const listItemSelected = style([
   listItem,
   {
-    border: `${rem(10)} solid ${cssVars.colorHighlight}`,
+    borderColor: cssVars.colorHighlight,
   },
 ]);
 
@@ -33,11 +33,11 @@ globalStyle(`${listItem} > figure`, {
 });
 
 globalStyle(`${listItem} > figure > figcaption`, {
-  fontSize: rem(40),
+  fontSize: 14,
   fontWeight: 500,
   backgroundColor: cssVars.colorPrimary,
   color: "white",
-  padding: rem(10),
+  padding: 3,
   ...textEllipsis(),
 });
 
@@ -53,7 +53,6 @@ export const placeholderItem = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  minWidth: rem(500),
   width: "fit-content",
   color: cssVars.colorPrimary,
   border: "none",

@@ -1,5 +1,5 @@
 import { style } from "@vanilla-extract/css";
-import { rem, cssVars } from "gameboy/styles";
+import { cssVars } from "gameboy/styles";
 
 export const home = style({
   backgroundColor: cssVars.colorBackground,
@@ -10,7 +10,7 @@ export const home = style({
 });
 
 export const statusBar = style({
-  padding: `${rem(30)} ${rem(50)}`,
+  padding: "10px",
 });
 
 export const gameList = style({
@@ -19,5 +19,5 @@ export const gameList = style({
 });
 
 export const operationBar = style({
-  height: rem(220),
+  height: 70,
 });

@@ -1,12 +1,10 @@
 import { style, globalStyle } from "@vanilla-extract/css";
-import { rem, cssVars } from "gameboy/styles";
-
-const size = rem(100);
+import { cssVars } from "gameboy/styles";
 
 export const avatar = style({
-  height: size,
-  width: size,
-  border: `${rem(5)} solid white`,
+  height: 40,
+  width: 40,
+  border: "2px solid white",
   borderRadius: "50%",
   boxShadow: "0 4px 4px rgba(0,0,0,.25)",
   display: "block",

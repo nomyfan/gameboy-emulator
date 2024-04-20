@@ -13,7 +13,9 @@ export const buttonLabel = style({
   textShadow: `${lightShadow("-2px -2px 4px")}, ${darkShadow("3px 3px 4px")}`,
 });
 
-export const abButton = style({});
+export const abButton = style({
+  fontWeight: "bold",
+});
 
 export const buttonGroup = style({
   position: "relative",
@@ -26,7 +28,6 @@ export const labelGroup = style({
   display: "flex",
   justifyContent: "space-between",
   textAlign: "center",
-  fontWeight: 600,
   width: "100%",
   position: "absolute",
   bottom: -30,

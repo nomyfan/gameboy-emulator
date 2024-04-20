@@ -10,7 +10,6 @@ import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
 import { storage } from "gameboy/storage/indexdb";
 import { store, actions } from "gameboy/store";
-import { rem } from "gameboy/styles";
 import { IGameBoyButton } from "gameboy/types";
 import * as utils from "gameboy/utils";
 import { CSSProperties, useEffect, useRef } from "react";
@@ -136,7 +135,7 @@ export function Play(props: IPagePlayProps) {
             onUp={handleButtonUp}
           />
           <FnButton
-            style={{ marginTop: rem(400) }}
+            style={{ marginTop: 140 }}
             onDown={handleButtonDown}
             onUp={handleButtonUp}
           />

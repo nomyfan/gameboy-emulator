@@ -1,5 +1,5 @@
 import { keyframes, style } from "@vanilla-extract/css";
-import { rem, my, cssVars } from "gameboy/styles";
+import { my, cssVars } from "gameboy/styles";
 
 const overlayShow = keyframes({
   from: { opacity: 0 },
@@ -33,7 +33,7 @@ export const container = style({
   top: "50%",
   transform: "translate(-50%, -50%)",
   backgroundColor: cssVars.colorBackground,
-  padding: `${rem(50)} ${rem(60)}`,
+  padding: "18px 22px",
   borderRadius: 5,
   color: cssVars.colorPrimary,
 });
