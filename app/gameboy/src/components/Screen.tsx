@@ -1,4 +1,4 @@
-import clsx from "clsx";
+import { cn } from "gameboy/utils/cn";
 import type { CSSProperties, ReactNode } from "react";
 import { forwardRef } from "react";
 
@@ -18,7 +18,7 @@ const Screen = forwardRef<
   }
 >(function Screen(props, ref) {
   return (
-    <div className={clsx(styles.screen, props.className)} style={props.style}>
+    <div className={cn(styles.screen, props.className)} style={props.style}>
       {props.left}
       <canvas
         style={{ flexShrink: 0 }}

@@ -1,5 +1,5 @@
-import { clsx } from "clsx";
 import { store, actions } from "gameboy/store";
+import { cn } from "gameboy/utils/cn";
 import { useEffect } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { useStore } from "zustand";
@@ -58,7 +58,7 @@ export function GameList(props: IListProps) {
 
   return (
     <div
-      className={clsx(styles.list, props.className)}
+      className={cn(styles.list, props.className)}
       style={{
         justifyContent: !games || games.length === 0 ? "center" : undefined,
       }}

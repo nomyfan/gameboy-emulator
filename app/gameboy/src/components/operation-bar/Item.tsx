@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { cn } from "gameboy/utils/cn";
 import type { ReactNode, HtmlHTMLAttributes } from "react";
 
 import * as styles from "./OperationBar.css";
@@ -10,7 +10,7 @@ export function Item(props: {
 }) {
   return (
     <div
-      className={clsx(styles.barItem, props.className)}
+      className={cn(styles.barItem, props.className)}
       onClick={props.onClick}
     >
       {props.icon}

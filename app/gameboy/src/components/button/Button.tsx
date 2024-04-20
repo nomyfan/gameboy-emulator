@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { cn } from "gameboy/utils/cn";
 import type { HTMLAttributes } from "react";
 
 import * as styles from "./Button.css";
@@ -11,7 +11,7 @@ export function Button(
   return (
     <button
       {...restProps}
-      className={clsx(
+      className={cn(
         type === "primary" ? styles.buttonPrimary : styles.button,
         props.className,
       )}

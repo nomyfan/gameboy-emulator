@@ -1,6 +1,6 @@
-import { clsx } from "clsx";
 import { lightShadow, darkShadow } from "gameboy/styles";
 import type { IDirectionButton } from "gameboy/types";
+import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
 
 import * as styles from "./DirectionButton.css";
@@ -13,7 +13,7 @@ function Button(props: {
 }) {
   return (
     <button
-      className={clsx(styles.button, props.className)}
+      className={cn(styles.button, props.className)}
       style={props.style}
       onMouseDown={() => props.onDown?.()}
       onTouchStart={() => props.onDown?.()}

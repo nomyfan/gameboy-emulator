@@ -1,5 +1,5 @@
-import { clsx } from "clsx";
 import type { IAbButton } from "gameboy/types";
+import { cn } from "gameboy/utils/cn";
 import type { CSSProperties, ReactNode } from "react";
 
 import * as styles from "./AbButton.css";
@@ -28,7 +28,7 @@ function ButtonLabel(props: {
 }) {
   return (
     <label
-      className={clsx(styles.buttonLabel, props.className)}
+      className={cn(styles.buttonLabel, props.className)}
       style={props.style}
     >
       {props.children}

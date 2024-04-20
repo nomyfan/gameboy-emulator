@@ -1,4 +1,3 @@
-import { clsx } from "clsx";
 import { AbButton } from "gameboy/components/AbButton";
 import { DirectionButton } from "gameboy/components/DirectionButton";
 import { FlexBox } from "gameboy/components/flex-box";
@@ -12,6 +11,7 @@ import { storage } from "gameboy/storage/indexdb";
 import { store, actions } from "gameboy/store";
 import { IGameBoyButton } from "gameboy/types";
 import * as utils from "gameboy/utils";
+import { cn } from "gameboy/utils/cn";
 import { CSSProperties, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
@@ -114,7 +114,7 @@ export function Play(props: IPagePlayProps) {
   return (
     <FlexBox
       justify="right"
-      className={clsx(styles.root, props.className)}
+      className={cn(styles.root, props.className)}
       style={props.style}
     >
       <FlexBox justify="end" className={styles.side}>

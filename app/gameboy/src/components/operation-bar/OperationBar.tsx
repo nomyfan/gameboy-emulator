@@ -1,6 +1,6 @@
 import { Separator } from "@radix-ui/react-separator";
-import { clsx } from "clsx";
 import { join } from "gameboy/utils";
+import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
@@ -32,7 +32,7 @@ export function OperationBar<ID extends string | number>(
             <Item
               key={item.id}
               icon={item.icon}
-              className={clsx(item.alert && styles.barItemAlert)}
+              className={cn(item.alert && styles.barItemAlert)}
               onClick={(evt) => {
                 evt.stopPropagation();
                 props.onClick?.(item.id);
@@ -51,7 +51,5 @@ export function OperationBar<ID extends string | number>(
       />
     ));
   };
-  return (
-    <div className={clsx(styles.bar, props.className)}>{renderItems()}</div>
-  );
+  return <div className={cn(styles.bar, props.className)}>{renderItems()}</div>;
 }

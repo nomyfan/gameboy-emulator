@@ -1,10 +1,10 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { clsx } from "clsx";
 import { FlexBox } from "gameboy/components/flex-box";
 import { IconDelete } from "gameboy/components/icons";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { store, actions } from "gameboy/store";
+import { cn } from "gameboy/utils/cn";
 import { CSSProperties, useCallback, useEffect, useState } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
@@ -59,7 +59,7 @@ function Item(props: {
       <ContextMenu.Portal>
         <ContextMenu.Content className={styles.menuContent}>
           <ContextMenu.Item
-            className={clsx(styles.menuItem)}
+            className={cn(styles.menuItem)}
             onClick={() => {
               props.onPlay(snapshot);
             }}
@@ -68,7 +68,7 @@ function Item(props: {
             进入游戏
           </ContextMenu.Item>
           <ContextMenu.Item
-            className={clsx(styles.menuItem, styles.menuItemAlert)}
+            className={cn(styles.menuItem, styles.menuItemAlert)}
             onClick={() => {
               props.onDelete(snapshot);
             }}

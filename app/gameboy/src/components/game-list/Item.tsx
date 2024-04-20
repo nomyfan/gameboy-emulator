@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { cn } from "gameboy/utils/cn";
 import { CSSProperties, PropsWithChildren } from "react";
 
 import * as styles from "./GameList.css";
@@ -22,7 +22,7 @@ export function Item(props: IListItemProps) {
 
   return (
     <div
-      className={clsx(
+      className={cn(
         props.selected ? styles.listItemSelected : styles.listItem,
         props.className,
       )}
