@@ -5,7 +5,6 @@ import {
   IconDelete,
   IconHistory,
   IconPlay,
-  IconSettings,
   IconFullscreen,
   IconFullscreenExit,
 } from "gameboy/components/icons";
