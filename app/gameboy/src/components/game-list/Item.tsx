@@ -1,5 +1,5 @@
 import { cn } from "gameboy/utils/cn";
-import { CSSProperties, PropsWithChildren } from "react";
+import type { CSSProperties, PropsWithChildren } from "react";
 
 import * as styles from "./GameList.css";
 
