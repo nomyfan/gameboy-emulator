@@ -1,4 +1,3 @@
-import { lightShadow, darkShadow } from "gameboy/styles";
 import type { IDirectionButton } from "gameboy/types";
 import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
@@ -31,23 +30,13 @@ function DirectionButton(props: {
     <div className={styles.directionButton}>
       <Button
         key="top"
-        style={{
-          boxShadow: lightShadow("-4px -4px 4px"),
-          gridColumnStart: 2,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-        }}
+        className={styles.buttonTop}
         onDown={() => props.onDown?.("UP")}
         onUp={() => props.onUp?.("UP")}
       />
       <Button
         key="left"
-        style={{
-          boxShadow: `${darkShadow("0px 4px 4px")}, ${lightShadow("-4px -4px 4px")}`,
-          gridRowStart: 2,
-          borderTopRightRadius: 0,
-          borderBottomRightRadius: 0,
-        }}
+        className={styles.buttonLeft}
         onDown={() => props.onDown?.("LEFT")}
         onUp={() => props.onUp?.("LEFT")}
       />
@@ -56,25 +45,13 @@ function DirectionButton(props: {
       </div>
       <Button
         key="right"
-        style={{
-          boxShadow: `${darkShadow("4px 0px 4px")}, ${darkShadow("0px 4px 4px")}, ${lightShadow("4px -4px 4px")}`,
-          gridRowStart: 2,
-          gridColumnStart: 3,
-          borderTopLeftRadius: 0,
-          borderBottomLeftRadius: 0,
-        }}
+        className={styles.buttonRight}
         onDown={() => props.onDown?.("RIGHT")}
         onUp={() => props.onUp?.("RIGHT")}
       />
       <Button
         key="bottom"
-        style={{
-          boxShadow: `${darkShadow("0 4px 4px")}, ${lightShadow("-4px 4px 4px")}`,
-          gridRowStart: 3,
-          gridColumnStart: 2,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-        }}
+        className={styles.buttonBottom}
         onDown={() => props.onDown?.("DOWN")}
         onUp={() => props.onUp?.("DOWN")}
       />
