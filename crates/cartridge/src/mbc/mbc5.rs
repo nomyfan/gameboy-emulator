@@ -1,4 +1,5 @@
-use gb_shared::{boxed_array, kib};
+use gb_shared::{boxed_array, kib, Snapshot};
+use serde::{Deserialize, Serialize};
 
 use super::{real_ram_size, Mbc, RamBank};
 use crate::CartridgeHeader;
@@ -132,5 +133,58 @@ impl Mbc for Mbc5 {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Mbc5Snapshot {
+    rom_bank: u16,
+    ram_banks: Vec<u8>,
+    ram_enabled: bool,
+    ram_bank: u8,
+    with_rumble_motor: bool,
+    with_battery: bool,
+}
+
+impl Snapshot for Mbc5 {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        let mut ram_banks_snapshot = vec![];
+        for bank in &self.ram_banks {
+            ram_banks_snapshot.extend_from_slice(bank.as_ref());
+        }
+
+        bincode::serialize(&Mbc5Snapshot {
+            rom_bank: self.rom_bank,
+            ram_banks: ram_banks_snapshot,
+            ram_enabled: self.ram_enabled,
+            ram_bank: self.ram_bank,
+            with_rumble_motor: self.with_rumble_motor,
+            with_battery: self.with_battery,
+        })
+        .unwrap()
+    }
+
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        let Mbc5Snapshot {
+            rom_bank,
+            ram_banks,
+            ram_enabled,
+            ram_bank,
+            with_rumble_motor,
+            with_battery,
+        } = bincode::deserialize(&snapshot).unwrap();
+        assert_eq!(ram_banks.len(), self.ram_banks.len() * kib(8));
+
+        self.rom_bank = rom_bank;
+        self.ram_enabled = ram_enabled;
+        self.ram_bank = ram_bank;
+        self.with_rumble_motor = with_rumble_motor;
+        self.with_battery = with_battery;
+
+        ram_banks.chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
+            dst.copy_from_slice(src);
+        });
     }
 }

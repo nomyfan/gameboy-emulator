@@ -1,6 +1,7 @@
 use super::{real_ram_size, Mbc, RamBank};
 use crate::CartridgeHeader;
-use gb_shared::{boxed_array, kib};
+use gb_shared::{boxed_array, kib, Snapshot};
+use serde::{Deserialize, Serialize};
 use web_time::SystemTime;
 
 pub(crate) struct Mbc3 {
@@ -158,6 +159,64 @@ impl Mbc for Mbc3 {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct Mbc3Snapshot {
+    ram_banks: Vec<u8>,
+    rtc: RealTimeClock,
+    with_battery: bool,
+    ram_rtc_enabled: bool,
+    rom_bank: u8,
+    reg_ram_bank_rtc: u8,
+    reg_latch_clock: u8,
+}
+
+impl Snapshot for Mbc3 {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        let mut ram_banks_snapshot = vec![];
+        for bank in &self.ram_banks {
+            ram_banks_snapshot.extend_from_slice(bank.as_ref());
+        }
+
+        bincode::serialize(&Mbc3Snapshot {
+            ram_banks: ram_banks_snapshot,
+            rtc: self.rtc,
+            with_battery: self.with_battery,
+            ram_rtc_enabled: self.ram_rtc_enabled,
+            rom_bank: self.rom_bank,
+            reg_ram_bank_rtc: self.reg_ram_bank_rtc,
+            reg_latch_clock: self.reg_latch_clock,
+        })
+        .unwrap()
+    }
+
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        let Mbc3Snapshot {
+            ram_banks,
+            rtc,
+            with_battery,
+            ram_rtc_enabled,
+            rom_bank,
+            reg_ram_bank_rtc,
+            reg_latch_clock,
+        } = bincode::deserialize(&snapshot).unwrap();
+        assert_eq!(ram_banks.len(), self.ram_banks.len() * kib(8));
+
+        self.rtc = rtc;
+        self.with_battery = with_battery;
+        self.ram_rtc_enabled = ram_rtc_enabled;
+        self.rom_bank = rom_bank;
+        self.reg_ram_bank_rtc = reg_ram_bank_rtc;
+        self.reg_latch_clock = reg_latch_clock;
+
+        ram_banks.chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
+            dst.copy_from_slice(src);
+        });
+    }
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct RealTimeClock {
     /// Seconds
     s: u8,

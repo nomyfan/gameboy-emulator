@@ -10,3 +10,5 @@ anyhow = { workspace = true }
 log = { workspace = true }
 gb_shared = { workspace = true }
 web-time = { workspace = true }
+serde = { workspace = true }
+bincode = { workspace = true }

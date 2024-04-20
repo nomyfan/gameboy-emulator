@@ -1,5 +1,4 @@
-use gb_shared::kib;
-use std::path::Path;
+use gb_shared::{kib, Snapshot};
 
 pub(crate) mod mbc1;
 pub(crate) mod mbc2;
@@ -10,19 +9,19 @@ pub(crate) mod mbc_none;
 /// The size of each RAM bank is 8KiB
 type RamBank = [u8; 0x2000];
 
-pub(crate) trait Mbc {
+pub(crate) trait Mbc: Snapshot {
     fn write(&mut self, addr: u16, value: u8);
     fn read(&self, addr: u16, rom: &[u8]) -> u8;
     // TODO: rename as `suspend`
     #[allow(unused_variables)]
     /// For battery-backed cartridge.
-    fn store(&self, path: &Path) -> anyhow::Result<()> {
+    fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
         Ok(())
     }
     // TODO: rename as `resume`
     #[allow(unused_variables)]
     /// For battery-backed cartridge.
-    fn restore(&mut self, path: &Path) -> anyhow::Result<()> {
+    fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
         Ok(())
     }
 }

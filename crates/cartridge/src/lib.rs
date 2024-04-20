@@ -1,6 +1,7 @@
 mod mbc;
 
 use anyhow::Result;
+use gb_shared::Snapshot;
 use std::{
     borrow::Cow,
     fmt::Display,
@@ -376,7 +377,7 @@ pub struct Cartridge {
     pub header: CartridgeHeader,
     pub rom: Vec<u8>,
     pub sav: Option<PathBuf>,
-    mbc: Box<dyn mbc::Mbc>,
+    mbc: Box<dyn mbc::Mbc<Snapshot = Vec<u8>>>,
 }
 
 impl TryFrom<Vec<u8>> for Cartridge {
@@ -397,7 +398,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
 
         log::debug!("{}", &header);
 
-        let mbc: Box<dyn mbc::Mbc> = match &header.cart_type {
+        let mbc: Box<dyn mbc::Mbc<Snapshot = Vec<u8>>> = match &header.cart_type {
             0x00 => Box::new(mbc::mbc_none::MbcNone::new()),
             0x01..=0x03 => Box::new(mbc::mbc1::Mbc1::new(&header)),
             0x05..=0x06 => Box::new(mbc::mbc2::Mbc2::new(&header)),
@@ -450,5 +451,17 @@ impl Drop for Cartridge {
         if let Some(sav) = self.sav.as_ref() {
             self.mbc.store(sav).unwrap();
         }
+    }
+}
+
+impl Snapshot for Cartridge {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        self.mbc.take_snapshot()
+    }
+
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        self.mbc.restore_snapshot(snapshot)
     }
 }

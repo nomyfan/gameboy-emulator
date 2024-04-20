@@ -309,6 +309,7 @@ pub(crate) struct BusSnapshot {
     timer: TimerSnapshot,
     ppu: PpuSnapshot,
     apu: ApuSnapshot,
+    cart: Vec<u8>,
 }
 
 impl Snapshot for Bus {
@@ -326,6 +327,7 @@ impl Snapshot for Bus {
             timer: self.timer.take_snapshot(),
             ppu: self.ppu.take_snapshot(),
             apu: self.apu.take_snapshot(),
+            cart: self.cart.take_snapshot(),
         }
     }
 
@@ -340,5 +342,6 @@ impl Snapshot for Bus {
         self.timer.restore_snapshot(snapshot.timer);
         self.ppu.restore_snapshot(snapshot.ppu);
         self.apu.restore_snapshot(snapshot.apu);
+        self.cart.restore_snapshot(snapshot.cart);
     }
 }

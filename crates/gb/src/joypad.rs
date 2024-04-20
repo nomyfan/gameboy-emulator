@@ -86,6 +86,7 @@ pub(crate) struct JoypadSnapshot {
     buttons: u8,
     select_action: bool,
     select_direction: bool,
+    irq: u8,
 }
 
 impl Snapshot for Joypad {
@@ -96,6 +97,7 @@ impl Snapshot for Joypad {
             buttons: self.buttons,
             select_action: self.select_action,
             select_direction: self.select_direction,
+            irq: self.irq.0,
         }
     }
 
@@ -103,6 +105,7 @@ impl Snapshot for Joypad {
         self.buttons = snapshot.buttons;
         self.select_action = snapshot.select_action;
         self.select_direction = snapshot.select_direction;
+        self.irq.0 = snapshot.irq;
     }
 }
 

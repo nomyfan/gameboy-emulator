@@ -1,6 +1,7 @@
 use super::{real_ram_size, RamBank};
 use crate::CartridgeHeader;
-use gb_shared::{boxed_array, kib};
+use gb_shared::{boxed_array, kib, Snapshot};
+use serde::{Deserialize, Serialize};
 
 /// https://gbdev.io/pandocs/MBC1.html
 pub(crate) struct Mbc1 {
@@ -128,5 +129,49 @@ impl super::Mbc for Mbc1 {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Mbc1Snapshot {
+    banking_mode: u8,
+    ram_enabled: bool,
+    banking_num: usize,
+    ram_banks: Vec<u8>,
+    with_battery: bool,
+}
+
+impl Snapshot for Mbc1 {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        let mut ram_banks_snapshot = vec![];
+        for bank in &self.ram_banks {
+            ram_banks_snapshot.extend_from_slice(bank.as_ref());
+        }
+
+        bincode::serialize(&Mbc1Snapshot {
+            banking_mode: self.banking_mode,
+            ram_enabled: self.ram_enabled,
+            banking_num: self.banking_num,
+            ram_banks: ram_banks_snapshot,
+            with_battery: self.with_battery,
+        })
+        .unwrap()
+    }
+
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        let Mbc1Snapshot { banking_mode, ram_enabled, banking_num, ram_banks, with_battery } =
+            bincode::deserialize(&snapshot).unwrap();
+        assert_eq!(ram_banks.len(), self.ram_banks.len() * kib(8));
+
+        self.banking_mode = banking_mode;
+        self.ram_enabled = ram_enabled;
+        self.banking_num = banking_num;
+        self.with_battery = with_battery;
+
+        ram_banks.chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
+            dst.copy_from_slice(src);
+        });
     }
 }

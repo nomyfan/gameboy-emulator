@@ -1,6 +1,7 @@
 use super::Mbc;
 use crate::CartridgeHeader;
-use gb_shared::{boxed::BoxedArray, is_bit_set, kib};
+use gb_shared::{boxed::BoxedArray, is_bit_set, kib, Snapshot};
+use serde::{Deserialize, Serialize};
 
 /// Max 256 KiB ROM, 512x4 bits RAM
 pub(crate) struct Mbc2 {
@@ -90,5 +91,41 @@ impl Mbc for Mbc2 {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Mbc2Snapshot {
+    ram_enabled: bool,
+    rom_bank: u8,
+    ram: Vec<u8>,
+    with_battery: bool,
+}
+
+impl Snapshot for Mbc2 {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        let mut ram_snapshot = vec![];
+        ram_snapshot.extend_from_slice(self.ram.as_ref());
+
+        bincode::serialize(&Mbc2Snapshot {
+            ram_enabled: self.ram_enabled,
+            rom_bank: self.rom_bank,
+            ram: ram_snapshot,
+            with_battery: self.with_battery,
+        })
+        .unwrap()
+    }
+
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        let Mbc2Snapshot { ram_enabled, rom_bank, ram, with_battery } =
+            bincode::deserialize(&snapshot).unwrap();
+        assert_eq!(ram.len(), self.ram.len());
+
+        self.ram_enabled = ram_enabled;
+        self.rom_bank = rom_bank;
+        self.ram.copy_from_slice(&ram);
+        self.with_battery = with_battery;
     }
 }
