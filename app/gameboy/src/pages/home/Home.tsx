@@ -51,10 +51,10 @@ export function Home() {
           id: "exit-fullscreen",
           icon: <IconFullscreenExit />,
         },
-        {
-          id: "settings",
-          icon: <IconSettings />,
-        },
+        // {
+        //   id: "settings",
+        //   icon: <IconSettings />,
+        // },
       ]);
     } else {
       items.push([
@@ -66,10 +66,10 @@ export function Home() {
           id: "fullscreen",
           icon: <IconFullscreen />,
         },
-        {
-          id: "settings",
-          icon: <IconSettings />,
-        },
+        // {
+        //   id: "settings",
+        //   icon: <IconSettings />,
+        // },
       ]);
     }
 
