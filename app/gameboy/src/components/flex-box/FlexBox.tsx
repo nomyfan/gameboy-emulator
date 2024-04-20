@@ -1,4 +1,5 @@
-import { createElement, CSSProperties, PropsWithChildren } from "react";
+import type { CSSProperties, PropsWithChildren } from "react";
+import { createElement } from "react";
 
 export function FlexBox(
   props: PropsWithChildren<{
