@@ -35,11 +35,11 @@ pub(crate) struct HighRamSnapshot {
 impl Snapshot for HighRam {
     type Snapshot = HighRamSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         HighRamSnapshot { ram: self.ram.to_vec() }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.ram = boxed_array_try_from_vec(snapshot.ram).unwrap();
     }
 }

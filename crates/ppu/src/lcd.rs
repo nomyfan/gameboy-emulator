@@ -124,7 +124,7 @@ pub(crate) struct LCDSnapshot {
 impl Snapshot for LCD {
     type Snapshot = LCDSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         LCDSnapshot {
             lcdc: self.lcdc,
             stat: self.stat,
@@ -137,7 +137,7 @@ impl Snapshot for LCD {
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.lcdc = snapshot.lcdc;
         self.stat = snapshot.stat;
         self.ly = snapshot.ly;

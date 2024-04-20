@@ -91,7 +91,7 @@ pub(crate) struct JoypadSnapshot {
 impl Snapshot for Joypad {
     type Snapshot = JoypadSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         JoypadSnapshot {
             buttons: self.buttons,
             select_action: self.select_action,
@@ -99,7 +99,7 @@ impl Snapshot for Joypad {
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.buttons = snapshot.buttons;
         self.select_action = snapshot.select_action;
         self.select_direction = snapshot.select_direction;

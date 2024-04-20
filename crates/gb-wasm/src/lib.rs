@@ -142,7 +142,7 @@ impl GameBoyHandle {
 
     #[wasm_bindgen(js_name = takeSnapshot)]
     pub fn take_snapshot(&self) -> js_sys::Uint8Array {
-        let snapshot = self.gb.snapshot();
+        let snapshot = self.gb.take_snapshot();
         let bytes: Vec<u8> = Vec::try_from(&snapshot).unwrap();
 
         js_sys::Uint8Array::from(bytes.as_slice())
@@ -155,7 +155,7 @@ impl GameBoyHandle {
                 if snapshot.cart_checksum() != self.gb.cart_checksum() {
                     return Err(JsError::new("[ESS2]The snapshot doesn't match the game"));
                 }
-                self.gb.restore(snapshot);
+                self.gb.restore_snapshot(snapshot);
 
                 Ok(())
             }

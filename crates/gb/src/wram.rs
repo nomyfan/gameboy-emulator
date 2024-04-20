@@ -36,11 +36,11 @@ pub(crate) struct WorkRamSnapshot {
 impl Snapshot for WorkRam {
     type Snapshot = WorkRamSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         WorkRamSnapshot { ram: self.ram.to_vec() }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.ram = boxed_array_try_from_vec(snapshot.ram).unwrap();
     }
 }

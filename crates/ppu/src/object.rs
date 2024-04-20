@@ -59,11 +59,11 @@ pub(crate) struct ObjectSnapshot {
 impl Snapshot for Object {
     type Snapshot = ObjectSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         ObjectSnapshot { y: self.y, x: self.x, tile_index: self.tile_index, attrs: self.attrs.0 }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.y = snapshot.y;
         self.x = snapshot.x;
         self.tile_index = snapshot.tile_index;

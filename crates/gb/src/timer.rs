@@ -117,11 +117,11 @@ pub(crate) struct TimerSnapshot {
 impl Snapshot for Timer {
     type Snapshot = TimerSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         TimerSnapshot { div: self.div, tima: self.tima, tma: self.tma, tac: self.tac }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.div = snapshot.div;
         self.tima = snapshot.tima;
         self.tma = snapshot.tma;

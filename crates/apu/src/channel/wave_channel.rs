@@ -273,7 +273,7 @@ pub(crate) struct WaveChannelSnapshot {
 impl Snapshot for WaveChannel {
     type Snapshot = WaveChannelSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         WaveChannelSnapshot {
             nrx0: self.nrx0,
             nrx1: self.nrx1,
@@ -288,7 +288,7 @@ impl Snapshot for WaveChannel {
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.nrx0 = snapshot.nrx0;
         self.nrx1 = snapshot.nrx1;
         self.nrx2 = snapshot.nrx2;

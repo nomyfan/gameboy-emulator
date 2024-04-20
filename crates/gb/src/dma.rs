@@ -54,11 +54,11 @@ pub(crate) struct DmaSnapshot {
 impl Snapshot for DMA {
     type Snapshot = DmaSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         DmaSnapshot { value: self.value, offset: self.offset }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.value = snapshot.value;
         self.offset = snapshot.offset;
     }

@@ -1547,7 +1547,7 @@ where
 {
     type Snapshot = CpuSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         CpuSnapshot {
             a: self.reg_a,
             f: self.reg_f,
@@ -1569,7 +1569,7 @@ where
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.reg_a = snapshot.a;
         self.reg_f = snapshot.f;
         self.reg_b = snapshot.b;

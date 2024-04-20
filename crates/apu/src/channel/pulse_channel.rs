@@ -286,7 +286,7 @@ where
 {
     type Snapshot = PulseChannelSnapshot<SWEEP>;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         PulseChannelSnapshot {
             nrx0: self.nrx0,
             nrx1: self.nrx1,
@@ -300,7 +300,7 @@ where
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.nrx0 = snapshot.nrx0;
         self.nrx1 = snapshot.nrx1;
         self.nrx2 = snapshot.nrx2;
