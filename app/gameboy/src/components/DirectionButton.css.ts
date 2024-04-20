@@ -11,7 +11,7 @@ export const button = style({
 export const directionButton = style({
   display: "grid",
   gridTemplateColumns: "44px 40px 44px",
-  gridTemplateRows: "43px 40px 43px",
+  gridTemplateRows: "44px 40px 44px",
 });
 
 export const center = style({
