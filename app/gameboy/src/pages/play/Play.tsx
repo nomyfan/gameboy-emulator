@@ -12,7 +12,8 @@ import { store, actions } from "gameboy/store";
 import { IGameBoyButton } from "gameboy/types";
 import * as utils from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
-import { CSSProperties, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
+import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
 import * as styles from "./Play.css";
