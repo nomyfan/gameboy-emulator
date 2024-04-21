@@ -33,7 +33,7 @@ importers:
         specifier: ^4.0.4
         version: 4.0.4
       gb-wasm:
-        specifier: workspace:*
+        specifier: link:../../crates/gb-wasm/npm
         version: link:../../crates/gb-wasm/npm
       hash-wasm:
         specifier: ^4.11.0
