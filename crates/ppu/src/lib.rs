@@ -496,13 +496,13 @@ pub struct PpuSnapshot {
     bgp: u8,
     obp0: u8,
     obp1: u8,
-    // #region Work state
+    //#region Work state
     scanline_x: u8,
     scanline_dots: u16,
     scanline_objects: Vec<ObjectSnapshot>,
     window_line: u8,
     window_used: bool,
-    // #endregion
+    //#endregion
     irq: u8,
     video_buffer: Vec<u8>, // 160 * 144
 }

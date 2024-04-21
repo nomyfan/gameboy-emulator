@@ -7,11 +7,11 @@ use serde::{Deserialize, Serialize};
 pub(crate) struct Mbc1 {
     /// 00h = ROM Banking Mode (up to 8KiB banked RAM, 2MiB ROM) (default)
     /// 01h = RAM Banking Mode (up to 32KiB banked RAM, 512KiB ROM)
-    banking_mode: u8,
+    bank_mode: u8,
     /// Only enable it when writing any value whose lower 4 bits is 0xA.
     ram_enabled: bool,
     /// The lower 2 + 5 bits are used.
-    banking_num: usize,
+    bank_num: usize,
     /// Max size, 32KiB.
     ram_banks: Vec<Box<RamBank>>,
     with_battery: bool,
@@ -27,9 +27,9 @@ impl Mbc1 {
         }
 
         Mbc1 {
-            banking_mode: 0,
+            bank_mode: 0,
             ram_enabled: false,
-            banking_num: 0,
+            bank_num: 0,
             ram_banks,
             with_battery: cart_type == 0x03,
         }
@@ -46,21 +46,21 @@ impl super::Mbc for Mbc1 {
             // Select ROM bank
             0x2000..=0x3FFF => {
                 let value = value & 0x1F;
-                self.banking_num = (self.banking_num & 0x60) | value as usize;
+                self.bank_num = (self.bank_num & 0x60) | value as usize;
             }
             // Select RAM bank or upper 2 bits of ROM bank
             0x4000..=0x5FFF => {
                 let value = value & 0b11;
-                self.banking_num = (self.banking_num & !(0x60)) | (value << 5) as usize;
+                self.bank_num = (self.bank_num & !(0x60)) | (value << 5) as usize;
             }
             // Select banking mode
             0x6000..=0x7FFF => {
-                self.banking_mode = value & 0b1;
+                self.bank_mode = value & 0b1;
             }
             // Write RAM
             0xA000..=0xBFFF => {
                 if self.ram_enabled && !self.ram_banks.is_empty() {
-                    let ram_bank_num = (self.banking_num >> 5) & 0b11;
+                    let ram_bank_num = (self.bank_num >> 5) & 0b11;
                     self.ram_banks[ram_bank_num][(addr - 0xA000) as usize] = value;
                 }
             }
@@ -74,12 +74,12 @@ impl super::Mbc for Mbc1 {
             0x0000..=0x3FFF => rom[addr as usize],
             // ROM bank
             0x4000..=0x7FFF => {
-                let mut rom_bank_num = if self.banking_mode == 1 {
+                let mut rom_bank_num = if self.bank_mode == 1 {
                     // 7 bits
-                    self.banking_num & 0x7F
+                    self.bank_num & 0x7F
                 } else {
                     // 5 bits
-                    self.banking_num & 0x1F
+                    self.bank_num & 0x1F
                 };
                 if rom_bank_num == 0 {
                     rom_bank_num = 1; // Bank 0 is the fixed ROM.
@@ -93,7 +93,7 @@ impl super::Mbc for Mbc1 {
                     return 0xFF;
                 }
 
-                let ram_bank_num = (self.banking_num >> 5) & 0b11;
+                let ram_bank_num = (self.bank_num >> 5) & 0b11;
                 self.ram_banks[ram_bank_num][(addr - 0xA000) as usize]
             }
             _ => unreachable!("Invalid addr {:#04X} for MBC1", addr),
@@ -134,9 +134,9 @@ impl super::Mbc for Mbc1 {
 
 #[derive(Serialize, Deserialize)]
 struct Mbc1Snapshot {
-    banking_mode: u8,
+    bank_mode: u8,
     ram_enabled: bool,
-    banking_num: usize,
+    bank_num: usize,
     ram_banks: Vec<u8>,
     with_battery: bool,
 }
@@ -151,9 +151,9 @@ impl Snapshot for Mbc1 {
         }
 
         bincode::serialize(&Mbc1Snapshot {
-            banking_mode: self.banking_mode,
+            bank_mode: self.bank_mode,
             ram_enabled: self.ram_enabled,
-            banking_num: self.banking_num,
+            bank_num: self.bank_num,
             ram_banks: ram_banks_snapshot,
             with_battery: self.with_battery,
         })
@@ -161,13 +161,13 @@ impl Snapshot for Mbc1 {
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        let Mbc1Snapshot { banking_mode, ram_enabled, banking_num, ram_banks, with_battery } =
+        let Mbc1Snapshot { bank_mode, ram_enabled, bank_num, ram_banks, with_battery } =
             bincode::deserialize(&snapshot).unwrap();
         assert_eq!(ram_banks.len(), self.ram_banks.len() * kib(8));
 
-        self.banking_mode = banking_mode;
+        self.bank_mode = bank_mode;
         self.ram_enabled = ram_enabled;
-        self.banking_num = banking_num;
+        self.bank_num = bank_num;
         self.with_battery = with_battery;
 
         ram_banks.chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
