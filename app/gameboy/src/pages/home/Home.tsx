@@ -98,7 +98,7 @@ export function Home() {
           onClick={async (id) => {
             console.log("bar " + id + " clicked");
             if (id === "snapshots") {
-              actions.toggleSnapshotsDrawer(true);
+              actions.toggleSnapshotModal(true);
             } else if (id === "add") {
               const file = await fs.pickFile({ accept: ".gb" });
               if (file) {
@@ -115,7 +115,7 @@ export function Home() {
               if (!isFullscreen) {
                 document.body.requestFullscreen();
               }
-              actions.togglePlayModal(true);
+              actions.openPlayModal();
             }
           }}
           items={items}

@@ -4,10 +4,13 @@ import { immer } from "zustand/middleware/immer";
 
 export interface IStore {
   ui: {
-    snapshotsDrawerOpen?: boolean;
+    snapshotModalOpen?: boolean;
     playModalOpen?: boolean;
-    exitModalOpen?: boolean;
-    exitModalOnClose?: (action: "with_snapshot" | "without_snapshot") => void;
+    playModalCallback?: (action: "snapshot" | "no_snapshot") => void;
+    confirmExitModalOpen?: boolean;
+    confirmExitModalCallback?: (
+      action: "snapshot" | "no_snapshot" | "cancel",
+    ) => void;
   };
   games?: Array<{
     id: string;
@@ -20,7 +23,6 @@ export interface IStore {
   snapshot?: {
     gameId: string;
     data: Uint8Array;
-    onClose: () => void;
   };
 }
 

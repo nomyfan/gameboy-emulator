@@ -8,19 +8,22 @@ import "./App.css";
 
 const ExitGameModal = lazy(() => import("./pages/exit-game-modal"));
 const PlayModel = lazy(() => import("./pages/play"));
-const SnapshotsDrawer = lazy(() => import("./pages/snapshot-modal"));
+const SnapshotModal = lazy(() => import("./pages/snapshot-modal"));
 
 export function App() {
-  const drawerOpen = useStore(store, (st) => st.ui.snapshotsDrawerOpen);
+  const snapshotModalOpen = useStore(store, (st) => st.ui.snapshotModalOpen);
   const playModalOpen = useStore(store, (st) => st.ui.playModalOpen);
-  const exitModalOpen = useStore(store, (st) => st.ui.exitModalOpen);
+  const confirmExitModalOpen = useStore(
+    store,
+    (st) => st.ui.confirmExitModalOpen,
+  );
 
   return (
     <>
       <Home />
-      {drawerOpen !== undefined && (
+      {snapshotModalOpen !== undefined && (
         <Suspense>
-          <SnapshotsDrawer />
+          <SnapshotModal />
         </Suspense>
       )}
       {playModalOpen !== undefined && (
@@ -28,7 +31,7 @@ export function App() {
           <PlayModel />
         </Suspense>
       )}
-      {exitModalOpen !== undefined && (
+      {confirmExitModalOpen !== undefined && (
         <Suspense>
           <ExitGameModal />
         </Suspense>

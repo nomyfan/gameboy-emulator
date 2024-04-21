@@ -7,6 +7,7 @@ import { Screen } from "gameboy/components/Screen";
 import { GameBoyControl, JoypadKey } from "gameboy/gameboy";
 import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
+import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
 import { store, actions } from "gameboy/store";
 import { IGameBoyButton } from "gameboy/types";
@@ -153,33 +154,51 @@ export function Play(props: IPagePlayProps) {
           width: 36,
         }}
         onClick={() => {
-          actions.toggleExitGameModal(true, async (action) => {
-            const canvas = canvasRef.current;
-            if (!gameId || !canvas) {
-              return;
-            }
+          // TODO: pause gameboy
+          actions
+            .openConfirmExitModal()
+            .then(async (action) => {
+              const canvas = canvasRef.current;
+              if (!gameId || !canvas) {
+                return;
+              }
 
-            const sav = gameboy.createSav();
-            if (sav) {
-              await storage.gameStore.update({ id: gameId, sav });
-            }
+              if (action === "snapshot" || action === "no_snapshot") {
+                const sav = gameboy.createSav();
+                if (sav) {
+                  await storage.gameStore.update({ id: gameId, sav });
+                }
+              }
 
-            if (action === "with_snapshot") {
-              const snapshot = gameboy.takeSnapshot();
-              const time = Date.now();
-              const cover = await utils.canvasToBlob(canvas, "image/jpeg", 0.7);
-              storage.snapshotStore.insert({
-                data: snapshot,
-                gameId,
-                time,
-                name: "Snapshot",
-                cover,
-              });
-              actions.togglePlayModal(false, true);
-            } else if (action === "without_snapshot") {
-              actions.togglePlayModal(false, false);
-            }
-          });
+              if (action === "snapshot") {
+                const snapshot = gameboy.takeSnapshot();
+                const time = Date.now();
+                const cover = await utils.canvasToBlob(
+                  canvas,
+                  "image/jpeg",
+                  0.7,
+                );
+                storage.snapshotStore.insert({
+                  data: snapshot,
+                  gameId,
+                  time,
+                  name: "Snapshot",
+                  cover,
+                });
+                actions.closePlayModal("snapshot");
+              } else if (action === "no_snapshot") {
+                actions.closePlayModal("no_snapshot");
+              }
+            })
+            .catch((err) => {
+              if (err instanceof ModalCanceledError) {
+                // TODO: continue gameboy
+
+                return;
+              }
+
+              throw err;
+            });
         }}
       />
     </FlexBox>

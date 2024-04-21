@@ -5,18 +5,18 @@ import { actions, store } from "gameboy/store";
 import { useStore } from "zustand";
 
 export function ExitGameModal() {
-  const exitModalOpen = useStore(store, (st) => st.ui.exitModalOpen);
+  const open = useStore(store, (st) => st.ui.confirmExitModalOpen);
 
   return (
     <Modal
-      open={exitModalOpen}
+      open={open}
       title="结束游戏"
       footer={
         <FlexBox justify="end">
           <Button
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.toggleExitGameModal(false);
+              actions.closeConfirmExitModal("cancel");
             }}
           >
             取消
@@ -25,7 +25,7 @@ export function ExitGameModal() {
             type="primary"
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.toggleExitGameModal(false, "without_snapshot");
+              actions.closeConfirmExitModal("no_snapshot");
             }}
           >
             不创建
@@ -33,15 +33,15 @@ export function ExitGameModal() {
           <Button
             type="primary"
             onClick={() => {
-              actions.toggleExitGameModal(false, "with_snapshot");
+              actions.closeConfirmExitModal("snapshot");
             }}
           >
-            确定
+            创建
           </Button>
         </FlexBox>
       }
     >
-      结束并创建一个存档？
+      需要创建存档吗？
     </Modal>
   );
 }

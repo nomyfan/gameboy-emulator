@@ -35,11 +35,7 @@ function Item(props: {
   }, [cover]);
 
   return (
-    <ContextMenu.Root
-      onOpenChange={(open) => {
-        console.log("__DEBUG__ open", open);
-      }}
-    >
+    <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
         <div className={styles.item}>
           <img
@@ -121,11 +117,16 @@ export function Snapshots() {
             await mutate();
           }}
           onPlay={async (snapshot) => {
-            actions.togglePlayModal(true, {
-              gameId: snapshot.gameId,
-              data: snapshot.data,
-              onClose: () => mutate(),
-            });
+            actions
+              .openPlayModal({
+                gameId: snapshot.gameId,
+                data: snapshot.data,
+              })
+              .then((action) => {
+                if (action === "snapshot") {
+                  mutate();
+                }
+              });
           }}
         />
       );

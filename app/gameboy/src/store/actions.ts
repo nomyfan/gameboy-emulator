@@ -1,3 +1,4 @@
+import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
 
 import type { IStore } from "./state";
@@ -9,75 +10,67 @@ export function selectCartridge(id?: string) {
   });
 }
 
-export function toggleSnapshotsDrawer(open?: boolean) {
+export function toggleSnapshotModal(open?: boolean) {
   store.setState((st) => {
-    st.ui.snapshotsDrawerOpen = open ?? !st.ui.snapshotsDrawerOpen;
+    st.ui.snapshotModalOpen = open ?? !st.ui.snapshotModalOpen;
   });
 }
 
-export function togglePlayModal(
-  open?: true,
-  snapshot?: IStore["snapshot"],
-): void;
-export function togglePlayModal(open?: false, invoke?: boolean): void;
-export function togglePlayModal(
-  open?: boolean,
-  unknown?: boolean | IStore["snapshot"],
-) {
-  let invoke: boolean | undefined;
-  let snapshot: IStore["snapshot"] | undefined;
-  if (open === undefined) {
-    open = !store.getState().ui.playModalOpen;
-  } else if (open) {
-    snapshot = unknown as IStore["snapshot"] | undefined;
-  } else {
-    invoke = unknown as boolean | undefined;
-  }
+type IPlayModalCallback = NonNullable<IStore["ui"]["playModalCallback"]>;
+type IPlayModalCallbackAction = Parameters<IPlayModalCallback>[0];
+export function openPlayModal(snapshot?: IStore["snapshot"]) {
+  return new Promise<IPlayModalCallbackAction>((resolve) => {
+    const onClose: IPlayModalCallback = (action) => {
+      store.setState((st) => {
+        st.ui.playModalOpen = false;
+        st.ui.playModalCallback = undefined;
+        st.snapshot = undefined;
+      });
 
-  if (!open && invoke) {
-    store.getState().snapshot?.onClose?.();
-  }
+      resolve(action);
+    };
 
-  store.setState((st) => {
-    st.ui.playModalOpen = open;
-    st.snapshot = open ? snapshot : undefined;
+    store.setState((st) => {
+      st.ui.playModalOpen = true;
+      st.ui.playModalCallback = onClose;
+      st.snapshot = snapshot;
+    });
   });
 }
 
-type IExitGameModalOnCloseCallback = IStore["ui"]["exitModalOnClose"];
-type IExitGameModalOnCloseAction = Parameters<
-  NonNullable<IExitGameModalOnCloseCallback>
+export function closePlayModal(action: IPlayModalCallbackAction) {
+  store.getState().ui.playModalCallback?.(action);
+}
+
+type IExitGameModalCallback = IStore["ui"]["confirmExitModalCallback"];
+type IExitGameModalCallbackAction = Parameters<
+  NonNullable<IExitGameModalCallback>
 >[0];
-export function toggleExitGameModal(
-  open?: true,
-  onClose?: IExitGameModalOnCloseCallback,
-): void;
-export function toggleExitGameModal(
-  open?: false,
-  action?: IExitGameModalOnCloseAction,
-): void;
-export function toggleExitGameModal(
-  open?: boolean,
-  unknown?: IExitGameModalOnCloseCallback | IExitGameModalOnCloseAction,
-) {
-  let onClose: IExitGameModalOnCloseCallback;
-  let action: IExitGameModalOnCloseAction | undefined;
-  if (open === undefined) {
-    open = !store.getState().ui.exitModalOpen;
-  } else if (open) {
-    onClose = unknown as IExitGameModalOnCloseCallback | undefined;
-  } else {
-    action = unknown as IExitGameModalOnCloseAction | undefined;
-  }
+export function openConfirmExitModal() {
+  return new Promise<Exclude<IExitGameModalCallbackAction, "cancel">>(
+    (resolve, reject) => {
+      const onClose: NonNullable<IExitGameModalCallback> = (action) => {
+        store.setState((st) => {
+          st.ui.confirmExitModalOpen = false;
+          st.ui.confirmExitModalCallback = undefined;
+        });
 
-  if (!open && action) {
-    store.getState().ui.exitModalOnClose?.(action);
-  }
+        if (action === "cancel") {
+          reject(new ModalCanceledError());
+        } else {
+          resolve(action);
+        }
+      };
+      store.setState((st) => {
+        st.ui.confirmExitModalOpen = true;
+        st.ui.confirmExitModalCallback = onClose;
+      });
+    },
+  );
+}
 
-  store.setState((st) => {
-    st.ui.exitModalOpen = open;
-    st.ui.exitModalOnClose = open ? onClose : undefined;
-  });
+export function closeConfirmExitModal(action: IExitGameModalCallbackAction) {
+  store.getState().ui.confirmExitModalCallback?.(action);
 }
 
 export async function loadGames(beforeSetState?: () => Promise<void>) {
