@@ -1,3 +1,5 @@
+use gb_shared::Snapshot;
+
 pub(crate) struct MbcNone {}
 
 impl MbcNone {
@@ -14,4 +16,14 @@ impl super::Mbc for MbcNone {
     fn read(&self, addr: u16, rom: &[u8]) -> u8 {
         rom[addr as usize]
     }
+}
+
+impl Snapshot for MbcNone {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        vec![]
+    }
+
+    fn restore_snapshot(&mut self, _snapshot: Self::Snapshot) {}
 }

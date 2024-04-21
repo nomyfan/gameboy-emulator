@@ -8,7 +8,6 @@ use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::BoxedArray;
 use gb_shared::{is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory, Snapshot};
-use lcd::LCDSnapshot;
 use object::ObjectSnapshot;
 
 pub type VideoFrame = BoxedArray<u8, 23040>; // 160 * 144
@@ -493,28 +492,29 @@ impl Memory for Ppu {
 pub struct PpuSnapshot {
     vram: Vec<u8>, // 0x2000
     oam: Vec<u8>,  // 0xA0
-    lcd: LCDSnapshot,
+    lcd: LCD,
     bgp: u8,
     obp0: u8,
     obp1: u8,
-    // #region Work state
+    //#region Work state
     scanline_x: u8,
     scanline_dots: u16,
     scanline_objects: Vec<ObjectSnapshot>,
     window_line: u8,
     window_used: bool,
-    // #endregion
+    //#endregion
+    irq: u8,
     video_buffer: Vec<u8>, // 160 * 144
 }
 
 impl Snapshot for Ppu {
     type Snapshot = PpuSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         PpuSnapshot {
             vram: self.vram.to_vec(),
             oam: self.oam.to_vec(),
-            lcd: self.lcd.snapshot(),
+            lcd: self.lcd,
             bgp: self.bgp,
             obp0: self.obp0,
             obp1: self.obp1,
@@ -524,18 +524,19 @@ impl Snapshot for Ppu {
                 .work_state
                 .scanline_objects
                 .iter()
-                .map(|o| o.snapshot())
+                .map(|o| o.take_snapshot())
                 .collect(),
             window_line: self.work_state.window_line,
             window_used: self.work_state.window_used,
+            irq: self.irq.0,
             video_buffer: self.video_buffer.to_vec(),
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.vram = BoxedArray::try_from_vec(snapshot.vram).unwrap();
         self.oam = BoxedArray::try_from_vec(snapshot.oam).unwrap();
-        self.lcd.restore(snapshot.lcd);
+        self.lcd = snapshot.lcd;
         self.bgp = snapshot.bgp;
         self.obp0 = snapshot.obp0;
         self.obp1 = snapshot.obp1;
@@ -546,12 +547,13 @@ impl Snapshot for Ppu {
             .into_iter()
             .map(|o| {
                 let mut object = Object::default();
-                object.restore(o);
+                object.restore_snapshot(o);
                 object
             })
             .collect();
         self.work_state.window_line = snapshot.window_line;
         self.work_state.window_used = snapshot.window_used;
+        self.irq.0 = snapshot.irq;
         self.video_buffer = BoxedArray::try_from_vec(snapshot.video_buffer).unwrap();
     }
 }

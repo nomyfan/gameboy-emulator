@@ -42,11 +42,11 @@ pub(crate) struct SerialSnapshot {
 impl Snapshot for Serial {
     type Snapshot = SerialSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         SerialSnapshot { data: self.data, control: self.control }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.data = snapshot.data;
         self.control = snapshot.control;
     }

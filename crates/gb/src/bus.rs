@@ -309,36 +309,39 @@ pub(crate) struct BusSnapshot {
     timer: TimerSnapshot,
     ppu: PpuSnapshot,
     apu: ApuSnapshot,
+    cart: Vec<u8>,
 }
 
 impl Snapshot for Bus {
     type Snapshot = BusSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         BusSnapshot {
             interrupt_enable: self.interrupt_enable,
             interrupt_flag: self.interrupt_flag,
-            wram: self.wram.snapshot(),
-            hram: self.hram.snapshot(),
-            dma: self.dma.snapshot(),
-            serial: self.serial.snapshot(),
-            joypad: self.joypad.snapshot(),
-            timer: self.timer.snapshot(),
-            ppu: self.ppu.snapshot(),
-            apu: self.apu.snapshot(),
+            wram: self.wram.take_snapshot(),
+            hram: self.hram.take_snapshot(),
+            dma: self.dma.take_snapshot(),
+            serial: self.serial.take_snapshot(),
+            joypad: self.joypad.take_snapshot(),
+            timer: self.timer.take_snapshot(),
+            ppu: self.ppu.take_snapshot(),
+            apu: self.apu.take_snapshot(),
+            cart: self.cart.take_snapshot(),
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.interrupt_enable = snapshot.interrupt_enable;
         self.interrupt_flag = snapshot.interrupt_flag;
-        self.wram.restore(snapshot.wram);
-        self.hram.restore(snapshot.hram);
-        self.dma.restore(snapshot.dma);
-        self.serial.restore(snapshot.serial);
-        self.joypad.restore(snapshot.joypad);
-        self.timer.restore(snapshot.timer);
-        self.ppu.restore(snapshot.ppu);
-        self.apu.restore(snapshot.apu);
+        self.wram.restore_snapshot(snapshot.wram);
+        self.hram.restore_snapshot(snapshot.hram);
+        self.dma.restore_snapshot(snapshot.dma);
+        self.serial.restore_snapshot(snapshot.serial);
+        self.joypad.restore_snapshot(snapshot.joypad);
+        self.timer.restore_snapshot(snapshot.timer);
+        self.ppu.restore_snapshot(snapshot.ppu);
+        self.apu.restore_snapshot(snapshot.apu);
+        self.cart.restore_snapshot(snapshot.cart);
     }
 }

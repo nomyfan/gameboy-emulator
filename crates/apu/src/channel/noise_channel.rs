@@ -225,7 +225,7 @@ pub(crate) struct NoiseChannelSnapshot {
 impl Snapshot for NoiseChannel {
     type Snapshot = NoiseChannelSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         NoiseChannelSnapshot {
             nrx1: self.nrx1,
             nrx2: self.nrx2,
@@ -238,7 +238,7 @@ impl Snapshot for NoiseChannel {
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.nrx1 = snapshot.nrx1;
         self.nrx2 = snapshot.nrx2;
         self.nrx3 = snapshot.nrx3;

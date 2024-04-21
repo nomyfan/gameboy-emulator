@@ -331,12 +331,12 @@ pub struct ApuSnapshot {
 impl Snapshot for Apu {
     type Snapshot = ApuSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         ApuSnapshot {
-            ch1: self.ch1.snapshot(),
-            ch2: self.ch2.snapshot(),
-            ch3: self.ch3.snapshot(),
-            ch4: self.ch4.snapshot(),
+            ch1: self.ch1.take_snapshot(),
+            ch2: self.ch2.take_snapshot(),
+            ch3: self.ch3.take_snapshot(),
+            ch4: self.ch4.take_snapshot(),
             mixer_clock: self.mixer_clock.clone(),
             nr50: self.nr50,
             nr51: self.nr51,
@@ -345,11 +345,11 @@ impl Snapshot for Apu {
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
-        self.ch1.restore(snapshot.ch1);
-        self.ch2.restore(snapshot.ch2);
-        self.ch3.restore(snapshot.ch3);
-        self.ch4.restore(snapshot.ch4);
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        self.ch1.restore_snapshot(snapshot.ch1);
+        self.ch2.restore_snapshot(snapshot.ch2);
+        self.ch3.restore_snapshot(snapshot.ch3);
+        self.ch4.restore_snapshot(snapshot.ch4);
         self.mixer_clock = snapshot.mixer_clock;
         self.nr50 = snapshot.nr50;
         self.nr51 = snapshot.nr51;

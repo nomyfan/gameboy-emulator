@@ -116,17 +116,17 @@ impl GameBoySnapshot {
 impl Snapshot for GameBoy {
     type Snapshot = GameBoySnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
+    fn take_snapshot(&self) -> Self::Snapshot {
         Self::Snapshot {
-            bus: self.bus.snapshot(),
-            cpu: self.cpu.snapshot(),
+            bus: self.bus.take_snapshot(),
+            cpu: self.cpu.take_snapshot(),
             cart_checksum: self.cart_checksum,
         }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
-        self.bus.restore(snapshot.bus);
-        self.cpu.restore(snapshot.cpu);
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        self.bus.restore_snapshot(snapshot.bus);
+        self.cpu.restore_snapshot(snapshot.cpu);
     }
 }
 

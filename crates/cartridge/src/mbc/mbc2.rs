@@ -1,12 +1,13 @@
 use super::Mbc;
 use crate::CartridgeHeader;
-use gb_shared::{boxed::BoxedArray, is_bit_set, kib};
+use gb_shared::{boxed::BoxedArray, is_bit_set, kib, Snapshot};
+use serde::{Deserialize, Serialize};
 
 /// Max 256 KiB ROM, 512x4 bits RAM
 pub(crate) struct Mbc2 {
     ram_enabled: bool,
     /// Value range 0x01..=0x0F
-    rom_bank: u8,
+    rom_bank_num: u8,
     ram: BoxedArray<u8, 0x200>,
     with_battery: bool,
 }
@@ -16,7 +17,7 @@ impl Mbc2 {
         let with_battery = header.cart_type == 0x06;
         let ram = Default::default();
 
-        Self { ram_enabled: false, rom_bank: 0x01, ram, with_battery }
+        Self { ram_enabled: false, rom_bank_num: 0x01, ram, with_battery }
     }
 }
 
@@ -25,7 +26,7 @@ impl Mbc for Mbc2 {
         match addr {
             0x0000..=0x3FFF => {
                 if is_bit_set!(addr, 8) {
-                    self.rom_bank = value & 0x0F;
+                    self.rom_bank_num = value & 0x0F;
                 } else {
                     self.ram_enabled = (value & 0x0F) == 0x0A;
                 }
@@ -47,7 +48,7 @@ impl Mbc for Mbc2 {
         match addr {
             0x0000..=0x3FFF => rom[addr as usize],
             0x4000..=0x7FFF => {
-                let mut rom_bank_num = self.rom_bank as usize;
+                let mut rom_bank_num = self.rom_bank_num as usize;
                 if rom_bank_num == 0 {
                     rom_bank_num = 1;
                 }
@@ -90,5 +91,41 @@ impl Mbc for Mbc2 {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Mbc2Snapshot {
+    ram_enabled: bool,
+    rom_bank_num: u8,
+    ram: Vec<u8>,
+    with_battery: bool,
+}
+
+impl Snapshot for Mbc2 {
+    type Snapshot = Vec<u8>;
+
+    fn take_snapshot(&self) -> Self::Snapshot {
+        let mut ram_snapshot = vec![];
+        ram_snapshot.extend_from_slice(self.ram.as_ref());
+
+        bincode::serialize(&Mbc2Snapshot {
+            ram_enabled: self.ram_enabled,
+            rom_bank_num: self.rom_bank_num,
+            ram: ram_snapshot,
+            with_battery: self.with_battery,
+        })
+        .unwrap()
+    }
+
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
+        let Mbc2Snapshot { ram_enabled, rom_bank_num, ram, with_battery } =
+            bincode::deserialize(&snapshot).unwrap();
+        assert_eq!(ram.len(), self.ram.len());
+
+        self.ram_enabled = ram_enabled;
+        self.rom_bank_num = rom_bank_num;
+        self.ram.copy_from_slice(&ram);
+        self.with_battery = with_battery;
     }
 }

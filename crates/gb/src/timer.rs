@@ -112,20 +112,28 @@ pub(crate) struct TimerSnapshot {
     tima: u8,
     tma: u8,
     tac: u8,
+    irq: u8,
 }
 
 impl Snapshot for Timer {
     type Snapshot = TimerSnapshot;
 
-    fn snapshot(&self) -> Self::Snapshot {
-        TimerSnapshot { div: self.div, tima: self.tima, tma: self.tma, tac: self.tac }
+    fn take_snapshot(&self) -> Self::Snapshot {
+        TimerSnapshot {
+            div: self.div,
+            tima: self.tima,
+            tma: self.tma,
+            tac: self.tac,
+            irq: self.irq.0,
+        }
     }
 
-    fn restore(&mut self, snapshot: Self::Snapshot) {
+    fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.div = snapshot.div;
         self.tima = snapshot.tima;
         self.tma = snapshot.tma;
         self.tac = snapshot.tac;
+        self.irq.0 = snapshot.irq;
     }
 }
 
