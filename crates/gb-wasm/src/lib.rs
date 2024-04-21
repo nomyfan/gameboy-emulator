@@ -1,8 +1,5 @@
-// mod audio;
 mod utils;
 
-// use cpal::traits::StreamTrait;
-// use cpal::Stream;
 use gb::wasm::{Cartridge, GameBoy, Manifest};
 use gb::GameBoySnapshot;
 use gb_shared::boxed::BoxedArray;
@@ -77,11 +74,6 @@ impl GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
 
-        // TODO: cpal doesn't perform well on mobiles.
-        // let (stream, samples_buf, sample_rate) = audio::init_audio()
-        //     .map(|(stream, buf, sample_rate)| (Some(stream), Some(buf), Some(sample_rate)))
-        //     .unwrap_or_default();
-
         let mut gb = GameBoy::new(Manifest { cart, sample_rate });
         if let Some(sav) = sav {
             gb.resume_cartridge(&sav).unwrap();
@@ -116,22 +108,6 @@ impl GameBoyHandle {
                     canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
                 },
             );
-
-        // if let Some(stream) = &stream {
-        //     stream.play().unwrap();
-        // }
-
-        // match samples_buf {
-        //     Some(samples_buf) => gb.set_handles(
-        //         Some(frame_handle),
-        //         Some(Box::new(move |sample_data| {
-        //             samples_buf.lock().unwrap().extend_from_slice(sample_data);
-        //         })),
-        //     ),
-        //     None => {
-        //         gb.set_handles(Some(frame_handle), None);
-        //     }
-        // }
 
         match audio_stream {
             Some(stream) => {
