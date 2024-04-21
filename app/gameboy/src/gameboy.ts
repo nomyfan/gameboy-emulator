@@ -28,9 +28,13 @@ class GameBoyControl {
   private playCallbackId_?: number;
 
   private keyState = 0;
+  private readonly audioContext_: AudioContext;
+  private audioWorkletModuleAdded_ = false;
+  private audioWorkletNode_?: AudioWorkletNode;
 
   constructor() {
     this.store_ = createGameBoyStore();
+    this.audioContext_ = new AudioContext(); // TODO: specify sample rate?
   }
 
   private get state() {
@@ -49,13 +53,49 @@ class GameBoyControl {
     }
   }
 
-  install(
+  async install(
     rom: Uint8ClampedArray,
     canvas: HTMLCanvasElement,
     scale?: number,
     sav?: Uint8Array,
   ) {
-    this.instance_ = GameBoyHandle.create(rom, canvas, scale, sav);
+    if (!this.audioWorkletModuleAdded_) {
+      await this.audioContext_.audioWorklet.addModule(
+        new URL("./audio-worklet/gameboy-audio-processor.js", import.meta.url),
+      );
+      this.audioWorkletModuleAdded_ = true;
+    }
+    const sampleRate = this.audioContext_.sampleRate;
+    const workletNode = new AudioWorkletNode(
+      this.audioContext_,
+      "gameboy-audio-processor",
+      {
+        numberOfOutputs: 1,
+        outputChannelCount: [2], // Stereo
+      },
+    );
+    workletNode.connect(this.audioContext_.destination);
+    this.audioWorkletNode_ = workletNode;
+
+    // Wait until audio worklet processor prepared
+    const stream = await new Promise<WritableStream>((resolve) => {
+      const handler = (evt: MessageEvent) => {
+        if (evt.data.type === "stream-prepared") {
+          workletNode.port.onmessage = null;
+          resolve(evt.data.payload as WritableStream);
+        }
+      };
+      workletNode.port.onmessage = handler;
+    });
+
+    this.instance_ = GameBoyHandle.create(
+      rom,
+      canvas,
+      scale,
+      sav,
+      sampleRate,
+      stream,
+    );
     this.store_.setState({ status: "installed" });
   }
 
@@ -63,6 +103,12 @@ class GameBoyControl {
     if (this.instance_) {
       this.pause();
     }
+
+    if (this.audioWorkletNode_) {
+      this.audioWorkletNode_.disconnect();
+      this.audioWorkletNode_ = undefined;
+    }
+
     if (this.instance_) {
       this.instance_.free();
       this.instance_ = undefined;

@@ -91,7 +91,7 @@ export function Play(props: IPagePlayProps) {
         .then((buf) => new Uint8ClampedArray(buf));
       if (!canceled) {
         gameboy.uninstall();
-        gameboy.install(rom, canvas, 2, sav);
+        await gameboy.install(rom, canvas, 2, sav);
         const snapshot = store.getState().snapshot;
         if (snapshot && snapshot.gameId === gameId) {
           gameboy.restoreSnapshot(snapshot.data);
@@ -154,7 +154,7 @@ export function Play(props: IPagePlayProps) {
           width: 36,
         }}
         onClick={() => {
-          // TODO: pause gameboy
+          gameboy.pause();
           actions
             .openConfirmExitModal()
             .then(async (action) => {
@@ -192,7 +192,7 @@ export function Play(props: IPagePlayProps) {
             })
             .catch((err) => {
               if (err instanceof ModalCanceledError) {
-                // TODO: continue gameboy
+                gameboy.play();
 
                 return;
               }
