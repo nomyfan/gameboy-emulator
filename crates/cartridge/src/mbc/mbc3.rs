@@ -123,37 +123,30 @@ impl Mbc for Mbc3 {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn suspend(&self) -> Option<Vec<u8>> {
         if self.with_battery {
-            use std::io::Write;
-            let mut file = std::fs::File::create(path)?;
+            let mut data = vec![];
+            let rtc_data = self.rtc.epoch;
+            data.extend_from_slice(&rtc_data.to_be_bytes());
             for bank in &self.ram_banks {
-                file.write_all(bank.as_ref())?;
+                data.extend_from_slice(bank.as_ref());
             }
-            file.flush()?;
 
-            let rtc_sav = path.to_path_buf().with_extension("rtc");
-            self.rtc.store(rtc_sav)?;
+            return Some(data);
         }
-        Ok(())
+
+        None
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn resume(&mut self, data: &[u8]) -> anyhow::Result<()> {
         if self.with_battery {
-            use std::io::Read;
-            let mut file = std::fs::File::open(path)?;
-            if file.metadata()?.len() as usize != self.ram_banks.len() * kib(8) {
-                // Ignore invalid file.
-                return Ok(());
+            if data.len() != (self.ram_banks.len() * kib(8) + 8) {
+                anyhow::bail!("Invalid data length for MBC3")
             }
-            for bank in &mut self.ram_banks {
-                file.read_exact(bank.as_mut())?;
-            }
-
-            let rtc_sav = path.to_path_buf().with_extension("rtc");
-            self.rtc.restore(rtc_sav)?;
+            self.rtc.epoch = u64::from_be_bytes(data[..8].try_into().unwrap());
+            data[8..].chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
+                dst.copy_from_slice(src);
+            });
         }
         Ok(())
     }
@@ -256,30 +249,5 @@ impl RealTimeClock {
         if days > 0x01FF {
             self.dh |= 0x80;
         }
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    pub(crate) fn store<P: AsRef<std::path::Path>>(&self, path: P) -> anyhow::Result<()> {
-        use std::io::Write;
-        let mut file = std::fs::File::create(path)?;
-        file.write_all(self.epoch.to_be_bytes().as_ref())?;
-        file.flush()?;
-
-        Ok(())
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    pub(crate) fn restore<P: AsRef<std::path::Path>>(&mut self, path: P) -> anyhow::Result<()> {
-        self.epoch = match std::fs::read(path) {
-            Ok(value) => {
-                let mut bytes: [u8; 8] = Default::default();
-                debug_assert!(value.len() == 8);
-                bytes.copy_from_slice(&value);
-                u64::from_be_bytes(bytes)
-            }
-            Err(_) => SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
-        };
-
-        Ok(())
     }
 }

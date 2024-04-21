@@ -100,32 +100,27 @@ impl super::Mbc for Mbc1 {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn suspend(&self) -> Option<Vec<u8>> {
         if self.with_battery {
-            use std::io::Write;
-            let mut file = std::fs::File::create(path)?;
+            let mut data = vec![];
             for bank in &self.ram_banks {
-                file.write_all(bank.as_ref())?;
+                data.extend_from_slice(bank.as_ref());
             }
-            file.flush()?;
+
+            return Some(data);
         }
 
-        Ok(())
+        None
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn resume(&mut self, data: &[u8]) -> anyhow::Result<()> {
         if self.with_battery {
-            use std::io::Read;
-            let mut file = std::fs::File::open(path)?;
-            if file.metadata()?.len() as usize != self.ram_banks.len() * kib(8) {
-                // Ignore invalid file.
-                return Ok(());
+            if data.len() != self.ram_banks.len() * kib(8) {
+                anyhow::bail!("Invalid data length for MBC1");
             }
-            for bank in &mut self.ram_banks {
-                file.read_exact(bank.as_mut())?;
-            }
+            data.chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
+                dst.copy_from_slice(src);
+            });
         }
 
         Ok(())

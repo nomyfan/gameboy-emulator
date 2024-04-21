@@ -34,7 +34,7 @@ pub(crate) struct BusInner {
     /// - Bit 1, LCD STAT
     /// - Bit 0, Vertical Blank
     interrupt_flag: u8,
-    cart: Cartridge,
+    pub(crate) cart: Cartridge,
     wram: WorkRam,
     hram: HighRam,
     /// DMA state.

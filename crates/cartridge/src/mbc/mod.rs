@@ -12,16 +12,13 @@ type RamBank = [u8; 0x2000];
 pub(crate) trait Mbc: Snapshot {
     fn write(&mut self, addr: u16, value: u8);
     fn read(&self, addr: u16, rom: &[u8]) -> u8;
-    // TODO: rename as `suspend`
-    #[allow(unused_variables)]
     /// For battery-backed cartridge.
-    fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
-        Ok(())
+    fn suspend(&self) -> Option<Vec<u8>> {
+        None
     }
-    // TODO: rename as `resume`
     #[allow(unused_variables)]
     /// For battery-backed cartridge.
-    fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn resume(&mut self, data: &[u8]) -> anyhow::Result<()> {
         Ok(())
     }
 }

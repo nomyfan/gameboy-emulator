@@ -24,53 +24,59 @@ export function togglePlayModal(
   open?: boolean,
   unknown?: boolean | IStore["snapshot"],
 ) {
-  store.setState((st) => {
-    let invoke: boolean | undefined;
-    let snapshot: IStore["snapshot"] | undefined;
-    if (open === undefined) {
-      open = !st.ui.playModalOpen;
-    } else if (open) {
-      snapshot = unknown as IStore["snapshot"] | undefined;
-    } else {
-      invoke = unknown as boolean | undefined;
-    }
+  let invoke: boolean | undefined;
+  let snapshot: IStore["snapshot"] | undefined;
+  if (open === undefined) {
+    open = !store.getState().ui.playModalOpen;
+  } else if (open) {
+    snapshot = unknown as IStore["snapshot"] | undefined;
+  } else {
+    invoke = unknown as boolean | undefined;
+  }
 
+  if (!open && invoke) {
+    store.getState().snapshot?.onClose?.();
+  }
+
+  store.setState((st) => {
     st.ui.playModalOpen = open;
-    if (open) {
-      st.snapshot = snapshot;
-    } else {
-      const onClose = st.snapshot?.onClose;
-      st.snapshot = undefined;
-      invoke && onClose?.();
-    }
+    st.snapshot = open ? snapshot : undefined;
   });
 }
 
-export function toggleExitGameModal(open?: true, onClose?: () => void): void;
-export function toggleExitGameModal(open?: false, invoke?: boolean): void;
+type IExitGameModalOnCloseCallback = IStore["ui"]["exitModalOnClose"];
+type IExitGameModalOnCloseAction = Parameters<
+  NonNullable<IExitGameModalOnCloseCallback>
+>[0];
+export function toggleExitGameModal(
+  open?: true,
+  onClose?: IExitGameModalOnCloseCallback,
+): void;
+export function toggleExitGameModal(
+  open?: false,
+  action?: IExitGameModalOnCloseAction,
+): void;
 export function toggleExitGameModal(
   open?: boolean,
-  unknown?: (() => void) | boolean,
+  unknown?: IExitGameModalOnCloseCallback | IExitGameModalOnCloseAction,
 ) {
-  store.setState((st) => {
-    let onClose: (() => void) | undefined;
-    let invoke: boolean | undefined;
-    if (open === undefined) {
-      open = !st.ui.exitModalOpen;
-    } else if (open) {
-      onClose = unknown as (() => void) | undefined;
-    } else {
-      invoke = unknown as boolean | undefined;
-    }
+  let onClose: IExitGameModalOnCloseCallback;
+  let action: IExitGameModalOnCloseAction | undefined;
+  if (open === undefined) {
+    open = !store.getState().ui.exitModalOpen;
+  } else if (open) {
+    onClose = unknown as IExitGameModalOnCloseCallback | undefined;
+  } else {
+    action = unknown as IExitGameModalOnCloseAction | undefined;
+  }
 
+  if (!open && action) {
+    store.getState().ui.exitModalOnClose?.(action);
+  }
+
+  store.setState((st) => {
     st.ui.exitModalOpen = open;
-    if (open) {
-      st.ui.exitModalOnClose = onClose;
-    } else {
-      const onClose = st.ui.exitModalOnClose;
-      st.ui.exitModalOnClose = undefined;
-      invoke && onClose?.();
-    }
+    st.ui.exitModalOnClose = open ? onClose : undefined;
   });
 }
 

@@ -145,3 +145,13 @@ impl TryFrom<&GameBoySnapshot> for Vec<u8> {
         bincode::serialize(value)
     }
 }
+
+impl GameBoy {
+    pub fn suspend_cartridge(&self) -> Option<Vec<u8>> {
+        self.bus.cart.suspend()
+    }
+
+    pub fn resume_cartridge(&mut self, data: &[u8]) -> anyhow::Result<()> {
+        self.bus.cart.resume(data)
+    }
+}

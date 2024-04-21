@@ -49,8 +49,13 @@ class GameBoyControl {
     }
   }
 
-  install(rom: Uint8ClampedArray, canvas: HTMLCanvasElement, scale?: number) {
-    this.instance_ = GameBoyHandle.create(rom, canvas, scale);
+  install(
+    rom: Uint8ClampedArray,
+    canvas: HTMLCanvasElement,
+    scale?: number,
+    sav?: Uint8Array,
+  ) {
+    this.instance_ = GameBoyHandle.create(rom, canvas, scale, sav);
     this.store_.setState({ status: "installed" });
   }
 
@@ -126,6 +131,11 @@ class GameBoyControl {
   restoreSnapshot(snapshot: Uint8Array) {
     this.ensureInstalled();
     this.instance_!.restoreSnapshot(snapshot);
+  }
+
+  createSav() {
+    this.ensureInstalled();
+    return this.instance_!.suspendCartridge();
   }
 }
 

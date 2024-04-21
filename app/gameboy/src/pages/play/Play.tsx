@@ -83,13 +83,14 @@ export function Play(props: IPagePlayProps) {
 
     let canceled = false;
     (async () => {
-      const file = await storage.gameStore.queryById(gameId);
-      const rom = await file!.rom
+      const game = await storage.gameStore.queryById(gameId);
+      const sav = game!.sav;
+      const rom = await game!.rom
         .arrayBuffer()
         .then((buf) => new Uint8ClampedArray(buf));
       if (!canceled) {
         gameboy.uninstall();
-        gameboy.install(rom, canvas, 2);
+        gameboy.install(rom, canvas, 2, sav);
         const snapshot = store.getState().snapshot;
         if (snapshot && snapshot.gameId === gameId) {
           gameboy.restoreSnapshot(snapshot.data);
@@ -152,9 +153,18 @@ export function Play(props: IPagePlayProps) {
           width: 36,
         }}
         onClick={() => {
-          actions.toggleExitGameModal(true, async () => {
+          actions.toggleExitGameModal(true, async (action) => {
             const canvas = canvasRef.current;
-            if (gameId && canvas) {
+            if (!gameId || !canvas) {
+              return;
+            }
+
+            const sav = gameboy.createSav();
+            if (sav) {
+              await storage.gameStore.update({ id: gameId, sav });
+            }
+
+            if (action === "with_snapshot") {
               const snapshot = gameboy.takeSnapshot();
               const time = Date.now();
               const cover = await utils.canvasToBlob(canvas, "image/jpeg", 0.7);
@@ -166,6 +176,8 @@ export function Play(props: IPagePlayProps) {
                 cover,
               });
               actions.togglePlayModal(false, true);
+            } else if (action === "without_snapshot") {
+              actions.togglePlayModal(false, false);
             }
           });
         }}

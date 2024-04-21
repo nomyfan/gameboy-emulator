@@ -1,7 +1,7 @@
 export interface IGame {
   id: string;
   rom: Blob;
-  sav?: Blob;
+  sav?: Uint8Array;
   cover: Blob;
   name: string;
   createTime: number;

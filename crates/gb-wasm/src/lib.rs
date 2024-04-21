@@ -70,6 +70,7 @@ impl GameBoyHandle {
         rom: Uint8ClampedArray,
         canvas: HtmlCanvasElement,
         scale: Option<u8>,
+        sav: Option<Vec<u8>>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
@@ -80,6 +81,9 @@ impl GameBoyHandle {
             .unwrap_or_default();
 
         let mut gb = GameBoy::new(Manifest { cart, sample_rate });
+        if let Some(sav) = sav {
+            gb.resume_cartridge(&sav).unwrap();
+        }
 
         let scale = scale.unwrap_or(1);
         let canvas_context = canvas
@@ -133,6 +137,11 @@ impl GameBoyHandle {
     #[wasm_bindgen(js_name = continue)]
     pub fn r#continue(&mut self, clocks: Option<u32>) {
         self.gb.continue_clocks(clocks.unwrap_or(70224)); // 70224 clocks per frame
+    }
+
+    #[wasm_bindgen(js_name = suspendCartridge)]
+    pub fn suspend_cartridge(&mut self) -> Option<Vec<u8>> {
+        self.gb.suspend_cartridge()
     }
 
     #[wasm_bindgen(js_name = changeKeyState)]

@@ -2,11 +2,7 @@ mod mbc;
 
 use anyhow::Result;
 use gb_shared::Snapshot;
-use std::{
-    borrow::Cow,
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::{borrow::Cow, fmt::Display, path::Path};
 
 const CARRIAGE_TYPE: [(u8, &str); 28] = [
     (0x00, "ROM ONLY"),
@@ -376,7 +372,6 @@ impl Display for CartridgeHeader {
 pub struct Cartridge {
     pub header: CartridgeHeader,
     pub rom: Vec<u8>,
-    pub sav: Option<PathBuf>,
     mbc: Box<dyn mbc::Mbc<Snapshot = Vec<u8>>>,
 }
 
@@ -414,23 +409,14 @@ impl TryFrom<Vec<u8>> for Cartridge {
             ),
         };
 
-        Ok(Cartridge { header, rom, mbc, sav: None })
+        Ok(Cartridge { header, rom, mbc })
     }
 }
 
 impl Cartridge {
     pub fn try_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let rom = std::fs::read(path.as_ref())?;
-
-        let mut sav_file_name = PathBuf::new();
-        sav_file_name.push(path.as_ref());
-        sav_file_name.set_extension("sav");
-
-        let mut cart = Self::try_from(rom)?;
-        if sav_file_name.exists() {
-            cart.mbc.restore(&sav_file_name)?;
-        }
-        cart.sav = Some(sav_file_name);
+        let cart = Self::try_from(rom)?;
 
         Ok(cart)
     }
@@ -446,14 +432,6 @@ impl gb_shared::Memory for Cartridge {
     }
 }
 
-impl Drop for Cartridge {
-    fn drop(&mut self) {
-        if let Some(sav) = self.sav.as_ref() {
-            self.mbc.store(sav).unwrap();
-        }
-    }
-}
-
 impl Snapshot for Cartridge {
     type Snapshot = Vec<u8>;
 
@@ -463,5 +441,15 @@ impl Snapshot for Cartridge {
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.mbc.restore_snapshot(snapshot)
+    }
+}
+
+impl Cartridge {
+    pub fn suspend(&self) -> Option<Vec<u8>> {
+        self.mbc.suspend()
+    }
+
+    pub fn resume(&mut self, data: &[u8]) -> anyhow::Result<()> {
+        self.mbc.resume(data)
     }
 }

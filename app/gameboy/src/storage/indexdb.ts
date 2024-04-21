@@ -98,6 +98,8 @@ class GameBoyStorage implements IGameBoyStorage {
       name: metadata.name,
       rom: file,
     });
+
+    metadata.free();
     return true;
   }
 

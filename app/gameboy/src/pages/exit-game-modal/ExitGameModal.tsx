@@ -16,7 +16,7 @@ export function ExitGameModal() {
           <Button
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.toggleExitGameModal(false, false);
+              actions.toggleExitGameModal(false);
             }}
           >
             取消
@@ -25,8 +25,7 @@ export function ExitGameModal() {
             type="primary"
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.toggleExitGameModal(false, false);
-              actions.togglePlayModal(false, false);
+              actions.toggleExitGameModal(false, "without_snapshot");
             }}
           >
             不创建
@@ -34,7 +33,7 @@ export function ExitGameModal() {
           <Button
             type="primary"
             onClick={() => {
-              actions.toggleExitGameModal(false, true);
+              actions.toggleExitGameModal(false, "with_snapshot");
             }}
           >
             确定

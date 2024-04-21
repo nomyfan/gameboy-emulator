@@ -66,28 +66,23 @@ impl Mbc for Mbc2 {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    fn store(&self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn suspend(&self) -> Option<Vec<u8>> {
         if self.with_battery {
-            use std::io::Write;
-            let mut file = std::fs::File::create(path)?;
-            file.write_all(self.ram.as_ref())?;
-            file.flush()?;
+            let mut data = vec![];
+            data.extend_from_slice(self.ram.as_ref());
+
+            return Some(data);
         }
 
-        Ok(())
+        None
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    fn restore(&mut self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn resume(&mut self, data: &[u8]) -> anyhow::Result<()> {
         if self.with_battery {
-            use std::io::Read;
-            let mut file = std::fs::File::open(path)?;
-            if file.metadata()?.len() as usize != self.ram.len() {
-                // Ignore invalid file.
-                return Ok(());
+            if data.len() != self.ram.len() {
+                anyhow::bail!("Invalid data length for MBC2")
             }
-            file.read_exact(self.ram.as_mut())?;
+            self.ram.copy_from_slice(data);
         }
 
         Ok(())
