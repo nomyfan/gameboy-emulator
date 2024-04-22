@@ -34,7 +34,7 @@ class GameBoyControl {
 
   constructor() {
     this.store_ = createGameBoyStore();
-    this.audioContext_ = new AudioContext(); // TODO: specify sample rate?
+    this.audioContext_ = new AudioContext();
   }
 
   private get state() {

@@ -22,7 +22,6 @@ const COLORS: [[u8; 4]; 4] = [
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
-    // _audio_stream: Option<Stream>,
 }
 
 struct ScaleImageData(Vec<u8>, u8);
@@ -127,7 +126,6 @@ impl GameBoyHandle {
 
                         let slice = audio_buffer.slice(0, (len * 2) as u32);
 
-                        // TODO: should wait?
                         let _ = stream_writer.write_with_chunk(&slice.into());
                     })),
                 )

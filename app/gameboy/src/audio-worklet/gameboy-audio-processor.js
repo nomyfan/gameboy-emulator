@@ -17,6 +17,7 @@ class GameBoyAudioProcessor extends AudioWorkletProcessor {
         this.streamActive = false;
       },
     });
+    // Crash on Safari if sending streams
     this.port.postMessage(
       { type: "stream-prepared", payload: writableStream },
       [writableStream],
