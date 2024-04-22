@@ -31,6 +31,7 @@ class GameBoyControl {
   private readonly audioContext_: AudioContext;
   private audioWorkletModuleAdded_ = false;
   private audioWorkletNode_?: AudioWorkletNode;
+  private nextTickTime_ = 0;
 
   constructor() {
     this.store_ = createGameBoyStore();
@@ -134,12 +135,14 @@ class GameBoyControl {
       }
 
       const start = performance.now();
+      const delayed = this.nextTickTime_ === 0 ? 0 : start - this.nextTickTime_;
       this.instance_!.continue();
-      const duration = performance.now() - start;
+      const nextTickTime = start + 16.666666 - delayed;
+      this.nextTickTime_ = nextTickTime;
 
       this.playCallbackId_ = setTimeout(() => {
         playCallback();
-      }, 16.666666 - duration) as unknown as number;
+      }, nextTickTime - performance.now()) as unknown as number;
     };
     playCallback();
   }
@@ -151,6 +154,7 @@ class GameBoyControl {
     if (this.playCallbackId_) {
       clearTimeout(this.playCallbackId_);
       this.playCallbackId_ = undefined;
+      this.nextTickTime_ = 0;
     }
   }
 
