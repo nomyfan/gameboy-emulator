@@ -103,6 +103,6 @@ jobs:
             |Latest commit | ${{ github.event.pull_request.head.sha }} |
             |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
             |Preview URL | [${{ steps.cloudflare-publish.outputs.url }}](${{ steps.cloudflare-publish.outputs.url }}) |
-            |Branch Preview URL | [${{ steps.cloudflare-publish.outputs.alias }}](${{ steps.cloudflare-publish.outputs.alias }}) |
+            |Branch Preview URL | [${{ env.NORMALIZED_BRANCH_NAME }}.gbplay.pages.dev](${{ env.NORMALIZED_BRANCH_NAME }}.gbplay.pages.dev) |
             |Environment | ${{ steps.cloudflare-publish.outputs.environment }} |
             ---
