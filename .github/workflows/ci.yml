@@ -16,6 +16,8 @@ jobs:
       contents: read
       deployments: write
       pull-requests: write
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
     steps:
       - name: Comment deploy start
@@ -28,13 +30,16 @@ jobs:
 
             |  Name | Link |
             |---------------------------------|------------------------|
-            |<span aria-hidden="true">🔨</span> Latest commit | ${{ github.event.pull_request.head.sha }} |
-            |<span aria-hidden="true">🔍</span> Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+            |Latest commit | ${{ github.event.pull_request.head.sha }} |
+            |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
             ---
 
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Normalize branch name
+        run: echo "NORMALIZED_BRANCH_NAME=$(echo $BRANCH_NAME | tr -cs '[:alnum:]' '-' | sed 's/^-//;s/-$//' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -80,6 +85,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: gbplay
           directory: dist
+          branch: ${{ env.NORMALIZED_BRANCH_NAME }}
           workingDirectory: app/gameboy
           wranglerVersion: "3"
 
@@ -94,8 +100,9 @@ jobs:
 
             |  Name | Link |
             |---------------------------------|------------------------|
-            |<span aria-hidden="true">🔨</span> Latest commit | ${{ github.event.pull_request.head.sha }} |
-            |<span aria-hidden="true">🔍</span> Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
-            |<span aria-hidden="true">😎</span> Deploy Preview Url | [${{ steps.cloudflare-publish.outputs.url }}](${{ steps.cloudflare-publish.outputs.url }}) |
-            |<span aria-hidden="true">🌳</span> Environment | ${{ steps.cloudflare-publish.outputs.environment }} |
+            |Latest commit | ${{ github.event.pull_request.head.sha }} |
+            |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+            |Preview URL | [${{ steps.cloudflare-publish.outputs.url }}](${{ steps.cloudflare-publish.outputs.url }}) |
+            |Branch Preview URL | [${{ steps.cloudflare-publish.outputs.alias }}](${{ steps.cloudflare-publish.outputs.alias }}) |
+            |Environment | ${{ steps.cloudflare-publish.outputs.environment }} |
             ---
