@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Comment deploy start
-        if: github.event_name != 'push'
+        if: ${{ github.event.workflow_run.event != 'push' }}
         uses: mshick/add-pr-comment@v2
         with:
           message-id: cloudflare-deploy
@@ -85,6 +85,7 @@ jobs:
 
       - name: Comment deploy URL
         uses: mshick/add-pr-comment@v2
+        if: ${{ github.event.workflow_run.event != 'push' }}
         with:
           message-id: cloudflare-deploy
           message: |
