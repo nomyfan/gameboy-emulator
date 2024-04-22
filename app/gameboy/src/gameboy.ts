@@ -139,7 +139,7 @@ class GameBoyControl {
 
       this.playCallbackId_ = setTimeout(() => {
         playCallback();
-      }, 16.6 - duration) as unknown as number;
+      }, 16.666666 - duration) as unknown as number;
     };
     playCallback();
   }
