@@ -74,19 +74,23 @@ class GameBoyControl {
         outputChannelCount: [2], // Stereo
       },
     );
-    workletNode.connect(this.audioContext_.destination);
     this.audioWorkletNode_ = workletNode;
+    workletNode.addEventListener("processorerror", (evt) => {
+      console.error("processorerror", evt);
+    });
 
     // Wait until audio worklet processor prepared
     const stream = await new Promise<WritableStream>((resolve) => {
       const handler = (evt: MessageEvent) => {
         if (evt.data.type === "stream-prepared") {
-          workletNode.port.onmessage = null;
+          workletNode.port.removeEventListener("message", handler);
           resolve(evt.data.payload as WritableStream);
         }
       };
-      workletNode.port.onmessage = handler;
+      workletNode.port.addEventListener("message", handler);
+      workletNode.port.start();
     });
+    workletNode.connect(this.audioContext_.destination);
 
     this.instance_ = GameBoyHandle.create(
       rom,
