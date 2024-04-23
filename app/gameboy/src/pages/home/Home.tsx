@@ -12,14 +12,13 @@ import { OperationBar } from "gameboy/components/operation-bar";
 import * as fs from "gameboy/fs";
 import { useFullscreen } from "gameboy/hooks/useFullscreen";
 import { storage } from "gameboy/storage/indexdb";
-import { actions, store } from "gameboy/store";
+import { actions, useAppStore } from "gameboy/store";
 import { ReactNode, useMemo } from "react";
-import { useStore } from "zustand";
 
 import * as styles from "./Home.css";
 
 export function Home() {
-  const selected = useStore(store, (st) => st.selectedGameId !== undefined);
+  const selected = useAppStore((st) => st.selectedGameId !== undefined);
 
   const isFullscreen = useFullscreen();
 
@@ -110,6 +109,15 @@ export function Home() {
             } else if (id === "exit-fullscreen") {
               await document.exitFullscreen();
             } else if (id === "delete") {
+              try {
+                await actions.openConfirmModal({
+                  title: "删除",
+                  content: "确认要删除该游戏及其所有存档吗？",
+                });
+              } catch {
+                // Cancelled
+                return;
+              }
               await actions.deleteSelectedGame();
             } else if (id === "play") {
               actions.openPlayModal();

@@ -1,11 +1,10 @@
 import { Button } from "gameboy/components/button";
 import { FlexBox } from "gameboy/components/flex-box";
 import { Modal } from "gameboy/components/modal";
-import { actions, store } from "gameboy/store";
-import { useStore } from "zustand";
+import { actions, useAppStore } from "gameboy/store";
 
 export function ExitGameModal() {
-  const open = useStore(store, (st) => st.ui.confirmExitModalOpen);
+  const open = useAppStore((st) => st.dialog.exitGameConfirm.open);
 
   return (
     <Modal
@@ -16,7 +15,7 @@ export function ExitGameModal() {
           <Button
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.closeConfirmExitModal("cancel");
+              actions.closeExitConfirmModal("cancel");
             }}
           >
             取消
@@ -25,7 +24,7 @@ export function ExitGameModal() {
             type="primary"
             style={{ marginRight: 10 }}
             onClick={() => {
-              actions.closeConfirmExitModal("no_snapshot");
+              actions.closeExitConfirmModal("no_snapshot");
             }}
           >
             不创建
@@ -33,7 +32,7 @@ export function ExitGameModal() {
           <Button
             type="primary"
             onClick={() => {
-              actions.closeConfirmExitModal("snapshot");
+              actions.closeExitConfirmModal("snapshot");
             }}
           >
             创建

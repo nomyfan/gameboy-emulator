@@ -1,16 +1,31 @@
-import { createStore } from "zustand";
+import { createStore, useStore } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 export interface IStore {
-  ui: {
-    snapshotModalOpen?: boolean;
-    playModalOpen?: boolean;
-    playModalCallback?: (action: "snapshot" | "no_snapshot") => void;
-    confirmExitModalOpen?: boolean;
-    confirmExitModalCallback?: (
-      action: "snapshot" | "no_snapshot" | "cancel",
-    ) => void;
+  dialog: {
+    play: {
+      open?: boolean;
+      callback?: (action: "snapshot" | "no_snapshot") => void;
+      snapshot?: {
+        gameId: string;
+        data: Uint8Array;
+      };
+    };
+    snapshot: {
+      open?: boolean;
+    };
+    exitGameConfirm: {
+      open?: boolean;
+      callback?: (action: "snapshot" | "no_snapshot" | "cancel") => void;
+    };
+    // General confirm modal
+    confirm: {
+      open?: boolean;
+      title?: string;
+      content?: string;
+      callback?: (ok: boolean) => void;
+    };
   };
   games?: Array<{
     id: string;
@@ -20,10 +35,6 @@ export interface IStore {
     lastPlayTime?: number;
   }>;
   selectedGameId?: string;
-  snapshot?: {
-    gameId: string;
-    data: Uint8Array;
-  };
 }
 
 function create() {
@@ -31,7 +42,12 @@ function create() {
     subscribeWithSelector(
       immer<IStore>(() => {
         return {
-          ui: {},
+          dialog: {
+            play: {},
+            snapshot: {},
+            exitGameConfirm: {},
+            confirm: {},
+          },
         };
       }),
     ),
@@ -39,3 +55,7 @@ function create() {
 }
 
 export const store = create();
+
+export function useAppStore<T>(selector: (state: Readonly<IStore>) => T) {
+  return useStore(store, selector);
+}

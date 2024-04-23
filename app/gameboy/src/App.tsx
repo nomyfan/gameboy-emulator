@@ -1,22 +1,21 @@
 import { lazy, Suspense } from "react";
-import { useStore } from "zustand";
+import "./App.css";
 
 import { Home } from "./pages/home";
-import { store } from "./store";
-
-import "./App.css";
+import { useAppStore } from "./store";
 
 const ExitGameModal = lazy(() => import("./pages/exit-game-modal"));
 const PlayModel = lazy(() => import("./pages/play"));
 const SnapshotModal = lazy(() => import("./pages/snapshot-modal"));
+const ConfirmModal = lazy(() => import("./pages/confirm-modal"));
 
 export function App() {
-  const snapshotModalOpen = useStore(store, (st) => st.ui.snapshotModalOpen);
-  const playModalOpen = useStore(store, (st) => st.ui.playModalOpen);
-  const confirmExitModalOpen = useStore(
-    store,
-    (st) => st.ui.confirmExitModalOpen,
+  const snapshotModalOpen = useAppStore((st) => st.dialog.snapshot.open);
+  const playModalOpen = useAppStore((st) => st.dialog.play.open);
+  const exitConfirmModalOpen = useAppStore(
+    (st) => st.dialog.exitGameConfirm.open,
   );
+  const confirmModalOpen = useAppStore((st) => st.dialog.confirm.open);
 
   return (
     <>
@@ -31,9 +30,14 @@ export function App() {
           <PlayModel />
         </Suspense>
       )}
-      {confirmExitModalOpen !== undefined && (
+      {exitConfirmModalOpen !== undefined && (
         <Suspense>
           <ExitGameModal />
+        </Suspense>
+      )}
+      {confirmModalOpen !== undefined && (
+        <Suspense>
+          <ConfirmModal />
         </Suspense>
       )}
     </>

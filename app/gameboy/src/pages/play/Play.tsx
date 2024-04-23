@@ -9,13 +9,12 @@ import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
 import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
-import { store, actions } from "gameboy/store";
+import { store, actions, useAppStore } from "gameboy/store";
 import { IGameBoyButton } from "gameboy/types";
 import * as utils from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
 import { useEffect, useRef } from "react";
-import { useStore } from "zustand";
 
 import * as styles from "./Play.css";
 
@@ -72,7 +71,7 @@ export interface IPagePlayProps {
 export function Play(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const gameId = useStore(store, (st) => {
+  const gameId = useAppStore((st) => {
     return st.games?.find((c) => c.id === st.selectedGameId)?.id;
   });
 
@@ -92,7 +91,7 @@ export function Play(props: IPagePlayProps) {
       if (!canceled) {
         gameboy.uninstall();
         await gameboy.install(rom, canvas, 2, sav);
-        const snapshot = store.getState().snapshot;
+        const snapshot = store.getState().dialog.play.snapshot;
         if (snapshot && snapshot.gameId === gameId) {
           gameboy.restoreSnapshot(snapshot.data);
         }
@@ -156,7 +155,7 @@ export function Play(props: IPagePlayProps) {
         onClick={() => {
           gameboy.pause();
           actions
-            .openConfirmExitModal()
+            .openExitConfirmModal()
             .then(async (action) => {
               const canvas = canvasRef.current;
               if (!gameId || !canvas) {

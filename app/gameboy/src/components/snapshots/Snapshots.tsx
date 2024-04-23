@@ -3,13 +3,12 @@ import { FlexBox } from "gameboy/components/flex-box";
 import { IconDelete } from "gameboy/components/icons";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
-import { store, actions } from "gameboy/store";
+import { actions, useAppStore } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
-import { useStore } from "zustand";
 
 import * as styles from "./Snapshots.css";
 
@@ -80,7 +79,7 @@ function Item(props: {
 }
 
 export function Snapshots() {
-  const gameId = useStore(store, (st) => st.selectedGameId);
+  const gameId = useAppStore((st) => st.selectedGameId);
 
   const { data, isLoading, mutate } = useSWR([gameId], async ([gameId]) => {
     if (!gameId) {
@@ -94,10 +93,6 @@ export function Snapshots() {
 
     return data;
   });
-
-  const handleDeleteSnapshot = useCallback((snapshot: ISnapshot) => {
-    storage.snapshotStore.delete(snapshot.id);
-  }, []);
 
   const renderItems = () => {
     if (!data || isLoading) {
@@ -113,7 +108,16 @@ export function Snapshots() {
           key={snapshot.id}
           snapshot={snapshot}
           onDelete={async (snapshot) => {
-            handleDeleteSnapshot(snapshot);
+            try {
+              await actions.openConfirmModal({
+                title: "删除",
+                content: "确认要删除该存档吗？",
+              });
+            } catch {
+              // Cancelled
+              return;
+            }
+            await storage.snapshotStore.delete(snapshot.id);
             await mutate();
           }}
           onPlay={async (snapshot) => {

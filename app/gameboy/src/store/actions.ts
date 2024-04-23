@@ -12,47 +12,47 @@ export function selectCartridge(id?: string) {
 
 export function toggleSnapshotModal(open?: boolean) {
   store.setState((st) => {
-    st.ui.snapshotModalOpen = open ?? !st.ui.snapshotModalOpen;
+    st.dialog.snapshot.open = open ?? !st.dialog.snapshot.open;
   });
 }
 
-type IPlayModalCallback = NonNullable<IStore["ui"]["playModalCallback"]>;
+type IPlayModalCallback = NonNullable<IStore["dialog"]["play"]["callback"]>;
 type IPlayModalCallbackAction = Parameters<IPlayModalCallback>[0];
-export function openPlayModal(snapshot?: IStore["snapshot"]) {
+export function openPlayModal(snapshot?: IStore["dialog"]["play"]["snapshot"]) {
   return new Promise<IPlayModalCallbackAction>((resolve) => {
     const onClose: IPlayModalCallback = (action) => {
       store.setState((st) => {
-        st.ui.playModalOpen = false;
-        st.ui.playModalCallback = undefined;
-        st.snapshot = undefined;
+        st.dialog.play.open = false;
+        st.dialog.play.callback = undefined;
+        st.dialog.play.snapshot = undefined;
       });
 
       resolve(action);
     };
 
     store.setState((st) => {
-      st.ui.playModalOpen = true;
-      st.ui.playModalCallback = onClose;
-      st.snapshot = snapshot;
+      st.dialog.play.open = true;
+      st.dialog.play.callback = onClose;
+      st.dialog.play.snapshot = snapshot;
     });
   });
 }
 
 export function closePlayModal(action: IPlayModalCallbackAction) {
-  store.getState().ui.playModalCallback?.(action);
+  store.getState().dialog.play.callback?.(action);
 }
 
-type IExitGameModalCallback = IStore["ui"]["confirmExitModalCallback"];
+type IExitGameModalCallback = IStore["dialog"]["exitGameConfirm"]["callback"];
 type IExitGameModalCallbackAction = Parameters<
   NonNullable<IExitGameModalCallback>
 >[0];
-export function openConfirmExitModal() {
+export function openExitConfirmModal() {
   return new Promise<Exclude<IExitGameModalCallbackAction, "cancel">>(
     (resolve, reject) => {
       const onClose: NonNullable<IExitGameModalCallback> = (action) => {
         store.setState((st) => {
-          st.ui.confirmExitModalOpen = false;
-          st.ui.confirmExitModalCallback = undefined;
+          st.dialog.exitGameConfirm.open = false;
+          st.dialog.exitGameConfirm.callback = undefined;
         });
 
         if (action === "cancel") {
@@ -62,15 +62,40 @@ export function openConfirmExitModal() {
         }
       };
       store.setState((st) => {
-        st.ui.confirmExitModalOpen = true;
-        st.ui.confirmExitModalCallback = onClose;
+        st.dialog.exitGameConfirm.open = true;
+        st.dialog.exitGameConfirm.callback = onClose;
       });
     },
   );
 }
 
-export function closeConfirmExitModal(action: IExitGameModalCallbackAction) {
-  store.getState().ui.confirmExitModalCallback?.(action);
+export function closeExitConfirmModal(action: IExitGameModalCallbackAction) {
+  store.getState().dialog.exitGameConfirm.callback?.(action);
+}
+
+export function openConfirmModal(options: { title: string; content: string }) {
+  return new Promise<void>((resolve, reject) => {
+    const onClose = (ok: boolean) => {
+      store.setState((st) => {
+        st.dialog.confirm = { open: false };
+      });
+
+      ok ? resolve() : reject(new ModalCanceledError());
+    };
+
+    store.setState((st) => {
+      st.dialog.confirm = {
+        open: true,
+        callback: onClose,
+        title: options.title,
+        content: options.content,
+      };
+    });
+  });
+}
+
+export function closeConfirmModal(ok: boolean) {
+  store.getState().dialog.confirm.callback?.(ok);
 }
 
 export async function loadGames(beforeSetState?: () => Promise<void>) {

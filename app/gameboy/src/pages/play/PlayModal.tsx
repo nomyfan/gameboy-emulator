@@ -1,14 +1,13 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { store } from "gameboy/store";
-import { useStore } from "zustand";
+import { useAppStore } from "gameboy/store";
 
 import { Play } from "./Play";
 
 export function PlayModal() {
-  const playModalOpen = useStore(store, (st) => st.ui.playModalOpen);
+  const open = useAppStore((st) => st.dialog.play.open);
 
   return (
-    <Dialog.Root open={playModalOpen}>
+    <Dialog.Root open={open}>
       <Dialog.Portal>
         <Dialog.Content>
           <Play

@@ -1,2 +1,2 @@
 export * as actions from "./actions";
-export { store } from "./state";
+export { store, useAppStore } from "./state";

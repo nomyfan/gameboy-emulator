@@ -1,12 +1,11 @@
 import { Dialog, DialogPortal, DialogContent } from "@radix-ui/react-dialog";
 import { Snapshots } from "gameboy/components/snapshots";
-import { actions, store } from "gameboy/store";
-import { useStore } from "zustand";
+import { actions, useAppStore } from "gameboy/store";
 
 import * as styles from "./SnapshotModal.css";
 
 export function SnapshotsModal() {
-  const open = useStore(store, (st) => st.ui.snapshotModalOpen);
+  const open = useAppStore((st) => st.dialog.snapshot.open);
 
   return (
     <Dialog open={open}>

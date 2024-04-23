@@ -1,9 +1,8 @@
 import { FlexBox } from "gameboy/components/flex-box";
-import { store, actions } from "gameboy/store";
+import { actions, useAppStore } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
 import { useEffect } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
-import { useStore } from "zustand";
 
 import * as styles from "./GameList.css";
 import { Item } from "./Item";
@@ -13,8 +12,8 @@ export interface IListProps {
 }
 
 export function GameList(props: IListProps) {
-  const selectedId = useStore(store, (st) => st.selectedGameId);
-  const games = useStore(store, (st) => st.games);
+  const selectedId = useAppStore((st) => st.selectedGameId);
+  const games = useAppStore((st) => st.games);
 
   useEffect(() => {
     const start = Date.now();
