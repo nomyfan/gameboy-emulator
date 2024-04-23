@@ -18,7 +18,14 @@ export function SnapshotsModal() {
             }}
             className={styles.overlay}
           >
-            <div className={styles.drawer}>{open && <Snapshots />}</div>
+            <div
+              className={styles.drawer}
+              onClick={(evt) => {
+                evt.stopPropagation();
+              }}
+            >
+              {open && <Snapshots />}
+            </div>
           </div>
         </DialogContent>
       </DialogPortal>
