@@ -195,10 +195,6 @@ impl Ppu {
         }
     }
 
-    pub fn pull_frame(&self) -> (&VideoFrame, u32) {
-        (&self.video_buffer, self.frame_id)
-    }
-
     pub fn step(&mut self) {
         if !self.lcd.is_lcd_enabled() {
             return;

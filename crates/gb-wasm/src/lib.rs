@@ -1,7 +1,7 @@
 mod utils;
 
-use gb::wasm::{Cartridge, GameBoy, Manifest};
 use gb::GameBoySnapshot;
+use gb::{Cartridge, GameBoy, Manifest};
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use gb_shared::Snapshot;

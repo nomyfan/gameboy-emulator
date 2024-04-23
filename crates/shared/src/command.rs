@@ -4,7 +4,6 @@ use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
-    Exit,
     Joypad(JoypadCommand),
 }
 
