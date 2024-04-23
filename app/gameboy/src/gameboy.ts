@@ -174,6 +174,7 @@ class GameBoyControl {
   changeKeyState(state: number) {
     if (this.state.status === "playing") {
       this.keyState = state;
+      this.instance_!.changeKeyState(state);
     }
   }
 
