@@ -112,9 +112,6 @@ export function Home() {
             } else if (id === "delete") {
               await actions.deleteSelectedGame();
             } else if (id === "play") {
-              if (!isFullscreen) {
-                document.body.requestFullscreen();
-              }
               actions.openPlayModal();
             }
           }}

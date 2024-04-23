@@ -28,9 +28,14 @@ class GameBoyControl {
   private playCallbackId_?: number;
 
   private keyState = 0;
+  private readonly audioContext_: AudioContext;
+  private audioWorkletModuleAdded_ = false;
+  private audioWorkletNode_?: AudioWorkletNode;
+  private nextTickTime_ = 0;
 
   constructor() {
     this.store_ = createGameBoyStore();
+    this.audioContext_ = new AudioContext();
   }
 
   private get state() {
@@ -49,13 +54,53 @@ class GameBoyControl {
     }
   }
 
-  install(
+  async install(
     rom: Uint8ClampedArray,
     canvas: HTMLCanvasElement,
     scale?: number,
     sav?: Uint8Array,
   ) {
-    this.instance_ = GameBoyHandle.create(rom, canvas, scale, sav);
+    if (!this.audioWorkletModuleAdded_) {
+      await this.audioContext_.audioWorklet.addModule(
+        new URL("./audio-worklet/gameboy-audio-processor.js", import.meta.url),
+      );
+      this.audioWorkletModuleAdded_ = true;
+    }
+    const sampleRate = this.audioContext_.sampleRate;
+    const workletNode = new AudioWorkletNode(
+      this.audioContext_,
+      "gameboy-audio-processor",
+      {
+        numberOfOutputs: 1,
+        outputChannelCount: [2], // Stereo
+      },
+    );
+    this.audioWorkletNode_ = workletNode;
+    workletNode.addEventListener("processorerror", (evt) => {
+      console.error("processorerror", evt);
+    });
+
+    // Wait until audio worklet processor prepared
+    const stream = await new Promise<WritableStream>((resolve) => {
+      const handler = (evt: MessageEvent) => {
+        if (evt.data.type === "stream-prepared") {
+          workletNode.port.removeEventListener("message", handler);
+          resolve(evt.data.payload as WritableStream);
+        }
+      };
+      workletNode.port.addEventListener("message", handler);
+      workletNode.port.start();
+    });
+    workletNode.connect(this.audioContext_.destination);
+
+    this.instance_ = GameBoyHandle.create(
+      rom,
+      canvas,
+      scale,
+      sav,
+      sampleRate,
+      stream,
+    );
     this.store_.setState({ status: "installed" });
   }
 
@@ -63,6 +108,12 @@ class GameBoyControl {
     if (this.instance_) {
       this.pause();
     }
+
+    if (this.audioWorkletNode_) {
+      this.audioWorkletNode_.disconnect();
+      this.audioWorkletNode_ = undefined;
+    }
+
     if (this.instance_) {
       this.instance_.free();
       this.instance_ = undefined;
@@ -84,12 +135,14 @@ class GameBoyControl {
       }
 
       const start = performance.now();
+      const delayed = this.nextTickTime_ === 0 ? 0 : start - this.nextTickTime_;
       this.instance_!.continue();
-      const duration = performance.now() - start;
+      const nextTickTime = start + 16.666666 - delayed;
+      this.nextTickTime_ = nextTickTime;
 
       this.playCallbackId_ = setTimeout(() => {
         playCallback();
-      }, 16.6 - duration) as unknown as number;
+      }, nextTickTime - performance.now()) as unknown as number;
     };
     playCallback();
   }
@@ -101,6 +154,7 @@ class GameBoyControl {
     if (this.playCallbackId_) {
       clearTimeout(this.playCallbackId_);
       this.playCallbackId_ = undefined;
+      this.nextTickTime_ = 0;
     }
   }
 

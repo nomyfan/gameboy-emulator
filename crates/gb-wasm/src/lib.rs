@@ -1,8 +1,5 @@
-mod audio;
 mod utils;
 
-use cpal::traits::StreamTrait;
-use cpal::Stream;
 use gb::wasm::{Cartridge, GameBoy, Manifest};
 use gb::GameBoySnapshot;
 use gb_shared::boxed::BoxedArray;
@@ -12,7 +9,7 @@ use js_sys::Uint8ClampedArray;
 use wasm_bindgen::{prelude::*, Clamped};
 use web_sys::{
     js_sys, Blob, CanvasRenderingContext2d, HtmlCanvasElement, ImageData, ImageEncodeOptions,
-    OffscreenCanvas, OffscreenCanvasRenderingContext2d,
+    OffscreenCanvas, OffscreenCanvasRenderingContext2d, WritableStream,
 };
 
 const COLORS: [[u8; 4]; 4] = [
@@ -25,7 +22,6 @@ const COLORS: [[u8; 4]; 4] = [
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
-    _audio_stream: Option<Stream>,
 }
 
 struct ScaleImageData(Vec<u8>, u8);
@@ -71,14 +67,11 @@ impl GameBoyHandle {
         canvas: HtmlCanvasElement,
         scale: Option<u8>,
         sav: Option<Vec<u8>>,
+        sample_rate: Option<u32>,
+        audio_stream: Option<WritableStream>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
-
-        // TODO: cpal doesn't perform well on mobiles.
-        let (stream, samples_buf, sample_rate) = audio::init_audio()
-            .map(|(stream, buf, sample_rate)| (Some(stream), Some(buf), Some(sample_rate)))
-            .unwrap_or_default();
 
         let mut gb = GameBoy::new(Manifest { cart, sample_rate });
         if let Some(sav) = sav {
@@ -115,23 +108,34 @@ impl GameBoyHandle {
                 },
             );
 
-        if let Some(stream) = &stream {
-            stream.play().unwrap();
-        }
+        match audio_stream {
+            Some(stream) => {
+                let stream_writer = stream.get_writer().unwrap();
+                let sample_rate = sample_rate.unwrap();
+                let sample_count = sample_rate.div_ceil(64); // TODO: align to APU
+                let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
 
-        match samples_buf {
-            Some(samples_buf) => gb.set_handles(
-                Some(frame_handle),
-                Some(Box::new(move |sample_data| {
-                    samples_buf.lock().unwrap().extend_from_slice(sample_data);
-                })),
-            ),
+                gb.set_handles(
+                    Some(frame_handle),
+                    Some(Box::new(move |data| {
+                        let len = data.len().min(sample_count as usize);
+                        for (i, (left, right)) in data.iter().take(len).enumerate() {
+                            audio_buffer.set_index(i as u32 * 2, *left);
+                            audio_buffer.set_index(i as u32 * 2 + 1, *right);
+                        }
+
+                        let slice = audio_buffer.slice(0, (len * 2) as u32);
+
+                        let _ = stream_writer.write_with_chunk(&slice.into());
+                    })),
+                )
+            }
             None => {
                 gb.set_handles(Some(frame_handle), None);
             }
         }
 
-        GameBoyHandle { gb, _audio_stream: stream }
+        GameBoyHandle { gb }
     }
 
     #[wasm_bindgen(js_name = continue)]
