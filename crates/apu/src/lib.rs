@@ -48,17 +48,20 @@ pub struct Apu {
     fs: FrameSequencer,
 }
 
-impl Apu {
-    const MIXER_FREQ: u32 = 64;
+const MIXER_FREQ: u32 = 64;
 
+pub fn buffer_size_from_sample_rate(sample_rate: u32) -> u32 {
+    sample_rate.div_ceil(MIXER_FREQ)
+}
+
+impl Apu {
     fn new_mixer_clock() -> Clock {
-        Clock::new(gb_shared::CPU_FREQ / Self::MIXER_FREQ)
+        Clock::new(gb_shared::CPU_FREQ / MIXER_FREQ)
     }
 
     pub fn new(sample_rate: Option<u32>) -> Self {
         let frequency = CPU_FREQ;
-        let buffer_size =
-            sample_rate.map_or(0, |sample_rate| sample_rate.div_ceil(Self::MIXER_FREQ) as usize);
+        let buffer_size = sample_rate.map_or(0, buffer_size_from_sample_rate) as usize;
         let fs = FrameSequencer::new();
         let instance = Self {
             ch1: Channel1::new(frequency, sample_rate),

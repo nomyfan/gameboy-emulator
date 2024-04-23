@@ -7,6 +7,7 @@ mod timer;
 mod wram;
 
 use bus::{Bus, BusSnapshot};
+pub use gb_apu::buffer_size_from_sample_rate;
 use gb_apu::AudioOutHandle;
 pub use gb_cartridge::Cartridge;
 use gb_cpu_sm83::{Cpu, CpuSnapshot};

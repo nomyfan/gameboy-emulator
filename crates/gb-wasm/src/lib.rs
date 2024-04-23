@@ -1,7 +1,7 @@
 mod utils;
 
 use gb::GameBoySnapshot;
-use gb::{Cartridge, GameBoy, Manifest};
+use gb::{buffer_size_from_sample_rate, Cartridge, GameBoy, Manifest};
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use gb_shared::Snapshot;
@@ -86,7 +86,6 @@ impl GameBoyHandle {
             .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
 
-        // TODO: how to dynamically change the scale?
         let mut scale_image = ScaleImageData::new(160, 144, scale);
         let frame_handle =
             Box::new(
@@ -108,11 +107,10 @@ impl GameBoyHandle {
                 },
             );
 
-        match audio_stream {
-            Some(stream) => {
+        match (audio_stream, sample_rate) {
+            (Some(stream), Some(sample_rate)) => {
                 let stream_writer = stream.get_writer().unwrap();
-                let sample_rate = sample_rate.unwrap();
-                let sample_count = sample_rate.div_ceil(64); // TODO: align to APU
+                let sample_count = buffer_size_from_sample_rate(sample_rate);
                 let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
 
                 gb.set_handles(
@@ -130,7 +128,7 @@ impl GameBoyHandle {
                     })),
                 )
             }
-            None => {
+            _ => {
                 gb.set_handles(Some(frame_handle), None);
             }
         }
