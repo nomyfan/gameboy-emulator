@@ -4,7 +4,7 @@
     "prepare": "husky",
     "precommit": "pnpm run --filter gameboy precommit"
   },
-  "packageManager": "pnpm@9.0.4",
+  "packageManager": "pnpm@9.0.6",
   "devDependencies": {
     "husky": "^9.0.11"
   }
