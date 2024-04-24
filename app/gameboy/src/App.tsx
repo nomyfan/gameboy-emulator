@@ -1,13 +1,13 @@
 import { lazy, Suspense } from "react";
 import "./App.css";
 
-import { Home } from "./pages/home";
+import { Home } from "./components/home";
 import { useAppStore } from "./store";
 
-const ExitGameModal = lazy(() => import("./pages/exit-game-modal"));
-const PlayModel = lazy(() => import("./pages/play"));
-const SnapshotModal = lazy(() => import("./pages/snapshot-modal"));
-const ConfirmModal = lazy(() => import("./pages/confirm-modal"));
+const ExitGameModal = lazy(() => import("./components/exit-game-modal"));
+const PlayModel = lazy(() => import("./components/play"));
+const SnapshotModal = lazy(() => import("./components/snapshot-modal"));
+const ConfirmModal = lazy(() => import("./components/confirm-modal"));
 
 export function App() {
   const snapshotModalOpen = useAppStore((st) => st.dialog.snapshot.open);

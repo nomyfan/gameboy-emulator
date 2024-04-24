@@ -1,5 +1,5 @@
 import { Dialog, DialogPortal, DialogContent } from "@radix-ui/react-dialog";
-import { Snapshots } from "gameboy/components/snapshots";
+import { Snapshots } from "gameboy/components/core/snapshots";
 import { actions, useAppStore } from "gameboy/store";
 
 import * as styles from "./SnapshotModal.css";

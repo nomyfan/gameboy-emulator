@@ -1,4 +1,4 @@
-import { Modal } from "gameboy/components/modal";
+import { Modal } from "gameboy/components/core/modal";
 import { useAppStore, actions } from "gameboy/store";
 
 export function ConfirmModal() {

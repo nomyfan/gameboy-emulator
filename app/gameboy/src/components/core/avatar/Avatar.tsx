@@ -1,6 +1,7 @@
 import * as RadixAvatar from "@radix-ui/react-avatar";
-import { FlexBox } from "gameboy/components/flex-box";
 import type { ReactNode } from "react";
+
+import { FlexBox } from "../flex-box";
 
 import * as styles from "./Avatar.css";
 
