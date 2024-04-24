@@ -13,4 +13,47 @@ export default defineConfig({
     },
   },
   plugins: [tsconfigPaths(), vanillaExtractPlugin(), svgr(), react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          const matchers = [
+            {
+              reg: /\/(react-dom)|(react)\//,
+              name: "react",
+            },
+            {
+              reg: /\/react-spinners\//,
+              name: "spinners",
+            },
+            {
+              reg: /\/(zustand)|(immer)\//,
+              name: "store",
+            },
+            {
+              reg: /\/(dexie)\//,
+              name: "storage",
+            },
+            {
+              reg: /\/@radix-ui\//,
+              name: "ui",
+            },
+            {
+              reg: /\/rxjs\//,
+              name: "rx",
+            },
+            {
+              reg: /\/swr\//,
+              name: "swr",
+            },
+          ];
+          for (const matcher of matchers) {
+            if (matcher.reg.test(id)) {
+              return matcher.name;
+            }
+          }
+        },
+      },
+    },
+  },
 });

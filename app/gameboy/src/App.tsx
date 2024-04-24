@@ -1,9 +1,9 @@
 import { lazy, Suspense } from "react";
 import "./App.css";
 
-import { Home } from "./components/home";
 import { useAppStore } from "./store";
 
+const Home = lazy(() => import("./components/home"));
 const ExitGameModal = lazy(() => import("./components/exit-game-modal"));
 const PlayModel = lazy(() => import("./components/play"));
 const SnapshotModal = lazy(() => import("./components/snapshot-modal"));
@@ -19,7 +19,9 @@ export function App() {
 
   return (
     <>
-      <Home />
+      <Suspense>
+        <Home />
+      </Suspense>
       {snapshotModalOpen !== undefined && (
         <Suspense>
           <SnapshotModal />
