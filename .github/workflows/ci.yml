@@ -18,7 +18,7 @@ jobs:
       pull-requests: write
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-      WITH_DEPLOY: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') }}
+      WITH_DEPLOY: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') }} && ${{ !startsWith(env.BRANCH_NAME, 'chore/') }}
 
     steps:
       - name: Comment deploy start
