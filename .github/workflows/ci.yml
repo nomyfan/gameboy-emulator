@@ -18,10 +18,11 @@ jobs:
       pull-requests: write
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      WITH_DEPLOY: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') }}
 
     steps:
       - name: Comment deploy start
-        if: github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false
+        if: ${{ env.WITH_DEPLOY }} && github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false
         uses: mshick/add-pr-comment@v2
         with:
           message-id: cloudflare-deploy
@@ -93,6 +94,7 @@ jobs:
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
+        if: ${{ env.WITH_DEPLOY }}
         id: cloudflare-publish
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -105,7 +107,7 @@ jobs:
 
       - name: Comment deploy URL
         uses: mshick/add-pr-comment@v2
-        if: github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false
+        if: ${{ env.WITH_DEPLOY }} && github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false
         with:
           message-id: cloudflare-deploy
           message: |
