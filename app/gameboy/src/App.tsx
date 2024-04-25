@@ -11,6 +11,12 @@ const PlayModel = lazy(() => import("./components/play"));
 const SnapshotModal = lazy(() => import("./components/snapshot-modal"));
 const ConfirmModal = lazy(() => import("./components/confirm-modal"));
 
+const handleBeforeUnload = (evt: BeforeUnloadEvent) => {
+  evt.preventDefault();
+};
+
+window.addEventListener("beforeunload", handleBeforeUnload);
+
 export function App() {
   const snapshotModalOpen = useAppStore((st) => st.dialog.snapshot.open);
   const playModalOpen = useAppStore((st) => st.dialog.play.open);
@@ -33,6 +39,7 @@ export function App() {
           // Cancelled
           return;
         }
+        window.removeEventListener("beforeunload", handleBeforeUnload);
         await updateServiceWorker(true);
       })();
     },
