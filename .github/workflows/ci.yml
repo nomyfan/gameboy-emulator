@@ -3,8 +3,24 @@ name: ci
 on:
   push:
     branches: ["main"]
+    paths:
+      - ".github/workflows/**"
+      - "app/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "pnpm-lock.yaml"
+      - "package.json"
   pull_request:
     branches: ["main"]
+    paths:
+      - ".github/workflows/**"
+      - "app/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "pnpm-lock.yaml"
+      - "package.json"
 
 env:
   CARGO_TERM_COLOR: always
