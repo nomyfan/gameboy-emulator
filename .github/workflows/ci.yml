@@ -53,8 +53,23 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Enable corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v3
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
@@ -70,12 +85,11 @@ jobs:
         run: wasm-pack build --release --out-dir npm --target web
 
       - name: Install dependencies for web app
-        working-directory: ./app/gameboy
-        run: corepack pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build web app
         working-directory: ./app/gameboy
-        run: corepack pnpm run build
+        run: pnpm run build
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
