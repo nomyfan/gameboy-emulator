@@ -1,6 +1,6 @@
-import { Button } from "gameboy/components/button";
-import { FlexBox } from "gameboy/components/flex-box";
-import { Modal } from "gameboy/components/modal";
+import { Button } from "gameboy/components/core/button";
+import { FlexBox } from "gameboy/components/core/flex-box";
+import { Modal } from "gameboy/components/core/modal";
 import { actions, useAppStore } from "gameboy/store";
 
 export function ExitGameModal() {

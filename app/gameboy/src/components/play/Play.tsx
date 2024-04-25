@@ -1,9 +1,9 @@
-import { AbButton } from "gameboy/components/AbButton";
-import { DirectionButton } from "gameboy/components/DirectionButton";
-import { FlexBox } from "gameboy/components/flex-box";
-import { FnButton } from "gameboy/components/FnButton";
+import { AbButton } from "gameboy/components/core/AbButton";
+import { DirectionButton } from "gameboy/components/core/DirectionButton";
+import { FlexBox } from "gameboy/components/core/flex-box";
+import { FnButton } from "gameboy/components/core/FnButton";
+import { Screen } from "gameboy/components/core/Screen";
 import { IconFullscreenExit } from "gameboy/components/icons";
-import { Screen } from "gameboy/components/Screen";
 import { GameBoyControl, JoypadKey } from "gameboy/gameboy";
 import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";

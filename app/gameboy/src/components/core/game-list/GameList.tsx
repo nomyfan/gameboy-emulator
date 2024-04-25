@@ -1,8 +1,9 @@
-import { FlexBox } from "gameboy/components/flex-box";
 import { actions, useAppStore } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
 import { useEffect } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
+
+import { FlexBox } from "../flex-box";
 
 import * as styles from "./GameList.css";
 import { Item } from "./Item";

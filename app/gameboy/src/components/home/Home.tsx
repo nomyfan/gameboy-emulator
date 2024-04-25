@@ -1,5 +1,6 @@
-import { Avatar } from "gameboy/components/avatar";
-import { GameList } from "gameboy/components/game-list";
+import { Avatar } from "gameboy/components/core/avatar";
+import { GameList } from "gameboy/components/core/game-list";
+import { OperationBar } from "gameboy/components/core/operation-bar";
 import {
   IconAdd,
   IconDelete,
@@ -8,7 +9,6 @@ import {
   IconFullscreen,
   IconFullscreenExit,
 } from "gameboy/components/icons";
-import { OperationBar } from "gameboy/components/operation-bar";
 import * as fs from "gameboy/fs";
 import { useFullscreen } from "gameboy/hooks/useFullscreen";
 import { storage } from "gameboy/storage/indexdb";

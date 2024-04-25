@@ -1,13 +1,15 @@
-import { lazy, Suspense } from "react";
 import "./App.css";
 
-import { Home } from "./pages/home";
-import { useAppStore } from "./store";
+import { lazy, Suspense } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
 
-const ExitGameModal = lazy(() => import("./pages/exit-game-modal"));
-const PlayModel = lazy(() => import("./pages/play"));
-const SnapshotModal = lazy(() => import("./pages/snapshot-modal"));
-const ConfirmModal = lazy(() => import("./pages/confirm-modal"));
+import { useAppStore, actions } from "./store";
+
+const Home = lazy(() => import("./components/home"));
+const ExitGameModal = lazy(() => import("./components/exit-game-modal"));
+const PlayModel = lazy(() => import("./components/play"));
+const SnapshotModal = lazy(() => import("./components/snapshot-modal"));
+const ConfirmModal = lazy(() => import("./components/confirm-modal"));
 
 export function App() {
   const snapshotModalOpen = useAppStore((st) => st.dialog.snapshot.open);
@@ -17,9 +19,30 @@ export function App() {
   );
   const confirmModalOpen = useAppStore((st) => st.dialog.confirm.open);
 
+  const { updateServiceWorker } = useRegisterSW({
+    onNeedRefresh() {
+      (async () => {
+        try {
+          await actions.openConfirmModal({
+            title: "有新版本可用！",
+            content: "更新将导致当前操作进度丢失，是否立即更新？",
+            okText: "立即更新",
+            cancelText: "稍后更新",
+          });
+        } catch {
+          // Cancelled
+          return;
+        }
+        await updateServiceWorker(true);
+      })();
+    },
+  });
+
   return (
     <>
-      <Home />
+      <Suspense>
+        <Home />
+      </Suspense>
       {snapshotModalOpen !== undefined && (
         <Suspense>
           <SnapshotModal />

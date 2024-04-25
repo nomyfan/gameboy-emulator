@@ -1,7 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Button } from "gameboy/components/button";
-import { FlexBox } from "gameboy/components/flex-box";
 import type { ReactNode } from "react";
+
+import { Button } from "../button";
+import { FlexBox } from "../flex-box";
 
 import * as styles from "./Modal.css";
 
@@ -13,7 +14,9 @@ export function Modal(props: {
   children?: ReactNode;
   footer?: ReactNode;
   onOk?: () => void;
+  okText?: string;
   onCancel?: () => void;
+  cancelText?: string;
 }) {
   const renderFooter = () => {
     if (props.footer) {
@@ -23,10 +26,10 @@ export function Modal(props: {
     return (
       <FlexBox justify="end">
         <Button style={{ marginRight: 10 }} onClick={() => props.onCancel?.()}>
-          取消
+          {props.cancelText || "取消"}
         </Button>
         <Button type="primary" onClick={() => props.onOk?.()}>
-          确定
+          {props.okText || "确定"}
         </Button>
       </FlexBox>
     );
