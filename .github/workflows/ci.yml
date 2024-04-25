@@ -3,8 +3,24 @@ name: ci
 on:
   push:
     branches: ["main"]
+    paths:
+      - ".github/workflows/**"
+      - "app/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "pnpm-lock.yaml"
+      - "package.json"
   pull_request:
     branches: ["main"]
+    paths:
+      - ".github/workflows/**"
+      - "app/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "pnpm-lock.yaml"
+      - "package.json"
 
 env:
   CARGO_TERM_COLOR: always
@@ -21,7 +37,7 @@ jobs:
 
     steps:
       - name: Comment deploy start
-        if: github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false
+        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false }}
         uses: mshick/add-pr-comment@v2
         with:
           message-id: cloudflare-deploy
@@ -53,8 +69,23 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Enable corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v3
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
@@ -70,15 +101,15 @@ jobs:
         run: wasm-pack build --release --out-dir npm --target web
 
       - name: Install dependencies for web app
-        working-directory: ./app/gameboy
-        run: corepack pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build web app
         working-directory: ./app/gameboy
-        run: corepack pnpm run build
+        run: pnpm run build
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
+        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') }}
         id: cloudflare-publish
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -91,7 +122,7 @@ jobs:
 
       - name: Comment deploy URL
         uses: mshick/add-pr-comment@v2
-        if: github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false
+        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false }}
         with:
           message-id: cloudflare-deploy
           message: |
