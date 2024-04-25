@@ -73,7 +73,12 @@ export function closeExitConfirmModal(action: IExitGameModalCallbackAction) {
   store.getState().dialog.exitGameConfirm.callback?.(action);
 }
 
-export function openConfirmModal(options: { title: string; content: string }) {
+export function openConfirmModal(options: {
+  title: string;
+  content: string;
+  okText?: string;
+  cancelText?: string;
+}) {
   return new Promise<void>((resolve, reject) => {
     const onClose = (ok: boolean) => {
       store.setState((st) => {
@@ -89,6 +94,8 @@ export function openConfirmModal(options: { title: string; content: string }) {
         callback: onClose,
         title: options.title,
         content: options.content,
+        okText: options.okText,
+        cancelText: options.cancelText,
       };
     });
   });

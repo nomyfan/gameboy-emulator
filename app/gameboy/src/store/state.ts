@@ -24,6 +24,8 @@ export interface IStore {
       open?: boolean;
       title?: string;
       content?: string;
+      okText?: string;
+      cancelText?: string;
       callback?: (ok: boolean) => void;
     };
   };

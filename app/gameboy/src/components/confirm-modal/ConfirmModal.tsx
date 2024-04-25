@@ -2,7 +2,9 @@ import { Modal } from "gameboy/components/core/modal";
 import { useAppStore, actions } from "gameboy/store";
 
 export function ConfirmModal() {
-  const { open, title, content } = useAppStore((st) => st.dialog.confirm);
+  const { open, title, content, okText, cancelText } = useAppStore(
+    (st) => st.dialog.confirm,
+  );
 
   const handleCancel = () => actions.closeConfirmModal(false);
   const handleOk = () => actions.closeConfirmModal(true);
@@ -14,6 +16,8 @@ export function ConfirmModal() {
       onClose={handleCancel}
       onCancel={handleCancel}
       onOk={handleOk}
+      okText={okText}
+      cancelText={cancelText}
     >
       {content}
     </Modal>

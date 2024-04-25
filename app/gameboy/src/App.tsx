@@ -1,7 +1,9 @@
-import { lazy, Suspense } from "react";
 import "./App.css";
 
-import { useAppStore } from "./store";
+import { lazy, Suspense } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
+
+import { useAppStore, actions } from "./store";
 
 const Home = lazy(() => import("./components/home"));
 const ExitGameModal = lazy(() => import("./components/exit-game-modal"));
@@ -16,6 +18,25 @@ export function App() {
     (st) => st.dialog.exitGameConfirm.open,
   );
   const confirmModalOpen = useAppStore((st) => st.dialog.confirm.open);
+
+  const { updateServiceWorker } = useRegisterSW({
+    onNeedRefresh() {
+      (async () => {
+        try {
+          await actions.openConfirmModal({
+            title: "有新版本可用！",
+            content: "更新将导致当前操作进度丢失，是否立即更新？",
+            okText: "立即更新",
+            cancelText: "稍后更新",
+          });
+        } catch {
+          // Cancelled
+          return;
+        }
+        await updateServiceWorker(true);
+      })();
+    },
+  });
 
   return (
     <>
