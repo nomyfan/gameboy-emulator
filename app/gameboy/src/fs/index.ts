@@ -1,17 +1,22 @@
 /**
  * @param options
  */
-export async function pickFile(options?: { accept?: string }) {
+export async function pickFile(options?: {
+  accept?: string;
+  multiple?: boolean;
+}) {
   const input = document.createElement("input");
   input.accept = options?.accept ?? "*/*";
   input.type = "file";
+  if (options?.multiple) {
+    input.setAttribute("multiple", "");
+  }
   input.style.display = "none";
   document.body.appendChild(input);
 
-  return new Promise<File | null>((resolve, reject) => {
+  return new Promise<FileList | null>((resolve, reject) => {
     input.addEventListener("change", () => {
-      const file = input.files?.[0] ?? null;
-      resolve(file);
+      resolve(input.files);
     });
 
     /**

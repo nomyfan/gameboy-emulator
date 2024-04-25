@@ -99,9 +99,17 @@ export function Home() {
             if (id === "snapshots") {
               actions.toggleSnapshotModal(true);
             } else if (id === "add") {
-              const file = await fs.pickFile({ accept: ".gb" });
-              if (file) {
-                await storage.installGame(file);
+              let files: FileList | null = null;
+              try {
+                files = await fs.pickFile({ accept: ".gb", multiple: true });
+              } catch {
+                // Cancelled
+                return;
+              }
+              if (files) {
+                for (const file of files) {
+                  await storage.installGame(file);
+                }
                 await actions.loadGames();
               }
             } else if (id === "fullscreen") {
