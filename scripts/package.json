@@ -1,0 +1,12 @@
+{
+  "name": "scripts",
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.0.6",
+  "scripts": {
+    "genicons": "node genicons.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.33.3",
+    "sharp-ico": "^0.1.5"
+  }
+}

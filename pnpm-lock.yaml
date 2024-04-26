@@ -59,13 +59,6 @@ importers:
       zustand:
         specifier: ^4.5.2
         version: 4.5.2(@types/react@18.2.79)(immer@10.0.4)(react@18.2.0)
-    optionalDependencies:
-      sharp:
-        specifier: ^0.33.3
-        version: 0.33.3
-      sharp-ico:
-        specifier: ^0.1.5
-        version: 0.1.5
     devDependencies:
       '@types/node':
         specifier: ^20.11.30

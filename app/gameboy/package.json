@@ -50,9 +50,5 @@
     "src/**/*.{ts,tsx}": [
       "eslint --fix"
     ]
-  },
-  "optionalDependencies": {
-    "sharp": "^0.33.3",
-    "sharp-ico": "^0.1.5"
   }
 }
