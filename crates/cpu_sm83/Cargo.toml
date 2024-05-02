@@ -13,4 +13,4 @@ serde = { workspace = true }
 [dev-dependencies]
 mockall = { workspace = true }
 strum = "0.26"
-strum_macros = "0.26"
+strum_macros = "0.26.2"
