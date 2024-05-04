@@ -97,8 +97,18 @@ impl Memory for BusInner {
                     0xFF40..=0xFF4B => {
                         self.ppu.write(addr, value);
                     }
+                    0xFF4D => {
+                        log::error!("Switch speed is not supported yet, {}", value);
+                    }
+                    // VRAM bank(VBK)
+                    0xFF4F => self.ppu.write(addr, value),
+                    0xFF51..=0xFF55 => todo!("VRAM DMA"),
+                    // BCPS, BCPD, OCPS, OCPD
+                    0xFF68..=0xFF6B => self.ppu.write(addr, value),
+                    // WRAM bank(SVBK)
+                    0xFF70 => self.wram.write(addr, value),
                     _ => {
-                        log::error!("Unsupported");
+                        log::error!("Unsupported bus write {:#X} {:#X}", addr, value);
                     }
                 }
             }
@@ -158,14 +168,23 @@ impl Memory for BusInner {
                     }
                     0xFF10..=0xFF3F => self.apu.read(addr),
                     0xFF46 => self.dma.read(addr),
+                    // Exclude 0xFF46(DMA)
                     0xFF40..=0xFF4B => self.ppu.read(addr),
+                    // TODO: Switch speed.
+                    0xFF4D => 0x00,
+                    // VRAM bank(VBK)
+                    0xFF4F => self.ppu.read(addr),
+                    0xFF51..=0xFF55 => todo!("VRAM DMA"),
+                    // BCPS, BCPD, OCPS, OCPD
+                    0xFF68..=0xFF6B => self.ppu.read(addr),
+                    // WRAM bank(SVBK)
+                    0xFF70 => self.wram.read(addr),
                     _ => {
-                        log::error!("Unsupported");
+                        log::error!("Unsupported bus read {:#X}", addr);
                         0
                     }
                 }
             }
-            // Exclude 0xFF46(DMA)
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
