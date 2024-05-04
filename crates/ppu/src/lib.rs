@@ -81,7 +81,6 @@ pub struct Ppu {
     work_state: PpuWorkState,
     /// Storing palettes.
     video_buffer: VideoFrame,
-    frame_id: u32,
 
     irq: Interrupt,
     frame_out_handle: Option<Box<FrameOutHandle>>,
@@ -190,7 +189,6 @@ impl Ppu {
             self.video_buffer.iter_mut().for_each(|pixel| {
                 *pixel = 0;
             });
-            self.frame_id = 0;
             self.push_frame();
         }
     }
@@ -403,7 +401,6 @@ impl Ppu {
                 // https://gbdev.io/pandocs/Rendering.html#obj-penalty-algorithm:~:text=one%20frame%20takes%20~-,16.74,-ms%20instead%20of
                 // (456 * 154) * (1/(2**22)) * 1000 = 16.74ms
                 // Notify that a frame is rendered.
-                self.frame_id = self.frame_id.wrapping_add(1);
                 self.push_frame();
             }
         }
