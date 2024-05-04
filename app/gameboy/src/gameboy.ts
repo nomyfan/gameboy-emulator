@@ -59,6 +59,7 @@ class GameBoyControl {
     canvas: HTMLCanvasElement,
     scale?: number,
     sav?: Uint8Array,
+    dbgCanvas?: HTMLCanvasElement,
   ) {
     if (!this.audioWorkletModuleAdded_) {
       await this.audioContext_.audioWorklet.addModule(
@@ -100,6 +101,7 @@ class GameBoyControl {
       sav,
       sampleRate,
       stream,
+      dbgCanvas,
     );
     this.store_.setState({ status: "installed" });
   }

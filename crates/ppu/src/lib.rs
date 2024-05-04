@@ -1,21 +1,22 @@
 mod config;
 mod lcd;
 mod object;
+mod palette;
 mod tile;
 
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
 use gb_shared::boxed::BoxedArray;
-use gb_shared::{is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, Memory, Snapshot};
+use gb_shared::{
+    is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, MachineModel, Memory, Snapshot,
+};
 use object::ObjectSnapshot;
+use palette::Monochrome;
 
-pub type VideoFrame = BoxedArray<u8, 23040>; // 160 * 144
+pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
 
-#[cfg(debug_assertions)]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame, Option<(&BoxedArray<u8, 0x2000>, bool)>);
-#[cfg(not(debug_assertions))]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame);
+pub type FrameOutHandle = dyn FnMut(&VideoFrame, &[u8]); // 256 * 256 * 2 * 3, 393216
 
 #[derive(Debug, Default)]
 pub(crate) struct PpuWorkState {
@@ -40,7 +41,9 @@ pub(crate) struct PpuWorkState {
     window_used: bool,
 }
 
-#[derive(Default)]
+trait GraphicPalette: Memory + Snapshot + crate::palette::Palette {}
+impl<T: Memory + Snapshot + crate::palette::Palette> GraphicPalette for T {}
+
 pub struct Ppu {
     /// Tile data area(in size of 0x1800).
     /// There are total 384 tiles, each tile has 16 bytes.
@@ -71,24 +74,52 @@ pub struct Ppu {
     /// - Byte 3: attributes.
     oam: BoxedArray<u8, 160>,
     lcd: LCD,
-    /// BG palette, at 0xFF47.
-    bgp: u8,
-    /// OBJ palette 0, at 0xFF48.
-    obp0: u8,
-    /// OBJ palette 1, at 0xFF49.
-    obp1: u8,
+    palette: Box<dyn GraphicPalette<Snapshot = Vec<u8>>>,
     /// PPU work state.
     work_state: PpuWorkState,
     /// Storing palettes.
     video_buffer: VideoFrame,
+    dbg_video_buffer: Vec<u8>,
 
     irq: Interrupt,
+    machine_model: MachineModel,
     frame_out_handle: Option<Box<FrameOutHandle>>,
 }
 
+impl Default for Ppu {
+    fn default() -> Self {
+        let mut video_buffer: VideoFrame = Default::default();
+        video_buffer.fill(0xFF);
+
+        Self {
+            vram: Default::default(),
+            oam: Default::default(),
+            lcd: Default::default(),
+            work_state: Default::default(),
+            video_buffer,
+            irq: Default::default(),
+            machine_model: MachineModel::DMG,
+            frame_out_handle: None,
+            palette: Box::new(Monochrome::new(0)),
+            dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
+        }
+    }
+}
+
 impl Ppu {
-    pub fn new() -> Self {
-        Self { bgp: 0xFC, ..Default::default() }
+    pub fn new(machine_model: MachineModel, compatibility_palette_id: u16) -> Self {
+        Self {
+            palette: match machine_model {
+                MachineModel::DMG => Box::new(Monochrome::new(compatibility_palette_id)),
+                MachineModel::CGB => todo!(),
+            },
+            dbg_video_buffer: match machine_model {
+                MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
+                MachineModel::CGB => vec![0xFF; (256 * 256 * 3 * 2) + (16 * 12)],
+            },
+            machine_model,
+            ..Self::default()
+        }
     }
 
     pub fn set_frame_out_handle(&mut self, handle: Option<Box<FrameOutHandle>>) {
@@ -163,18 +194,49 @@ impl Ppu {
     }
 
     fn push_frame(&mut self) {
+        if self.frame_out_handle.is_some() {
+            for (i, vram_addr_base) in [0x1800, 0x1C00].iter().enumerate() {
+                for y in 0..256usize {
+                    for x in 0..256usize {
+                        let nth = y / 8 * 32 + (x / 8);
+                        let vram_offset = vram_addr_base + nth;
+                        let tile_index = self.vram[vram_offset];
+                        let tile_data = self.read_tile_data(tile_index, false);
+                        let color_id = tile::get_color_id(
+                            tile_data,
+                            (x as u8) % 8,
+                            (y as u8) % 8,
+                            false,
+                            false,
+                        );
+                        let color = self.palette.background_color(0, color_id);
+                        let base_addr = (y * 256 + x) * 3 + (i * 256 * 256 * 3);
+                        self.dbg_video_buffer[base_addr] = (color >> 16) as u8;
+                        self.dbg_video_buffer[base_addr + 1] = (color >> 8) as u8;
+                        self.dbg_video_buffer[base_addr + 2] = color as u8;
+                    }
+                }
+            }
+            // Palette colors
+            for (i, color) in self.palette.colors().iter().enumerate() {
+                const START_ADDR: usize = 256 * 256 * 3 * 2;
+                let base_addr = START_ADDR + i * 12;
+                self.dbg_video_buffer[base_addr] = (color[0] >> 16) as u8;
+                self.dbg_video_buffer[base_addr + 1] = (color[0] >> 8) as u8;
+                self.dbg_video_buffer[base_addr + 2] = color[0] as u8;
+                self.dbg_video_buffer[base_addr + 3] = (color[1] >> 16) as u8;
+                self.dbg_video_buffer[base_addr + 4] = (color[1] >> 8) as u8;
+                self.dbg_video_buffer[base_addr + 5] = color[1] as u8;
+                self.dbg_video_buffer[base_addr + 6] = (color[2] >> 16) as u8;
+                self.dbg_video_buffer[base_addr + 7] = (color[2] >> 8) as u8;
+                self.dbg_video_buffer[base_addr + 8] = color[2] as u8;
+                self.dbg_video_buffer[base_addr + 9] = (color[3] >> 16) as u8;
+                self.dbg_video_buffer[base_addr + 10] = (color[3] >> 8) as u8;
+                self.dbg_video_buffer[base_addr + 11] = color[3] as u8;
+            }
+        }
         if let Some(handle) = self.frame_out_handle.as_mut() {
-            #[cfg(debug_assertions)]
-            let vram_data = match std::env::var("GB_DBG_WIN") {
-                Ok(_) => Some((&self.vram, is_bit_set!(self.lcd.lcdc, 4))),
-                Err(_) => None,
-            };
-
-            handle(
-                &self.video_buffer,
-                #[cfg(debug_assertions)]
-                vram_data,
-            );
+            handle(&self.video_buffer, &self.dbg_video_buffer);
         }
     }
 
@@ -186,9 +248,7 @@ impl Ppu {
             self.work_state = Default::default();
             self.lcd.ly = 0;
             self.set_lcd_mode(LCDMode::HBlank);
-            self.video_buffer.iter_mut().for_each(|pixel| {
-                *pixel = 0;
-            });
+            self.video_buffer.fill(0xFF);
             self.push_frame();
         }
     }
@@ -260,8 +320,8 @@ impl Ppu {
             return;
         }
 
-        let mut color_id = 0;
-        let mut color_palette = self.bgp & 0b11;
+        let mut bgw_color_id = 0;
+        let mut color = self.palette.background_color(0, 0);
 
         if self.lcd.is_bgw_enabled() {
             let (mut index, mut ty, mut tx) = {
@@ -291,8 +351,8 @@ impl Ppu {
             }
 
             let tile_data = self.read_tile_data(index, false);
-            color_id = tile::get_color_id(tile_data, tx, ty, false, false);
-            color_palette = (self.bgp >> (color_id * 2)) & 0b11;
+            bgw_color_id = tile::get_color_id(tile_data, tx, ty, false, false);
+            color = self.palette.background_color(0, bgw_color_id);
         }
 
         if self.lcd.is_object_enabled() {
@@ -338,11 +398,9 @@ impl Ppu {
                     // 2. If LCDC.0 is 0, then render the object.
                     // 3. If OAM attributes.7 is 0, then render the object.
                     // 4. Otherwise, render the BGW.
-                    if color_id == 0 || !object.attrs.bgw_over_object() {
-                        let obp =
-                            if object.attrs.dmg_palette() == 0 { self.obp0 } else { self.obp1 };
-                        let offset = object_color_id * 2;
-                        color_palette = (obp >> offset) & 0b11;
+                    if bgw_color_id == 0 || !object.attrs.bgw_over_object() {
+                        color =
+                            self.palette.object_color(object.attrs.dmg_palette(), object_color_id);
                     }
 
                     break;
@@ -352,7 +410,11 @@ impl Ppu {
 
         let viewport_x = self.work_state.scanline_x as usize;
         let viewport_y = self.lcd.ly as usize;
-        self.video_buffer[viewport_y * RESOLUTION_X + viewport_x] = color_palette;
+
+        let buf_addr = (viewport_y * RESOLUTION_X + viewport_x) * 3;
+        self.video_buffer[buf_addr] = (color >> 16) as u8;
+        self.video_buffer[buf_addr + 1] = (color >> 8) as u8;
+        self.video_buffer[buf_addr + 2] = color as u8;
         self.work_state.scanline_x += 1;
 
         // Pixels in current scanline are all rendered.
@@ -452,9 +514,7 @@ impl Memory for Ppu {
                 // readonly
             }
             0xFF45 => self.lcd.lyc = value,
-            0xFF47 => self.bgp = value,
-            0xFF48 => self.obp0 = value,
-            0xFF49 => self.obp1 = value,
+            0xFF47..=0xFF49 => self.palette.write(addr, value),
             0xFF4A => self.lcd.wy = value,
             0xFF4B => self.lcd.wx = value,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
@@ -471,9 +531,7 @@ impl Memory for Ppu {
             0xFF43 => self.lcd.scx,
             0xFF44 => self.lcd.ly,
             0xFF45 => self.lcd.lyc,
-            0xFF47 => self.bgp,
-            0xFF48 => self.obp0,
-            0xFF49 => self.obp1,
+            0xFF47..=0xFF49 => self.palette.read(addr),
             0xFF4A => self.lcd.wy,
             0xFF4B => self.lcd.wx,
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
@@ -486,9 +544,7 @@ pub struct PpuSnapshot {
     vram: Vec<u8>, // 0x2000
     oam: Vec<u8>,  // 0xA0
     lcd: LCD,
-    bgp: u8,
-    obp0: u8,
-    obp1: u8,
+    palette: Vec<u8>,
     //#region Work state
     scanline_x: u8,
     scanline_dots: u16,
@@ -508,9 +564,7 @@ impl Snapshot for Ppu {
             vram: self.vram.to_vec(),
             oam: self.oam.to_vec(),
             lcd: self.lcd,
-            bgp: self.bgp,
-            obp0: self.obp0,
-            obp1: self.obp1,
+            palette: self.palette.take_snapshot(),
             scanline_x: self.work_state.scanline_x,
             scanline_dots: self.work_state.scanline_dots,
             scanline_objects: self
@@ -530,9 +584,7 @@ impl Snapshot for Ppu {
         self.vram = BoxedArray::try_from_vec(snapshot.vram).unwrap();
         self.oam = BoxedArray::try_from_vec(snapshot.oam).unwrap();
         self.lcd = snapshot.lcd;
-        self.bgp = snapshot.bgp;
-        self.obp0 = snapshot.obp0;
-        self.obp1 = snapshot.obp1;
+        self.palette.restore_snapshot(snapshot.palette);
         self.work_state.scanline_x = snapshot.scanline_x;
         self.work_state.scanline_dots = snapshot.scanline_dots;
         self.work_state.scanline_objects = snapshot
@@ -557,7 +609,7 @@ mod tests {
 
     #[test]
     fn read_only_stat_bits() {
-        let mut ppu = Ppu::new();
+        let mut ppu = Ppu::default();
         ppu.lcd.stat = 0b0000_0101;
 
         ppu.write(0xFF41, 0b1000_0010);
@@ -566,7 +618,7 @@ mod tests {
 
     #[test]
     fn read_only_ly() {
-        let mut ppu = Ppu::new();
+        let mut ppu = Ppu::default();
         ppu.lcd.ly = 0x12;
 
         ppu.write(0xFF44, 0x34);

@@ -198,6 +198,8 @@ impl DerefMut for Bus {
 
 impl Bus {
     pub(crate) fn new(cart: Cartridge, sample_rate: Option<u32>) -> Self {
+        let machine_model = cart.machine_model();
+        let compatibility_palette_id = cart.compatibility_palette_id().unwrap_or_default();
         Self {
             ptr: Box::into_raw(Box::new(BusInner {
                 cart,
@@ -209,7 +211,7 @@ impl Bus {
                 serial: Serial::new(),
                 joypad: Joypad::new(),
                 timer: Timer::new(),
-                ppu: Ppu::new(),
+                ppu: Ppu::new(machine_model, compatibility_palette_id),
                 apu: Apu::new(sample_rate),
                 clocks: 0,
                 ref_count: 1,
