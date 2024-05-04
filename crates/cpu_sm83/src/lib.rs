@@ -9,7 +9,7 @@ use interrupt::INTERRUPTS;
 
 impl<BUS> Cpu16 for Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     fn adv_clocks(&mut self, clocks: u8) {
         self.clocks = self.clocks.wrapping_add(clocks);
@@ -139,7 +139,7 @@ where
 
 pub struct Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     /// Accumulator register
     pub reg_a: u8,
@@ -197,7 +197,7 @@ where
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Cpu")
@@ -229,7 +229,7 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
 
 impl<BUS> Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     pub fn new(bus: BUS) -> Self {
         Self {
@@ -1251,7 +1251,7 @@ mock! {
         }
     }
 
-    impl gb_shared::Component for Bus {
+    impl gb_shared::Bus for Bus {
         fn step(&mut self, cycles: u8) {
             // Noop
         }
@@ -1543,7 +1543,7 @@ pub struct CpuSnapshot {
 
 impl<BUS> Snapshot for Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     type Snapshot = CpuSnapshot;
 

@@ -38,7 +38,7 @@ pub trait Memory {
     fn read(&self, addr: u16) -> u8;
 }
 
-pub trait Component {
+pub trait Bus: Memory {
     fn step(&mut self, clocks: u8);
 }
 

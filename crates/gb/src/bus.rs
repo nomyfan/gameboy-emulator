@@ -240,7 +240,7 @@ impl Bus {
     }
 }
 
-impl gb_shared::Component for Bus {
+impl gb_shared::Bus for Bus {
     fn step(&mut self, clocks: u8) {
         let clocks = self.clocks + clocks;
         let m_cycles = clocks / 4;
