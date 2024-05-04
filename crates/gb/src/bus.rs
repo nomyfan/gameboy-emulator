@@ -43,6 +43,7 @@ pub(crate) struct BusInner {
     serial: Serial,
     joypad: Joypad,
     timer: Timer,
+    clocks: u8,
     pub(crate) ppu: Ppu,
     pub(crate) apu: Apu,
     ref_count: usize,
@@ -210,6 +211,7 @@ impl Bus {
                 timer: Timer::new(),
                 ppu: Ppu::new(),
                 apu: Apu::new(sample_rate),
+                clocks: 0,
                 ref_count: 1,
             })),
         }
@@ -239,8 +241,10 @@ impl Bus {
 }
 
 impl gb_shared::Component for Bus {
-    fn step(&mut self, cycles: u8) {
-        let m_cycles = cycles / 4;
+    fn step(&mut self, clocks: u8) {
+        let clocks = self.clocks + clocks;
+        let m_cycles = clocks / 4;
+        self.clocks = clocks % 4;
         debug_assert!(m_cycles > 0);
 
         for _ in 0..m_cycles {
