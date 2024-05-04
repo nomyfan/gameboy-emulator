@@ -12,7 +12,7 @@ use gb_apu::AudioOutHandle;
 pub use gb_cartridge::Cartridge;
 use gb_cpu_sm83::{Cpu, CpuSnapshot};
 pub use gb_ppu::FrameOutHandle;
-use gb_shared::{command::Command, Snapshot};
+use gb_shared::{command::Command, MachineModel, Snapshot};
 
 pub struct Manifest {
     pub cart: Cartridge,
@@ -32,14 +32,13 @@ impl GameBoy {
 
         let cart_header_checksum = cart.header.checksum;
         let cart_global_checksum = cart.header.global_checksum;
+        let machine_model = cart.machine_model();
         let bus = Bus::new(cart, sample_rate);
 
-        let mut cpu = Cpu::new(bus.clone());
-        if cart_header_checksum == 0 {
-            // https://gbdev.io/pandocs/Power_Up_Sequence.html#dmg_c
-            // Unset H and C if the cartridge header checksum is 0.
-            cpu.reg_f = 0x80;
-        }
+        let cpu = match machine_model {
+            MachineModel::DMG => Cpu::new_dmg(bus.clone(), cart_header_checksum),
+            MachineModel::CGB => Cpu::new_cgb(bus.clone()),
+        };
 
         Self { cpu, bus, clocks: 0, cart_checksum: cart_global_checksum }
     }

@@ -4,7 +4,7 @@ mod interrupt;
 mod proc;
 
 use cpu16::{Cpu16, Register16, Register8};
-use gb_shared::{is_bit_set, set_bits, unset_bits, Snapshot};
+use gb_shared::{is_bit_set, set_bits, unset_bits, MachineModel, Snapshot};
 use interrupt::INTERRUPTS;
 
 impl<BUS> Cpu16 for Cpu<BUS>
@@ -193,6 +193,7 @@ where
     /// Get set in HALT instruction only.
     /// Get read in HALT mode only.
     handle_itr: bool,
+    machine_model: MachineModel,
 }
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
@@ -251,8 +252,31 @@ where
             clocks: 0,
             ir: 0,
             handle_itr: true,
+            machine_model: MachineModel::DMG,
             bus,
         }
+    }
+
+    pub fn new_dmg(bus: BUS, cart_header_checksum: u8) -> Self {
+        let mut cpu = Self::new(bus);
+        cpu.set_af(if cart_header_checksum == 0 { 0x0180 } else { 0x01B0 });
+        cpu.set_bc(0x0013);
+        cpu.set_de(0x00D8);
+        cpu.set_hl(0x014D);
+        cpu.machine_model = MachineModel::DMG;
+
+        cpu
+    }
+
+    pub fn new_cgb(bus: BUS) -> Self {
+        let mut cpu = Self::new(bus);
+        cpu.set_af(0x1180);
+        cpu.set_bc(0x0000);
+        cpu.set_de(0xFF56);
+        cpu.set_hl(0x000D);
+        cpu.machine_model = MachineModel::CGB;
+
+        cpu
     }
 
     #[inline]

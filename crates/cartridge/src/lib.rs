@@ -1,7 +1,7 @@
 mod mbc;
 
 use anyhow::Result;
-use gb_shared::Snapshot;
+use gb_shared::{MachineModel, Snapshot};
 use std::{borrow::Cow, fmt::Display, path::Path};
 
 const CARRIAGE_TYPE: [(u8, &str); 28] = [
@@ -451,5 +451,13 @@ impl Cartridge {
 
     pub fn resume(&mut self, data: &[u8]) -> anyhow::Result<()> {
         self.mbc.resume(data)
+    }
+
+    pub fn machine_model(&self) -> MachineModel {
+        let cgb_flag = self.header.title[15];
+        match cgb_flag {
+            0xC0 | 0x80 => MachineModel::CGB,
+            _ => MachineModel::DMG,
+        }
     }
 }

@@ -102,3 +102,8 @@ pub trait Snapshot {
     fn take_snapshot(&self) -> Self::Snapshot;
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot);
 }
+
+pub enum MachineModel {
+    DMG,
+    CGB,
+}
