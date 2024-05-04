@@ -260,3 +260,8 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
+
+#[wasm_bindgen]
+pub fn init_log(max_level: &str, filters: &str) {
+    gb_console_log::init(max_level, filters)
+}

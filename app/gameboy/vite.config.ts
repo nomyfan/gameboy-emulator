@@ -7,11 +7,14 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vitejs.dev/config/
 // eslint-disable-next-line import/no-default-export
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
     fs: {
       allow: ["../.."],
     },
+  },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(mode),
   },
   plugins: [
     tsconfigPaths(),
@@ -19,9 +22,6 @@ export default defineConfig({
     svgr(),
     react(),
     VitePWA({
-      devOptions: {
-        enabled: true,
-      },
       includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png"],
       manifest: {
         name: "GameBoy",
@@ -99,4 +99,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

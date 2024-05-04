@@ -1,0 +1,9 @@
+[package]
+name = "gb_console_log"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+env_filter = { version = "0.1.0", default-features = false }
+log = { workspace = true, features = ["std"] }
+web-sys = { workspace = true, features = ["console"] }
