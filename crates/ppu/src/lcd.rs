@@ -69,11 +69,11 @@ impl Default for LCD {
 }
 
 impl LCD {
-    pub(crate) fn is_bgw_enabled(&self) -> bool {
+    pub(crate) fn lcdc0(&self) -> bool {
         is_bit_set!(self.lcdc, 0)
     }
 
-    pub(crate) fn is_object_enabled(&self) -> bool {
+    pub(crate) fn object_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 1)
     }
 
@@ -93,7 +93,7 @@ impl LCD {
         }
     }
 
-    pub(crate) fn is_window_enabled(&self) -> bool {
+    pub(crate) fn window_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 5)
     }
 
@@ -105,7 +105,7 @@ impl LCD {
         }
     }
 
-    pub(crate) fn is_lcd_enabled(&self) -> bool {
+    pub(crate) fn lcd_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 7)
     }
 }

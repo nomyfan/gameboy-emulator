@@ -3,6 +3,7 @@ mod lcd;
 mod object;
 mod palette;
 mod tile;
+mod vram;
 
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
@@ -13,6 +14,7 @@ use gb_shared::{
 };
 use object::ObjectSnapshot;
 use palette::Monochrome;
+use vram::{BackgroundAttrs, VideoRam};
 
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
 
@@ -45,26 +47,7 @@ trait GraphicPalette: Memory + Snapshot + crate::palette::Palette {}
 impl<T: Memory + Snapshot + crate::palette::Palette> GraphicPalette for T {}
 
 pub struct Ppu {
-    /// Tile data area(in size of 0x1800).
-    /// There are total 384 tiles, each tile has 16 bytes.
-    /// Thus, the size of this area is 6KB.
-    /// - Block 0: \[0x8000, 0x87FF]
-    /// - Block 1: \[0x8800, 0x8FFF]
-    /// - Block 2: \[0x9000, 0x97FF]
-    ///
-    /// There're two addressing modes. Mode A indexes OBJ
-    /// 0-127 in block 0 and indexes OBJ 128-255 in block 1.
-    /// Mode B indexes OBJ 128-255 in block 1 and indexes
-    /// OBJ 0-127 in block 2.
-    ///
-    // For BG and Window, if LCDC.4 is 1, then mode
-    /// A is used, and if LCDC.4 is 0 then mode B is used.
-    /// For objects, the mode is always A.
-    ///
-    /// Tile map area(in size of 0x800).
-    /// - Tile map 0: \[0x9800, 0x9BFF]
-    /// - Tile map 1: \[0x9C00, 0x9FFF]
-    vram: BoxedArray<u8, 0x2000>,
+    vram: VideoRam,
     /// \[0xFE00, 0xFE9F]
     /// OAM(Object Attribute Memory) is used to store objects.
     /// There're up to 40 objects. Each entry consists of 4 bytes.
@@ -91,14 +74,16 @@ impl Default for Ppu {
         let mut video_buffer: VideoFrame = Default::default();
         video_buffer.fill(0xFF);
 
+        let machine_model = MachineModel::DMG;
+
         Self {
-            vram: Default::default(),
+            vram: VideoRam::new(machine_model),
             oam: Default::default(),
             lcd: Default::default(),
             work_state: Default::default(),
             video_buffer,
             irq: Default::default(),
-            machine_model: MachineModel::DMG,
+            machine_model,
             frame_out_handle: None,
             palette: Box::new(Monochrome::new(0)),
             dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
@@ -117,6 +102,7 @@ impl Ppu {
                 MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
                 MachineModel::CGB => vec![0xFF; (256 * 256 * 3 * 2) + (16 * 12)],
             },
+            vram: VideoRam::new(machine_model),
             machine_model,
             ..Self::default()
         }
@@ -143,27 +129,36 @@ impl Ppu {
         self.lcd.stat = stat;
     }
 
-    fn get_tile_map_value(&self, x: u8, y: u8, is_window: bool) -> u8 {
-        let vram_addr = if is_window {
+    fn get_bgw_tile(&self, x: u8, y: u8, is_window: bool) -> (u8, Option<BackgroundAttrs>) {
+        let addr_base = if is_window {
             self.lcd.window_tile_map_area()
         } else {
             self.lcd.background_tile_map_area()
         };
-        let vram_addr = vram_addr + ((y as u16 / 8) * 32 + (x as u16) / 8);
-
-        let vram_offset = vram_addr - 0x8000;
-        self.vram[vram_offset as usize]
+        let nth = (y as usize / 8) * 32 + (x as usize) / 8;
+        self.vram.bgw_tile_info(addr_base as usize - 0x9800 + nth)
     }
 
-    fn read_tile_data(&self, index: u8, for_object: bool) -> &[u8; 16] {
+    // fn get_tile_map_value(&self, x: u8, y: u8, is_window: bool) -> u8 {
+    //     let vram_addr = if is_window {
+    //         self.lcd.window_tile_map_area()
+    //     } else {
+    //         self.lcd.background_tile_map_area()
+    //     };
+    //     let vram_addr = vram_addr + ((y as u16 / 8) * 32 + (x as u16) / 8);
+
+    //     let vram_offset = vram_addr - 0x8000;
+    //     self.vram[vram_offset as usize]
+    // }
+
+    fn read_tile_data(&self, bank_num: u8, index: u8, for_object: bool) -> &[u8; 16] {
         let index = if for_object || is_bit_set!(self.lcd.lcdc, 4) {
             index as usize
         } else {
             let index = index as i8; // Make it able to be negative.
             (256 + index as i16) as usize // It must be positive now before casting to usize.
         };
-        let vram_offset = index * 16;
-        self.vram[vram_offset..(vram_offset + 16)].try_into().unwrap()
+        self.vram.tile(bank_num, index)
     }
 
     fn move_to_next_scanline(&mut self) {
@@ -190,18 +185,26 @@ impl Ppu {
     }
 
     fn is_window_visible(&self) -> bool {
-        self.lcd.is_window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166
+        self.lcd.window_enabled() && self.lcd.wy <= 143 && self.lcd.wx <= 166
     }
 
     fn push_frame(&mut self) {
         if self.frame_out_handle.is_some() {
-            for (i, vram_addr_base) in [0x1800, 0x1C00].iter().enumerate() {
-                for y in 0..256usize {
-                    for x in 0..256usize {
+            for (i, vram_offset) in [0, 0x400].iter().enumerate() {
+                for y in 0..256 {
+                    for x in 0..256 {
                         let nth = y / 8 * 32 + (x / 8);
-                        let vram_offset = vram_addr_base + nth;
-                        let tile_index = self.vram[vram_offset];
-                        let tile_data = self.read_tile_data(tile_index, false);
+                        let tile_index = self.vram.tile_index(vram_offset + nth);
+                        let attrs = self.vram.bgw_tile_attrs(vram_offset + nth);
+                        // let vram_offset = vram_addr_base + nth;
+                        // let tile_index = self.vram[vram_offset];
+                        // let tile_data = self.read_tile_data(tile_index, false);
+                        // let (tile_index, attrs) = self.get_bgw_tile(x, y, false);
+                        let tile_data = self.read_tile_data(
+                            attrs.map_or(0, |x| x.bank_number()),
+                            tile_index,
+                            false,
+                        );
                         let color_id = tile::get_color_id(
                             tile_data,
                             (x as u8) % 8,
@@ -210,7 +213,7 @@ impl Ppu {
                             false,
                         );
                         let color = self.palette.background_color(0, color_id);
-                        let base_addr = (y * 256 + x) * 3 + (i * 256 * 256 * 3);
+                        let base_addr = (y as usize * 256 + x as usize) * 3 + (i * 256 * 256 * 3);
                         self.dbg_video_buffer[base_addr] = (color >> 16) as u8;
                         self.dbg_video_buffer[base_addr + 1] = (color >> 8) as u8;
                         self.dbg_video_buffer[base_addr + 2] = color as u8;
@@ -235,6 +238,7 @@ impl Ppu {
                 self.dbg_video_buffer[base_addr + 11] = color[3] as u8;
             }
         }
+
         if let Some(handle) = self.frame_out_handle.as_mut() {
             handle(&self.video_buffer, &self.dbg_video_buffer);
         }
@@ -254,7 +258,7 @@ impl Ppu {
     }
 
     pub fn step(&mut self) {
-        if !self.lcd.is_lcd_enabled() {
+        if !self.lcd.lcd_enabled() {
             return;
         }
 
@@ -301,8 +305,10 @@ impl Ppu {
             // For CGB, the priority is determined by the location in OAM.
             // The earlier the object, the higher its priority.
             //
-            // It's notable that `sort_by` is stable.
-            self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
+            if self.machine_model == MachineModel::DMG {
+                // It's notable that `sort_by` is stable.
+                self.work_state.scanline_objects.sort_by(|a, b| a.x.cmp(&b.x));
+            }
             self.set_lcd_mode(LCDMode::RenderPixel);
         }
     }
@@ -321,17 +327,24 @@ impl Ppu {
         }
 
         let mut bgw_color_id = 0;
-        let mut color = self.palette.background_color(0, 0);
+        let mut color = 0xFFFFFF;
+        let mut bgw_attrs: Option<BackgroundAttrs> = None;
 
-        if self.lcd.is_bgw_enabled() {
-            let (mut index, mut ty, mut tx) = {
+        let bg_enabled = match self.machine_model {
+            MachineModel::DMG => self.lcd.lcdc0(),
+            MachineModel::CGB => true,
+        };
+
+        if bg_enabled {
+            let (mut tile_index, mut ty, mut tx) = {
                 let map_y = self.lcd.ly.wrapping_add(self.lcd.scy);
                 let map_x = self.work_state.scanline_x.wrapping_add(self.lcd.scx);
 
-                let index = self.get_tile_map_value(map_x, map_y, false);
+                let (index, attrs) = self.get_bgw_tile(map_x, map_y, false);
                 let ty = map_y % 8;
                 let tx = map_x % 8;
 
+                bgw_attrs = attrs;
                 (index, ty, tx)
             };
 
@@ -345,17 +358,36 @@ impl Ppu {
                 let y = self.work_state.window_line;
                 let x = self.work_state.scanline_x + 7 - self.lcd.wx;
 
-                index = self.get_tile_map_value(x, y, true);
+                let (index, attrs) = self.get_bgw_tile(x, y, true);
+
                 ty = y % 8;
                 tx = x % 8;
+                tile_index = index;
+                bgw_attrs = attrs;
             }
 
-            let tile_data = self.read_tile_data(index, false);
-            bgw_color_id = tile::get_color_id(tile_data, tx, ty, false, false);
-            color = self.palette.background_color(0, bgw_color_id);
+            match self.machine_model {
+                MachineModel::DMG => {
+                    let tile_data = self.read_tile_data(0, tile_index, false);
+                    bgw_color_id = tile::get_color_id(tile_data, tx, ty, false, false);
+                    color = self.palette.background_color(0, bgw_color_id);
+                }
+                MachineModel::CGB => {
+                    let attrs = bgw_attrs.unwrap();
+                    let tile_data = self.read_tile_data(attrs.bank_number(), tile_index, false);
+                    bgw_color_id =
+                        tile::get_color_id(tile_data, tx, ty, attrs.x_flip(), attrs.y_flip());
+                    color = self.palette.background_color(attrs.palette(), bgw_color_id);
+                }
+            }
         }
 
-        if self.lcd.is_object_enabled() {
+        let object_enabled = match self.machine_model {
+            MachineModel::DMG => self.lcd.object_enabled(),
+            MachineModel::CGB => !self.lcd.lcdc0() || self.lcd.object_enabled(),
+        };
+
+        if object_enabled {
             let obj_size = self.lcd.object_size();
 
             for object in &self.work_state.scanline_objects {
@@ -384,7 +416,11 @@ impl Ppu {
                     object.tile_index
                 };
 
-                let tile_data = self.read_tile_data(index, true);
+                let bank_number = match self.machine_model {
+                    MachineModel::DMG => 0,
+                    MachineModel::CGB => object.attrs.bank_num(),
+                };
+                let tile_data = self.read_tile_data(bank_number, index, true);
                 let object_color_id = tile::get_color_id(
                     tile_data,
                     tx,
@@ -393,14 +429,21 @@ impl Ppu {
                     object.attrs.y_flip(),
                 );
                 if object_color_id != 0 {
-                    // Priority definition(the object below is opaque)
-                    // 1. If BGW' color ID is 0, then render the object.
-                    // 2. If LCDC.0 is 0, then render the object.
-                    // 3. If OAM attributes.7 is 0, then render the object.
-                    // 4. Otherwise, render the BGW.
-                    if bgw_color_id == 0 || !object.attrs.bgw_over_object() {
-                        color =
-                            self.palette.object_color(object.attrs.dmg_palette(), object_color_id);
+                    let (render_object, palette_id) = match self.machine_model {
+                        MachineModel::DMG => (
+                            bgw_color_id == 0 || !object.attrs.bgw_over_object(),
+                            object.attrs.dmg_palette(),
+                        ),
+                        MachineModel::CGB => (
+                            bgw_color_id == 0
+                                || !self.lcd.lcdc0()
+                                || (!object.attrs.bgw_over_object()
+                                    && !bgw_attrs.unwrap().bgw_over_object()),
+                            object.attrs.cgb_palette(),
+                        ),
+                    };
+                    if render_object {
+                        color = self.palette.object_color(palette_id, object_color_id);
                     }
 
                     break;
@@ -472,15 +515,13 @@ impl Ppu {
 impl Memory for Ppu {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            0x8000..=0x9FFF => {
-                self.vram[addr as usize - 0x8000] = value;
-            }
+            0x8000..=0x9FFF => self.vram.write(addr, value),
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00] = value,
             0xFF40 => {
-                let old_enabled = self.lcd.is_lcd_enabled();
+                let old_enabled = self.lcd.lcd_enabled();
                 let old_object_size = self.lcd.object_size();
                 self.lcd.lcdc = value;
-                let new_enabled = self.lcd.is_lcd_enabled();
+                let new_enabled = self.lcd.lcd_enabled();
                 let new_object_size = self.lcd.object_size();
 
                 if old_enabled != new_enabled {
@@ -517,13 +558,14 @@ impl Memory for Ppu {
             0xFF47..=0xFF49 => self.palette.write(addr, value),
             0xFF4A => self.lcd.wy = value,
             0xFF4B => self.lcd.wx = value,
+            0xFF4F => self.vram.write(addr, value),
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
     }
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0x8000..=0x9FFF => self.vram[addr as usize - 0x8000],
+            0x8000..=0x9FFF => self.vram.read(addr),
             0xFE00..=0xFE9F => self.oam[addr as usize - 0xFE00],
             0xFF40 => self.lcd.lcdc,
             0xFF41 => self.lcd.stat,
@@ -534,6 +576,7 @@ impl Memory for Ppu {
             0xFF47..=0xFF49 => self.palette.read(addr),
             0xFF4A => self.lcd.wy,
             0xFF4B => self.lcd.wx,
+            0xFF4F => self.vram.read(addr),
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
     }
@@ -561,7 +604,7 @@ impl Snapshot for Ppu {
 
     fn take_snapshot(&self) -> Self::Snapshot {
         PpuSnapshot {
-            vram: self.vram.to_vec(),
+            vram: self.vram.take_snapshot(),
             oam: self.oam.to_vec(),
             lcd: self.lcd,
             palette: self.palette.take_snapshot(),
@@ -581,7 +624,7 @@ impl Snapshot for Ppu {
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        self.vram = BoxedArray::try_from_vec(snapshot.vram).unwrap();
+        self.vram.restore_snapshot(snapshot.vram);
         self.oam = BoxedArray::try_from_vec(snapshot.oam).unwrap();
         self.lcd = snapshot.lcd;
         self.palette.restore_snapshot(snapshot.palette);
