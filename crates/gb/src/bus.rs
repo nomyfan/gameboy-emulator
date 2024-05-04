@@ -222,7 +222,7 @@ impl Bus {
         Self {
             ptr: Box::into_raw(Box::new(BusInner {
                 cart,
-                wram: WorkRam::new(),
+                wram: WorkRam::new(machine_model),
                 hram: HighRam::new(),
                 interrupt_enable: 0,
                 interrupt_flag: 0xE0,
