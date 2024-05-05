@@ -23,15 +23,10 @@ impl Monochrome {
                 }
                 None => [*COLORS, *COLORS, *COLORS],
             };
-        Self {
-            bgp: 0xFC,
-            obp0: 0,
-            obp1: 0,
-            bgp_palette,
-            obp0_palette,
-            obp1_palette,
-            colors: [[0xFFFFFF; 4]; 3],
-        }
+
+        let colors = [bgp_palette, obp0_palette, obp1_palette];
+
+        Self { bgp: 0xFC, obp0: 0, obp1: 0, bgp_palette, obp0_palette, obp1_palette, colors }
     }
 }
 
@@ -50,10 +45,7 @@ impl Palette for Monochrome {
         }
     }
 
-    fn colors(&mut self) -> &[[u32; 4]] {
-        self.colors[0] = self.bgp_palette;
-        self.colors[1] = self.obp0_palette;
-        self.colors[2] = self.obp1_palette;
+    fn colors(&self) -> &[[u32; 4]] {
         &self.colors
     }
 }

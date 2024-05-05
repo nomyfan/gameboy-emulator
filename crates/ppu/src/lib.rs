@@ -13,7 +13,7 @@ use gb_shared::{
     is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, MachineModel, Memory, Snapshot,
 };
 use object::ObjectSnapshot;
-use palette::Monochrome;
+use palette::{Monochrome, Polychrome};
 use vram::{BackgroundAttrs, VideoRam};
 
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
@@ -96,7 +96,7 @@ impl Ppu {
         Self {
             palette: match machine_model {
                 MachineModel::DMG => Box::new(Monochrome::new(compatibility_palette_id)),
-                MachineModel::CGB => todo!(),
+                MachineModel::CGB => Box::new(Polychrome::new()),
             },
             dbg_video_buffer: match machine_model {
                 MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
@@ -196,10 +196,6 @@ impl Ppu {
                         let nth = y / 8 * 32 + (x / 8);
                         let tile_index = self.vram.tile_index(vram_offset + nth);
                         let attrs = self.vram.bgw_tile_attrs(vram_offset + nth);
-                        // let vram_offset = vram_addr_base + nth;
-                        // let tile_index = self.vram[vram_offset];
-                        // let tile_data = self.read_tile_data(tile_index, false);
-                        // let (tile_index, attrs) = self.get_bgw_tile(x, y, false);
                         let tile_data = self.read_tile_data(
                             attrs.map_or(0, |x| x.bank_number()),
                             tile_index,
@@ -212,7 +208,9 @@ impl Ppu {
                             false,
                             false,
                         );
-                        let color = self.palette.background_color(0, color_id);
+                        let color = self
+                            .palette
+                            .background_color(attrs.map_or(0, |x| x.palette()), color_id);
                         let base_addr = (y as usize * 256 + x as usize) * 3 + (i * 256 * 256 * 3);
                         self.dbg_video_buffer[base_addr] = (color >> 16) as u8;
                         self.dbg_video_buffer[base_addr + 1] = (color >> 8) as u8;
@@ -559,6 +557,7 @@ impl Memory for Ppu {
             0xFF4A => self.lcd.wy = value,
             0xFF4B => self.lcd.wx = value,
             0xFF4F => self.vram.write(addr, value),
+            0xFF68..=0xFF6B => self.palette.write(addr, value),
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
     }
@@ -577,6 +576,7 @@ impl Memory for Ppu {
             0xFF4A => self.lcd.wy,
             0xFF4B => self.lcd.wx,
             0xFF4F => self.vram.read(addr),
+            0xFF68..=0xFF6B => self.palette.read(addr),
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
     }
