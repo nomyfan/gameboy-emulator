@@ -195,12 +195,12 @@ impl Ppu {
                     for x in 0..256 {
                         let nth = y / 8 * 32 + (x / 8);
                         let tile_index = self.vram.tile_index(vram_offset + nth);
+
                         let attrs = self.vram.bgw_tile_attrs(vram_offset + nth);
-                        let tile_data = self.read_tile_data(
-                            attrs.map_or(0, |x| x.bank_number()),
-                            tile_index,
-                            false,
-                        );
+                        let bank_num = attrs.map(|x| x.bank_number()).unwrap_or_default();
+                        let palette_id = attrs.map(|x| x.palette()).unwrap_or_default();
+
+                        let tile_data = self.read_tile_data(bank_num, tile_index, false);
                         let color_id = tile::get_color_id(
                             tile_data,
                             (x as u8) % 8,
@@ -208,9 +208,7 @@ impl Ppu {
                             false,
                             false,
                         );
-                        let color = self
-                            .palette
-                            .background_color(attrs.map_or(0, |x| x.palette()), color_id);
+                        let color = self.palette.background_color(palette_id, color_id);
                         let base_addr = (y as usize * 256 + x as usize) * 3 + (i * 256 * 256 * 3);
                         self.dbg_video_buffer[base_addr] = (color >> 16) as u8;
                         self.dbg_video_buffer[base_addr + 1] = (color >> 8) as u8;

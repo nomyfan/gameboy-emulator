@@ -8,6 +8,9 @@ pub(crate) struct Polychrome {
     ocps: u8,
     ocpd: [u8; 64],
     colors: [[u32; 4]; 16],
+    bgp: u8,
+    obp0: u8,
+    obp1: u8,
 }
 
 fn read_color(data: &[u8; 64], palette_id: u8, color_id: u8) -> u32 {
@@ -31,7 +34,16 @@ fn read_color(data: &[u8; 64], palette_id: u8, color_id: u8) -> u32 {
 
 impl Polychrome {
     pub(crate) fn new() -> Self {
-        Self { bcps: 0, bcpd: [0xFF; 64], ocps: 0, ocpd: [0xFF; 64], colors: [[0xFFFFFF; 4]; 16] }
+        Self {
+            bcps: 0,
+            bcpd: [0xFF; 64],
+            ocps: 0,
+            ocpd: [0xFF; 64],
+            colors: [[0xFFFFFF; 4]; 16],
+            bgp: 0xFC,
+            obp0: 0,
+            obp1: 0,
+        }
     }
 }
 
@@ -52,13 +64,15 @@ impl Palette for Polychrome {
 impl Memory for Polychrome {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            0xFF47 => {}
-            0xFF48 => {}
-            0xFF49 => {}
+            0xFF47 => self.bgp = value,
+            0xFF48 => self.obp0 = value,
+            0xFF49 => self.obp1 = value,
             0xFF68 => self.bcps = value,
             0xFF69 => {
                 let addr = self.bcps & 0x3F;
+                log::debug!("BCPS {:#X} {:#X}", addr, value);
                 self.bcpd[addr as usize] = value;
+                // log::debug!("BCPD {:X?}", self.bcpd);
 
                 // Update colors
                 let palette_id = addr / 8;
@@ -91,9 +105,9 @@ impl Memory for Polychrome {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0xFF47 => 0xFF,
-            0xFF48 => 0xFF,
-            0xFF49 => 0xFF,
+            0xFF47 => self.bgp,
+            0xFF48 => self.obp0,
+            0xFF49 => self.obp1,
             0xFF68 => self.bcps,
             0xFF69 => {
                 let addr = (self.bcps & 0x3F) as usize;
