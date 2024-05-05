@@ -20,8 +20,8 @@ pub(crate) struct VideoRam {
     /// Tile map area(in size of 0x800).
     /// - Tile map 0: 0x9800-0x9BFF
     /// - Tile map 1: 0x9C00-0x9FFF
-    pub(crate) vram: Vec<BoxedArray<u8, 0x2000>>, // TODO: visibility scope
-    /// a.k.a VBK. On CGB, there is two banks.
+    vram: Vec<BoxedArray<u8, 0x2000>>,
+    /// a.k.a VBK. On CGB, there're two banks.
     bank_num: u8,
 }
 
