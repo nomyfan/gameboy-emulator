@@ -196,9 +196,8 @@ impl Ppu {
                         );
                         let color = self.palette.background_color(palette_id, color_id);
                         let base_addr = (y as usize * 256 + x as usize) * 3 + (i * 256 * 256 * 3);
-                        self.dbg_video_buffer[base_addr] = (color >> 16) as u8;
-                        self.dbg_video_buffer[base_addr + 1] = (color >> 8) as u8;
-                        self.dbg_video_buffer[base_addr + 2] = color as u8;
+                        self.dbg_video_buffer[base_addr..(base_addr + 3)]
+                            .copy_from_slice(&color.to_be_bytes()[1..]);
                     }
                 }
             }
@@ -206,18 +205,10 @@ impl Ppu {
             for (i, color) in self.palette.colors().iter().enumerate() {
                 const START_ADDR: usize = 256 * 256 * 3 * 2;
                 let base_addr = START_ADDR + i * 12;
-                self.dbg_video_buffer[base_addr] = (color[0] >> 16) as u8;
-                self.dbg_video_buffer[base_addr + 1] = (color[0] >> 8) as u8;
-                self.dbg_video_buffer[base_addr + 2] = color[0] as u8;
-                self.dbg_video_buffer[base_addr + 3] = (color[1] >> 16) as u8;
-                self.dbg_video_buffer[base_addr + 4] = (color[1] >> 8) as u8;
-                self.dbg_video_buffer[base_addr + 5] = color[1] as u8;
-                self.dbg_video_buffer[base_addr + 6] = (color[2] >> 16) as u8;
-                self.dbg_video_buffer[base_addr + 7] = (color[2] >> 8) as u8;
-                self.dbg_video_buffer[base_addr + 8] = color[2] as u8;
-                self.dbg_video_buffer[base_addr + 9] = (color[3] >> 16) as u8;
-                self.dbg_video_buffer[base_addr + 10] = (color[3] >> 8) as u8;
-                self.dbg_video_buffer[base_addr + 11] = color[3] as u8;
+                self.dbg_video_buffer[base_addr..(base_addr + 12)]
+                    .chunks_mut(3)
+                    .zip(color)
+                    .for_each(|(chunk, color)| chunk.copy_from_slice(&color.to_be_bytes()[1..]));
             }
         }
 
