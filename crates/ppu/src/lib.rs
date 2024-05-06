@@ -195,7 +195,7 @@ impl Ppu {
                         let tile_index = self.vram.tile_index(vram_offset + nth);
 
                         let attrs = self.vram.bgw_tile_attrs(vram_offset + nth);
-                        let bank_num = attrs.map(|x| x.bank_number()).unwrap_or_default();
+                        let bank_num = attrs.map(|x| x.bank_num()).unwrap_or_default();
                         let palette_id = attrs.map(|x| x.palette()).unwrap_or_default();
 
                         let tile_data = self.read_tile_data(bank_num, tile_index, false);
@@ -368,7 +368,7 @@ impl Ppu {
                 }
                 MachineModel::CGB => {
                     let attrs = bgw_attrs.unwrap();
-                    let tile_data = self.read_tile_data(attrs.bank_number(), tile_index, false);
+                    let tile_data = self.read_tile_data(attrs.bank_num(), tile_index, false);
                     bgw_color_id =
                         tile::get_color_id(tile_data, tx, ty, attrs.x_flip(), attrs.y_flip());
                     color = self.palette.background_color(attrs.palette(), bgw_color_id);

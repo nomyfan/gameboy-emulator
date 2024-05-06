@@ -127,7 +127,7 @@ impl BackgroundAttrs {
     }
 
     /// VRAM bank number. Return 0-1.
-    pub(crate) fn bank_number(&self) -> u8 {
+    pub(crate) fn bank_num(&self) -> u8 {
         is_bit_set!(self.0, 3) as u8
     }
 
