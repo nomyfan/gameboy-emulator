@@ -9,6 +9,7 @@ use crate::{
     hdma::{Hdma, HdmaSnapshot},
     hram::{HighRam, HighRamSnapshot},
     joypad::{Joypad, JoypadSnapshot},
+    misc_ram::{MiscRam, MiscRamSnapshot},
     serial::{Serial, SerialSnapshot},
     timer::{Timer, TimerSnapshot},
     wram::{WorkRam, WorkRamSnapshot},
@@ -40,6 +41,7 @@ pub(crate) struct BusInner {
     hram: HighRam,
     dma: DMA,
     hdma: Hdma,
+    mram: MiscRam,
     /// Serial transfer
     serial: Serial,
     joypad: Joypad,
@@ -244,6 +246,7 @@ impl Bus {
                 ppu: Ppu::new(machine_model, compatibility_palette_id),
                 apu: Apu::new(sample_rate),
                 hdma: Hdma::new(),
+                mram: MiscRam::new(machine_model),
                 clocks: 0,
                 ref_count: 1,
             })),
@@ -366,6 +369,7 @@ pub(crate) struct BusSnapshot {
     apu: ApuSnapshot,
     cart: Vec<u8>,
     hdma: HdmaSnapshot,
+    mram: MiscRamSnapshot,
 }
 
 impl Snapshot for Bus {
@@ -385,6 +389,7 @@ impl Snapshot for Bus {
             apu: self.apu.take_snapshot(),
             cart: self.cart.take_snapshot(),
             hdma: self.hdma.take_snapshot(),
+            mram: self.mram.take_snapshot(),
         }
     }
 
@@ -400,6 +405,7 @@ impl Snapshot for Bus {
         self.ppu.restore_snapshot(snapshot.ppu);
         self.apu.restore_snapshot(snapshot.apu);
         self.cart.restore_snapshot(snapshot.cart);
-        self.hdma.restore_snapshot(snapshot.hdma)
+        self.hdma.restore_snapshot(snapshot.hdma);
+        self.mram.restore_snapshot(snapshot.mram);
     }
 }

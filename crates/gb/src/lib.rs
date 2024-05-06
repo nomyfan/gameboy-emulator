@@ -3,6 +3,7 @@ mod dma;
 mod hdma;
 mod hram;
 mod joypad;
+mod misc_ram;
 mod serial;
 mod timer;
 mod wram;
