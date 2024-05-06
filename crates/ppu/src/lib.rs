@@ -137,18 +137,6 @@ impl Ppu {
         self.vram.bgw_tile_info(addr_base as usize - 0x9800 + nth)
     }
 
-    // fn get_tile_map_value(&self, x: u8, y: u8, is_window: bool) -> u8 {
-    //     let vram_addr = if is_window {
-    //         self.lcd.window_tile_map_area()
-    //     } else {
-    //         self.lcd.background_tile_map_area()
-    //     };
-    //     let vram_addr = vram_addr + ((y as u16 / 8) * 32 + (x as u16) / 8);
-
-    //     let vram_offset = vram_addr - 0x8000;
-    //     self.vram[vram_offset as usize]
-    // }
-
     fn read_tile_data(&self, bank_num: u8, index: u8, for_object: bool) -> &[u8; 16] {
         let index = if for_object || is_bit_set!(self.lcd.lcdc, 4) {
             index as usize
