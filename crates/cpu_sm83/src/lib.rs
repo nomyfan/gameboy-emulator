@@ -430,6 +430,14 @@ where
     }
 
     pub fn step(&mut self) {
+        if self.bus.hdma_active() {
+            // TODO: In normal speed, transfer 2 bytes in 1 M-cycle. In double speed, transfer 2 bytes in 2 M-cycles. Thus, call `step_hdma` once on double speed mode.
+            self.bus.step_hdma();
+            self.bus.step_hdma();
+            self.adv_clocks(4);
+            return;
+        }
+
         if self.halted {
             if self.itr_pending() {
                 self.halted = false;

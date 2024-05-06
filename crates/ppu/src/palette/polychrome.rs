@@ -70,9 +70,7 @@ impl Memory for Polychrome {
             0xFF68 => self.bcps = value,
             0xFF69 => {
                 let addr = self.bcps & 0x3F;
-                log::debug!("BCPS {:#X} {:#X}", addr, value);
                 self.bcpd[addr as usize] = value;
-                // log::debug!("BCPD {:X?}", self.bcpd);
 
                 // Update colors
                 let palette_id = addr / 8;

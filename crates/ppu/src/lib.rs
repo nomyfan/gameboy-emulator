@@ -116,7 +116,11 @@ impl Ppu {
         self.irq.take()
     }
 
-    fn lcd_mode(&self) -> LCDMode {
+    pub fn ly(&self) -> u8 {
+        self.lcd.ly
+    }
+
+    pub fn lcd_mode(&self) -> LCDMode {
         LCDMode::from(self.lcd.stat)
     }
 

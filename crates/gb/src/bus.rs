@@ -6,6 +6,7 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     dma::{DmaSnapshot, DMA},
+    hdma::{Hdma, HdmaSnapshot},
     hram::{HighRam, HighRamSnapshot},
     joypad::{Joypad, JoypadSnapshot},
     serial::{Serial, SerialSnapshot},
@@ -37,8 +38,8 @@ pub(crate) struct BusInner {
     pub(crate) cart: Cartridge,
     wram: WorkRam,
     hram: HighRam,
-    /// DMA state.
     dma: DMA,
+    hdma: Hdma,
     /// Serial transfer
     serial: Serial,
     joypad: Joypad,
@@ -102,7 +103,7 @@ impl Memory for BusInner {
                     }
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.write(addr, value),
-                    0xFF51..=0xFF55 => todo!("VRAM DMA"),
+                    0xFF51..=0xFF55 => self.hdma.write(addr, value),
                     // BCPS, BCPD, OCPS, OCPD
                     0xFF68..=0xFF6B => self.ppu.write(addr, value),
                     // WRAM bank(SVBK)
@@ -174,7 +175,7 @@ impl Memory for BusInner {
                     0xFF4D => 0x00,
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.read(addr),
-                    0xFF51..=0xFF55 => todo!("VRAM DMA"),
+                    0xFF51..=0xFF55 => self.hdma.read(addr),
                     // BCPS, BCPD, OCPS, OCPD
                     0xFF68..=0xFF6B => self.ppu.read(addr),
                     // WRAM bank(SVBK)
@@ -232,6 +233,7 @@ impl Bus {
                 timer: Timer::new(),
                 ppu: Ppu::new(machine_model, compatibility_palette_id),
                 apu: Apu::new(sample_rate),
+                hdma: Hdma::new(),
                 clocks: 0,
                 ref_count: 1,
             })),
@@ -286,6 +288,25 @@ impl gb_shared::Bus for Bus {
             self.step_dma();
         }
     }
+
+    fn hdma_active(&self) -> bool {
+        let ly = self.ppu.ly();
+        let hblank = self.ppu.lcd_mode().hblank();
+        self.hdma.active(ly, hblank)
+    }
+
+    fn step_hdma(&mut self) {
+        let ly = self.ppu.ly();
+        let hblank = self.ppu.lcd_mode().hblank();
+        if !self.hdma.active(ly, hblank) {
+            return;
+        }
+
+        if let Some((src_addr, dst_addr)) = self.hdma.step(ly, hblank) {
+            let value = self.read(src_addr);
+            self.ppu.write(dst_addr, value);
+        }
+    }
 }
 
 impl Clone for Bus {
@@ -334,6 +355,7 @@ pub(crate) struct BusSnapshot {
     ppu: PpuSnapshot,
     apu: ApuSnapshot,
     cart: Vec<u8>,
+    hdma: HdmaSnapshot,
 }
 
 impl Snapshot for Bus {
@@ -352,6 +374,7 @@ impl Snapshot for Bus {
             ppu: self.ppu.take_snapshot(),
             apu: self.apu.take_snapshot(),
             cart: self.cart.take_snapshot(),
+            hdma: self.hdma.take_snapshot(),
         }
     }
 
@@ -367,5 +390,6 @@ impl Snapshot for Bus {
         self.ppu.restore_snapshot(snapshot.ppu);
         self.apu.restore_snapshot(snapshot.apu);
         self.cart.restore_snapshot(snapshot.cart);
+        self.hdma.restore_snapshot(snapshot.hdma)
     }
 }

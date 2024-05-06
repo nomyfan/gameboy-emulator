@@ -40,6 +40,8 @@ pub trait Memory {
 
 pub trait Bus: Memory {
     fn step(&mut self, clocks: u8);
+    fn hdma_active(&self) -> bool;
+    fn step_hdma(&mut self);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
