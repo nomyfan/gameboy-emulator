@@ -115,35 +115,31 @@ impl Palette {
 
 impl Memory for Palette {
     fn write(&mut self, addr: u16, value: u8) {
+        let is_cgb = self.machine_model == MachineModel::CGB;
+
         match addr {
             0xFF47 => self.bgp = value,
             0xFF48 => self.obp0 = value,
             0xFF49 => self.obp1 = value,
-            0xFF68 if self.machine_model == MachineModel::CGB => self.bcps = value,
-            0xFF69 if self.machine_model == MachineModel::CGB => {
-                self.bcps = self.update_color(true, self.bcps, value);
-            }
-            0xFF6A if self.machine_model == MachineModel::CGB => self.ocps = value,
-            0xFF6B if self.machine_model == MachineModel::CGB => {
-                self.ocps = self.update_color(false, self.ocps, value);
-            }
+            0xFF68 if is_cgb => self.bcps = value,
+            0xFF69 if is_cgb => self.bcps = self.update_color(true, self.bcps, value),
+            0xFF6A if is_cgb => self.ocps = value,
+            0xFF6B if is_cgb => self.ocps = self.update_color(false, self.ocps, value),
             _ => unreachable!("Invalid Palette write at {:#X} {:#X}", addr, value),
         }
     }
 
     fn read(&self, addr: u16) -> u8 {
+        let is_cgb = self.machine_model == MachineModel::CGB;
+
         match addr {
             0xFF47 => self.bgp,
             0xFF48 => self.obp0,
             0xFF49 => self.obp1,
-            0xFF68 if self.machine_model == MachineModel::CGB => self.bcps,
-            0xFF69 if self.machine_model == MachineModel::CGB => {
-                self.bcpd[(self.bcps & 0x3F) as usize]
-            }
-            0xFF6A if self.machine_model == MachineModel::CGB => self.ocps,
-            0xFF6B if self.machine_model == MachineModel::CGB => {
-                self.ocpd[(self.ocps & 0x3F) as usize]
-            }
+            0xFF68 if is_cgb => self.bcps,
+            0xFF69 if is_cgb => self.bcpd[(self.bcps & 0x3F) as usize],
+            0xFF6A if is_cgb => self.ocps,
+            0xFF6B if is_cgb => self.ocpd[(self.ocps & 0x3F) as usize],
             _ => unreachable!("Invalid Palette read at {:#X}", addr),
         }
     }

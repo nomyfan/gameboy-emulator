@@ -16,29 +16,25 @@ impl MiscRam {
 
 impl Memory for MiscRam {
     fn write(&mut self, addr: u16, value: u8) {
-        if self.machine_model == MachineModel::DMG && (0xFF72..=0xFF75).contains(&addr) {
-            log::warn!("{:#X} should not be written on DMG", addr);
-        }
+        let is_cgb = self.machine_model == MachineModel::CGB;
 
         match addr {
-            0xFF72 => self.reg_ff72 = value,
-            0xFF73 => self.reg_ff73 = value,
-            0xFF74 => self.reg_ff74 = value,
-            0xFF75 => self.reg_ff75 = value,
+            0xFF72 if is_cgb => self.reg_ff72 = value,
+            0xFF73 if is_cgb => self.reg_ff73 = value,
+            0xFF74 if is_cgb => self.reg_ff74 = value,
+            0xFF75 if is_cgb => self.reg_ff75 = value,
             _ => unreachable!("Invalid MiscRAM write {:#X} {:#X}", addr, value),
         }
     }
 
     fn read(&self, addr: u16) -> u8 {
-        if self.machine_model == MachineModel::DMG && (0xFF72..=0xFF75).contains(&addr) {
-            log::warn!("{:#X} should not be read on DMG", addr);
-        }
+        let is_cgb = self.machine_model == MachineModel::CGB;
 
         match addr {
-            0xFF72 => self.reg_ff72,
-            0xFF73 => self.reg_ff73,
-            0xFF74 => self.reg_ff74,
-            0xFF75 => 0x8F | self.reg_ff75,
+            0xFF72 if is_cgb => self.reg_ff72,
+            0xFF73 if is_cgb => self.reg_ff73,
+            0xFF74 if is_cgb => self.reg_ff74,
+            0xFF75 if is_cgb => 0x8F | self.reg_ff75,
             _ => unreachable!("Invalid MiscRAM write {:#X}", addr),
         }
     }
