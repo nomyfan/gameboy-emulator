@@ -543,7 +543,7 @@ impl Memory for Ppu {
             0xFF4F => self.vram.write(addr, value),
             0xFF68..=0xFF6B => self.palette.write(addr, value),
             0xFF6C => {
-                log::warn!("OPRI should not written by program.");
+                log::warn!("OPRI should not be written by program.");
             }
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
