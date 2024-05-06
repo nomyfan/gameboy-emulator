@@ -339,20 +339,13 @@ impl Ppu {
                 bgw_attrs = attrs;
             }
 
-            match self.machine_model {
-                MachineModel::DMG => {
-                    let tile_data = self.read_tile_data(0, tile_index, false);
-                    bgw_color_id = tile::get_color_id(tile_data, tx, ty, false, false);
-                    color = self.palette.background_color(0, bgw_color_id);
-                }
-                MachineModel::CGB => {
-                    let attrs = bgw_attrs.unwrap();
-                    let tile_data = self.read_tile_data(attrs.bank_num(), tile_index, false);
-                    bgw_color_id =
-                        tile::get_color_id(tile_data, tx, ty, attrs.x_flip(), attrs.y_flip());
-                    color = self.palette.background_color(attrs.palette(), bgw_color_id);
-                }
-            }
+            let (bank_num, palette_id, x_flip, y_flip) = bgw_attrs
+                .map_or((0, 0, false, false), |attrs| {
+                    (attrs.bank_num(), attrs.palette(), attrs.x_flip(), attrs.y_flip())
+                });
+            let tile_data = self.read_tile_data(bank_num, tile_index, false);
+            bgw_color_id = tile::get_color_id(tile_data, tx, ty, x_flip, y_flip);
+            color = self.palette.background_color(palette_id, bgw_color_id);
         }
 
         let object_enabled = match self.machine_model {
@@ -389,11 +382,11 @@ impl Ppu {
                     object.tile_index
                 };
 
-                let bank_number = match self.machine_model {
+                let bank_num = match self.machine_model {
                     MachineModel::DMG => 0,
                     MachineModel::CGB => object.attrs.bank_num(),
                 };
-                let tile_data = self.read_tile_data(bank_number, index, true);
+                let tile_data = self.read_tile_data(bank_num, index, true);
                 let object_color_id = tile::get_color_id(
                     tile_data,
                     tx,
