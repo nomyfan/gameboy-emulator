@@ -121,14 +121,44 @@ impl Memory for Polychrome {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct PolychromeSnapshot {
+    bcps: u8,
+    bcpd: Vec<u8>,
+    ocps: u8,
+    ocpd: Vec<u8>,
+    colors: [[u32; 4]; 16],
+    bgp: u8,
+    obp0: u8,
+    obp1: u8,
+}
+
 impl Snapshot for Polychrome {
     type Snapshot = Vec<u8>;
 
     fn take_snapshot(&self) -> Self::Snapshot {
-        todo!()
+        bincode::serialize(&PolychromeSnapshot {
+            bcps: self.bcps,
+            bcpd: self.bcpd.to_vec(),
+            ocps: self.ocps,
+            ocpd: self.ocpd.to_vec(),
+            colors: self.colors,
+            bgp: self.bgp,
+            obp0: self.obp0,
+            obp1: self.obp1,
+        })
+        .unwrap()
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        todo!()
+        let snapshot: PolychromeSnapshot = bincode::deserialize(&snapshot).unwrap();
+        self.bcps = snapshot.bcps;
+        self.bcpd = snapshot.bcpd.as_slice().try_into().unwrap();
+        self.ocps = snapshot.ocps;
+        self.ocpd = snapshot.ocpd.as_slice().try_into().unwrap();
+        self.colors = snapshot.colors;
+        self.bgp = snapshot.bgp;
+        self.obp0 = snapshot.obp0;
+        self.obp1 = snapshot.obp1;
     }
 }

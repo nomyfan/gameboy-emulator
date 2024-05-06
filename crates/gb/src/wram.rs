@@ -1,5 +1,6 @@
 use gb_shared::{MachineModel, Memory, Snapshot};
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct WorkRam {
     /// In DMG, there're 2 banks in used.
     /// In CGB, there're 8 banks in used, and 1-7 is switchable.
@@ -52,19 +53,17 @@ impl Memory for WorkRam {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct WorkRamSnapshot {
-    ram: Vec<u8>,
-}
+pub(crate) type WorkRamSnapshot = WorkRam;
 
 impl Snapshot for WorkRam {
     type Snapshot = WorkRamSnapshot;
 
     fn take_snapshot(&self) -> Self::Snapshot {
-        todo!()
+        Self::Snapshot { ram: self.ram.clone(), bank_num: self.bank_num }
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        todo!()
+        self.ram = snapshot.ram;
+        self.bank_num = snapshot.bank_num;
     }
 }

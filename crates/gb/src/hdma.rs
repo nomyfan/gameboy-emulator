@@ -5,6 +5,7 @@ use gb_shared::{is_bit_set, Memory, Snapshot};
 /// VRAM takes 8 M-cycles to copy 16 bytes of data in normal speed mode,
 /// and 16 M-cycles in double speed mode. Older MBC(like MBC1-3) and slower
 /// ROMS(TODO: investigate) are not guaranteed to support General Purpose DMA or HBlank DMA.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct Hdma {
     hdma1: u8,
     hdma2: u8,
@@ -178,17 +179,16 @@ impl Memory for Hdma {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct HdmaSnapshot;
+pub(crate) type HdmaSnapshot = Hdma;
 
 impl Snapshot for Hdma {
     type Snapshot = HdmaSnapshot;
 
     fn take_snapshot(&self) -> Self::Snapshot {
-        todo!()
+        self.clone()
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        todo!()
+        (*self) = snapshot;
     }
 }

@@ -1287,6 +1287,14 @@ mock! {
         fn step(&mut self, cycles: u8) {
             // Noop
         }
+
+        fn hdma_active(&self) -> bool {
+            false
+        }
+
+        fn step_hdma(&mut self) {
+            // Noop
+        }
     }
 }
 

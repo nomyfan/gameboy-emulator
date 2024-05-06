@@ -14,7 +14,7 @@ use gb_shared::{
 };
 use object::ObjectSnapshot;
 use palette::{Monochrome, Polychrome};
-use vram::{BackgroundAttrs, VideoRam};
+use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
 
@@ -586,8 +586,8 @@ impl Memory for Ppu {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PpuSnapshot {
-    vram: Vec<u8>, // 0x2000
-    oam: Vec<u8>,  // 0xA0
+    vram: VideoRamSnapshot, // 0x2000
+    oam: Vec<u8>,           // 0xA0
     lcd: LCD,
     palette: Vec<u8>,
     //#region Work state

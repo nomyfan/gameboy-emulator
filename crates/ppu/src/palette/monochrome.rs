@@ -4,6 +4,7 @@ use super::{compatibility_palettes::find_palette, Palette};
 
 const COLORS: &[u32; 4] = &[0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct Monochrome {
     bgp: u8,
     obp0: u8,
@@ -65,10 +66,10 @@ impl Snapshot for Monochrome {
     type Snapshot = Vec<u8>;
 
     fn take_snapshot(&self) -> Self::Snapshot {
-        todo!()
+        bincode::serialize(self).unwrap()
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        todo!()
+        *self = bincode::deserialize(&snapshot).unwrap();
     }
 }

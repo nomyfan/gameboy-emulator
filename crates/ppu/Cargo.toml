@@ -9,3 +9,4 @@ log = { workspace = true }
 mockall = { workspace = true }
 web-time = { workspace = true }
 serde = { workspace = true }
+bincode = { workspace = true }

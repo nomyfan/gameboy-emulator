@@ -20,7 +20,7 @@ pub(crate) struct VideoRam {
     /// Tile map area(in size of 0x800).
     /// - Tile map 0: 0x9800-0x9BFF
     /// - Tile map 1: 0x9C00-0x9FFF
-    vram: Vec<BoxedArray<u8, 0x2000>>,
+    ram: Vec<BoxedArray<u8, 0x2000>>,
     /// a.k.a VBK. On CGB, there're two banks.
     bank_num: u8,
 }
@@ -28,7 +28,7 @@ pub(crate) struct VideoRam {
 impl VideoRam {
     pub(crate) fn new(machine_model: MachineModel) -> Self {
         Self {
-            vram: match machine_model {
+            ram: match machine_model {
                 MachineModel::DMG => vec![Default::default()],
                 MachineModel::CGB => vec![Default::default(), Default::default()],
             },
@@ -41,17 +41,17 @@ impl VideoRam {
     /// `nth` is in range of 0..=383.
     pub(crate) fn tile(&self, bank_num: u8, index: usize) -> &[u8; 16] {
         let offset = index * 16;
-        let bank = &self.vram[bank_num as usize];
+        let bank = &self.ram[bank_num as usize];
 
         bank[offset..(offset + 16)].as_ref().try_into().unwrap()
     }
 
     pub(crate) fn tile_index(&self, index: usize) -> u8 {
-        self.vram[0][index + 0x1800]
+        self.ram[0][index + 0x1800]
     }
 
     pub(crate) fn bgw_tile_attrs(&self, index: usize) -> Option<BackgroundAttrs> {
-        self.vram.get(1).map(|bank| BackgroundAttrs(bank[index + 0x1800]))
+        self.ram.get(1).map(|bank| BackgroundAttrs(bank[index + 0x1800]))
     }
 
     pub(crate) fn bgw_tile_info(&self, index: usize) -> (u8, Option<BackgroundAttrs>) {
@@ -63,7 +63,7 @@ impl Memory for VideoRam {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x8000..=0x9FFF => {
-                self.vram[self.bank_num as usize][addr as usize - 0x8000] = value;
+                self.ram[self.bank_num as usize][addr as usize - 0x8000] = value;
             }
             0xFF4F => self.bank_num = value & 0x01,
             _ => unreachable!("Invalid VRAM write at {:#X} {:#X}", addr, value),
@@ -72,22 +72,38 @@ impl Memory for VideoRam {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0x8000..=0x9FFF => self.vram[self.bank_num as usize][addr as usize - 0x8000],
+            0x8000..=0x9FFF => self.ram[self.bank_num as usize][addr as usize - 0x8000],
             0xFF4F => self.bank_num | 0xFE,
             _ => unreachable!("Invalid VRAM read at {:#X}", addr),
         }
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct VideoRamSnapshot {
+    ram: Vec<u8>,
+    bank_num: u8,
+}
+
 impl Snapshot for VideoRam {
-    type Snapshot = Vec<u8>;
+    type Snapshot = VideoRamSnapshot;
 
     fn take_snapshot(&self) -> Self::Snapshot {
-        todo!()
+        let mut ram_snapshot = Vec::with_capacity(0x2000 * self.ram.len());
+        for bank in &self.ram {
+            ram_snapshot.extend_from_slice(bank.as_ref());
+        }
+
+        Self::Snapshot { ram: ram_snapshot, bank_num: self.bank_num }
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        todo!()
+        assert_eq!(snapshot.ram.len(), 0x2000 * self.ram.len());
+
+        self.ram.iter_mut().zip(snapshot.ram.chunks(0x2000)).for_each(|(bank, chunk)| {
+            bank.copy_from_slice(chunk);
+        });
+        self.bank_num = snapshot.bank_num;
     }
 }
 
