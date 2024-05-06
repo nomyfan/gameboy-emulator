@@ -131,7 +131,7 @@ impl Memory for Hdma {
 
                     ((hi as u16) << 8) | (lo as u16)
                 };
-                assert!(src_addr <= 0xDFF0); // TODO:
+                assert!(src_addr <= 0xDFF0);
                 let dst_addr = {
                     let hi = (self.hdma3 & 0x1F) | 0x80;
                     let lo = self.hdma4 & 0xF0;

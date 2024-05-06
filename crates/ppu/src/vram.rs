@@ -40,26 +40,22 @@ impl VideoRam {
 
 impl VideoRam {
     /// `nth` is in range of 0..=383.
-    pub(crate) fn tile(&self, bank_num: u8, index: usize) -> &[u8; 16] {
+    pub(crate) fn tile_data(&self, bank_num: u8, index: usize) -> &[u8; 16] {
         let offset = index * 16 + (bank_num as usize * 0x2000);
 
         self.ram[offset..(offset + 16)].as_ref().try_into().unwrap()
     }
 
-    pub(crate) fn tile_index(&self, index: usize) -> u8 {
-        self.ram[index + 0x1800]
+    pub(crate) fn tile_index(&self, nth: usize) -> u8 {
+        self.ram[nth + 0x1800]
     }
 
-    pub(crate) fn bgw_tile_attrs(&self, index: usize) -> Option<BackgroundAttrs> {
-        if self.ram.len() == 0x2000 {
-            None
-        } else {
-            Some(BackgroundAttrs(self.ram[0x3800 + index]))
-        }
+    pub(crate) fn bgw_tile_attrs(&self, nth: usize) -> Option<BackgroundAttrs> {
+        self.ram.get(0x3800 + nth).map(|&value| BackgroundAttrs(value))
     }
 
-    pub(crate) fn bgw_tile_info(&self, index: usize) -> (u8, Option<BackgroundAttrs>) {
-        (self.tile_index(index), self.bgw_tile_attrs(index))
+    pub(crate) fn bgw_tile_info(&self, nth: usize) -> (u8, Option<BackgroundAttrs>) {
+        (self.tile_index(nth), self.bgw_tile_attrs(nth))
     }
 }
 
@@ -93,7 +89,6 @@ impl Snapshot for VideoRam {
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        assert_eq!(self.ram.len(), snapshot.ram.len());
         self.ram = snapshot.ram;
         self.bank_num = snapshot.bank_num;
     }

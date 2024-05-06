@@ -18,7 +18,7 @@ use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
 
-pub type FrameOutHandle = dyn FnMut(&VideoFrame, &[u8]); // 256 * 256 * 2 * 3, 393216
+pub type FrameOutHandle = dyn FnMut(&VideoFrame, &[u8]);
 
 #[derive(Debug, Default)]
 pub(crate) struct PpuWorkState {
@@ -133,8 +133,8 @@ impl Ppu {
         } else {
             self.lcd.background_tile_map_area()
         };
-        let nth = (y as usize / 8) * 32 + (x as usize) / 8;
-        self.vram.bgw_tile_info(addr_base as usize - 0x9800 + nth)
+        let nth = addr_base as usize - 0x9800 + (y as usize / 8) * 32 + (x as usize) / 8;
+        self.vram.bgw_tile_info(nth)
     }
 
     fn read_tile_data(&self, bank_num: u8, index: u8, for_object: bool) -> &[u8; 16] {
@@ -144,7 +144,7 @@ impl Ppu {
             let index = index as i8; // Make it able to be negative.
             (256 + index as i16) as usize // It must be positive now before casting to usize.
         };
-        self.vram.tile(bank_num, index)
+        self.vram.tile_data(bank_num, index)
     }
 
     fn move_to_next_scanline(&mut self) {
