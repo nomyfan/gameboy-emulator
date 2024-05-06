@@ -13,7 +13,7 @@ use gb_shared::{
     is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, MachineModel, Memory, Snapshot,
 };
 use object::ObjectSnapshot;
-use palette::{Monochrome, Polychrome};
+use palette::{Palette, PaletteSnapshot};
 use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
@@ -43,9 +43,6 @@ pub(crate) struct PpuWorkState {
     window_used: bool,
 }
 
-trait GraphicPalette: Memory + Snapshot + crate::palette::Palette {}
-impl<T: Memory + Snapshot + crate::palette::Palette> GraphicPalette for T {}
-
 pub struct Ppu {
     vram: VideoRam,
     /// \[0xFE00, 0xFE9F]
@@ -57,7 +54,7 @@ pub struct Ppu {
     /// - Byte 3: attributes.
     oam: BoxedArray<u8, 160>,
     lcd: LCD,
-    palette: Box<dyn GraphicPalette<Snapshot = Vec<u8>>>,
+    palette: Palette,
     /// PPU work state.
     work_state: PpuWorkState,
     /// Storing palettes.
@@ -85,7 +82,7 @@ impl Default for Ppu {
             irq: Default::default(),
             machine_model,
             frame_out_handle: None,
-            palette: Box::new(Monochrome::new(0)),
+            palette: Palette::new(machine_model, 0),
             dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
         }
     }
@@ -94,10 +91,7 @@ impl Default for Ppu {
 impl Ppu {
     pub fn new(machine_model: MachineModel, compatibility_palette_id: u16) -> Self {
         Self {
-            palette: match machine_model {
-                MachineModel::DMG => Box::new(Monochrome::new(compatibility_palette_id)),
-                MachineModel::CGB => Box::new(Polychrome::new()),
-            },
+            palette: Palette::new(machine_model, compatibility_palette_id),
             dbg_video_buffer: match machine_model {
                 MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
                 MachineModel::CGB => vec![0xFF; (256 * 256 * 3 * 2) + (16 * 12)],
@@ -593,7 +587,7 @@ pub struct PpuSnapshot {
     vram: VideoRamSnapshot, // 0x2000
     oam: Vec<u8>,           // 0xA0
     lcd: LCD,
-    palette: Vec<u8>,
+    palette: PaletteSnapshot,
     //#region Work state
     scanline_x: u8,
     scanline_dots: u16,
