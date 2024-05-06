@@ -14,7 +14,7 @@ import { IGameBoyButton } from "gameboy/types";
 import * as utils from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef } from "react";
 
 import * as styles from "./Play.css";
 
@@ -68,6 +68,22 @@ export interface IPagePlayProps {
   style?: CSSProperties;
 }
 
+const DebugCanvas = forwardRef<HTMLCanvasElement, unknown>(
+  function DebugCanvas(_, ref) {
+    const showDebugCanvas =
+      new URLSearchParams(window.location.search).get("dbg") === "+";
+
+    return showDebugCanvas ? (
+      <canvas
+        ref={ref}
+        style={{ position: "absolute", left: 10, bottom: 10 }}
+        height={256 + 10 + 256}
+        width={256 + 10 + 40}
+      />
+    ) : null;
+  },
+);
+
 export function Play(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dbgCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -75,9 +91,6 @@ export function Play(props: IPagePlayProps) {
   const gameId = useAppStore((st) => {
     return st.games?.find((c) => c.id === st.selectedGameId)?.id;
   });
-
-  const showDebugCanvas =
-    new URLSearchParams(window.location.search).get("dbg") === "+";
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -124,14 +137,7 @@ export function Play(props: IPagePlayProps) {
       className={cn(styles.root, props.className)}
       style={props.style}
     >
-      {showDebugCanvas && (
-        <canvas
-          ref={dbgCanvasRef}
-          style={{ position: "absolute", left: 10, bottom: 10 }}
-          height={256 + 10 + 256}
-          width={256 + 10 + 40}
-        />
-      )}
+      <DebugCanvas ref={dbgCanvasRef} />
       <FlexBox justify="end" className={styles.side}>
         <div className={styles.leftSide}>
           <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
