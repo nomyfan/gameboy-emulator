@@ -598,7 +598,6 @@ pub struct PpuSnapshot {
     window_used: bool,
     //#endregion
     irq: u8,
-    video_buffer: Vec<u8>, // 160 * 144
 }
 
 impl Snapshot for Ppu {
@@ -621,7 +620,6 @@ impl Snapshot for Ppu {
             window_line: self.work_state.window_line,
             window_used: self.work_state.window_used,
             irq: self.irq.0,
-            video_buffer: self.video_buffer.to_vec(),
         }
     }
 
@@ -644,7 +642,6 @@ impl Snapshot for Ppu {
         self.work_state.window_line = snapshot.window_line;
         self.work_state.window_used = snapshot.window_used;
         self.irq.0 = snapshot.irq;
-        self.video_buffer = BoxedArray::try_from_vec(snapshot.video_buffer).unwrap();
     }
 }
 
