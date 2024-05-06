@@ -104,8 +104,13 @@ impl Memory for BusInner {
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.write(addr, value),
                     0xFF51..=0xFF55 => self.hdma.write(addr, value),
+                    0xFF56 => {
+                        log::warn!("RP is not supported yet");
+                    }
                     // BCPS, BCPD, OCPS, OCPD
                     0xFF68..=0xFF6B => self.ppu.write(addr, value),
+                    // OPRI
+                    0xFF6C => self.ppu.write(addr, value),
                     // WRAM bank(SVBK)
                     0xFF70 => self.wram.write(addr, value),
                     _ => {
@@ -176,8 +181,13 @@ impl Memory for BusInner {
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.read(addr),
                     0xFF51..=0xFF55 => self.hdma.read(addr),
+                    0xFF56 => {
+                        log::warn!("RP is not supported yet");
+                        0
+                    }
                     // BCPS, BCPD, OCPS, OCPD
                     0xFF68..=0xFF6B => self.ppu.read(addr),
+                    0xFF6C => self.ppu.read(addr),
                     // WRAM bank(SVBK)
                     0xFF70 => self.wram.read(addr),
                     _ => {

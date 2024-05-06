@@ -560,6 +560,9 @@ impl Memory for Ppu {
             0xFF4B => self.lcd.wx = value,
             0xFF4F => self.vram.write(addr, value),
             0xFF68..=0xFF6B => self.palette.write(addr, value),
+            0xFF6C => {
+                log::warn!("OPRI should not written by program.");
+            }
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
     }
@@ -579,6 +582,7 @@ impl Memory for Ppu {
             0xFF4B => self.lcd.wx,
             0xFF4F => self.vram.read(addr),
             0xFF68..=0xFF6B => self.palette.read(addr),
+            0xFF6C => 0xFE | if self.machine_model == MachineModel::CGB { 0x00 } else { 0x01 },
             _ => unreachable!("Invalid PPU address: {:#X}", addr),
         }
     }
