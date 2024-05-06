@@ -14,6 +14,7 @@ pub(crate) struct Hdma {
     /// Indicate whether DMA is in progress. Whatever the mode is,
     /// if `active` is false, then HDMA5 returns 0xFF.
     active: bool,
+    /// Total remaining bytes to copy.
     remain: u16,
     /// While in HBlank DMA, it's possible for the program to terminate
     /// the progress early via writing a value with Bit.7 set to 0 to HDMA5.
@@ -21,7 +22,7 @@ pub(crate) struct Hdma {
     terminated: bool,
     src_addr: u16,
     dst_addr: u16,
-    /// (LY, Remain)
+    /// (LY, Remain(Reaming bytes to copy in current scanline))
     hblank_scanline: Option<(u8, u8)>,
 }
 
@@ -69,9 +70,9 @@ impl Hdma {
 
         if self.hblank_mode {
             match self.hblank_scanline.as_mut() {
-                Some(handle) => {
-                    if handle.1 == 0 {
-                        self.hblank_scanline = Some((ly, 16))
+                Some(scanline) => {
+                    if scanline.1 == 0 {
+                        (*scanline) = (ly, 16);
                     }
                 }
                 None => self.hblank_scanline = Some((ly, 16)),
@@ -144,13 +145,8 @@ impl Memory for Hdma {
                 self.remain = ((value & 0x7F) + 1) as u16 * 16;
                 self.hblank_scanline = None;
                 self.terminated = false;
-                log::debug!(
-                    "Activate VRAM DMA in {} mode, copying {} bytes",
-                    if self.hblank_mode { "HBlank" } else { "General Purpose" },
-                    self.remain
-                );
             }
-            _ => unreachable!("Invalid address: {:04X}", addr),
+            _ => unreachable!("Invalid HDMA write at {:#X} {:#X}", addr, value),
         }
     }
 
@@ -177,7 +173,7 @@ impl Memory for Hdma {
                     len
                 }
             }
-            _ => unreachable!("Invalid address: {:04X}", addr),
+            _ => unreachable!("Invalid HDMA read at {:#X}", addr),
         }
     }
 }

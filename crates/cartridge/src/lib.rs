@@ -462,22 +462,12 @@ impl Cartridge {
     }
 
     /// @see https://web.archive.org/web/20170830061747/http://www.vcfed.org/forum/showthread.php?19247-Disassembling-the-GBC-Boot-ROM&p=128734
-    /// @see https://tcrf.net/Notes:Game_Boy_Color_Bootstrap_ROM#Assigned_Palette_Configurations
+    /// @see https://gbdev.io/pandocs/Power_Up_Sequence.html?highlight=string%20%22#compatibility-palettes
     pub fn compatibility_palette_id(&self) -> Option<u16> {
         if let MachineModel::CGB = self.machine_model() {
             return None;
         }
 
-        const TITLE_CHECKSUM_LOOKUP_TABLE: &[u8; 79] = &[
-            // 4 * 16
-            0x00, 0x88, 0x16, 0x36, 0xD1, 0xDB, 0xF2, 0x3C, 0x8C, 0x92, 0x3D, 0x5C, 0x58, 0xC9,
-            0x3E, 0x70, 0x1D, 0x59, 0x69, 0x19, 0x35, 0xA8, 0x14, 0xAA, 0x75, 0x95, 0x99, 0x34,
-            0x6F, 0x15, 0xFF, 0x97, 0x4B, 0x90, 0x17, 0x10, 0x39, 0xF7, 0xF6, 0xA2, 0x49, 0x4E,
-            0x43, 0x68, 0xE0, 0x8B, 0xF0, 0xCE, 0x0C, 0x29, 0xE8, 0xB7, 0x86, 0x9A, 0x52, 0x01,
-            0x9D, 0x71, 0x9C, 0xBD, 0x5D, 0x6D, 0x67, 0x3F, 0x6B, //
-            // 14
-            0xB3, 0x46, 0x28, 0xA5, 0xC6, 0xD3, 0x27, 0x61, 0x18, 0x66, 0x6A, 0xBF, 0x0D, 0xF4,
-        ];
         let ok = if self.header.licensee_code == 0x33 {
             // String "01"
             self.header.new_licensee_code == 0x3130
@@ -488,27 +478,36 @@ impl Cartridge {
             return Some(0x0000);
         }
 
+        const TITLE_CHECKSUM_LOOKUP_TABLE: &[u8; 79] = &[
+            // 65
+            0x00, 0x88, 0x16, 0x36, 0xD1, 0xDB, 0xF2, 0x3C, 0x8C, 0x92, 0x3D, 0x5C, 0x58, 0xC9,
+            0x3E, 0x70, 0x1D, 0x59, 0x69, 0x19, 0x35, 0xA8, 0x14, 0xAA, 0x75, 0x95, 0x99, 0x34,
+            0x6F, 0x15, 0xFF, 0x97, 0x4B, 0x90, 0x17, 0x10, 0x39, 0xF7, 0xF6, 0xA2, 0x49, 0x4E,
+            0x43, 0x68, 0xE0, 0x8B, 0xF0, 0xCE, 0x0C, 0x29, 0xE8, 0xB7, 0x86, 0x9A, 0x52, 0x01,
+            0x9D, 0x71, 0x9C, 0xBD, 0x5D, 0x6D, 0x67, 0x3F, 0x6B, //
+            // 14
+            0xB3, 0x46, 0x28, 0xA5, 0xC6, 0xD3, 0x27, 0x61, 0x18, 0x66, 0x6A, 0xBF, 0x0D, 0xF4,
+        ];
         let checksum = self.header.title.iter().fold(0u8, |sum, x| sum.wrapping_add(*x));
-        match TITLE_CHECKSUM_LOOKUP_TABLE.iter().position(|&v| v == checksum) {
-            Some(index) => {
-                if index <= 64 {
-                    Some((checksum as u16) << 8)
-                } else {
-                    const LETTERS: &str = "BEFAARBEKEK R-URAR INAILICE R"; // 14 + 14 + 1
-                    let the_4th_letter = self.header.title[3];
-                    let offset = index - 65; // 0-13
+        if let Some(index) = TITLE_CHECKSUM_LOOKUP_TABLE.iter().position(|&v| v == checksum) {
+            if index <= 64 {
+                return Some((checksum as u16) << 8);
+            } else {
+                const LETTERS: &str = "BEFAARBEKEK R-URAR INAILICE R"; // 14 + 14 + 1
+                let the_4th_letter = self.header.title[3];
+                let offset = index - 65; // 0-13
 
-                    let bytes = LETTERS.as_bytes();
-                    for x in (offset..bytes.len()).step_by(14) {
-                        if bytes[x] == the_4th_letter {
-                            return Some((checksum as u16) << 8 | (the_4th_letter as u16));
-                        }
+                let bytes = LETTERS.as_bytes();
+                for x in (offset..bytes.len()).step_by(14) {
+                    if bytes[x] == the_4th_letter {
+                        return Some((checksum as u16) << 8 | (the_4th_letter as u16));
                     }
-
-                    Some(0x0000)
                 }
+
+                return Some(0x0000);
             }
-            None => Some(0x0000),
         }
+
+        Some(0x0000)
     }
 }

@@ -1,3 +1,4 @@
+/// From https://tcrf.net/Notes:Game_Boy_Color_Bootstrap_ROM#Assigned_Palette_Configurations
 const COMPATIBILITY_PALETTES: &[(u16, [u32; 12])] = &[
     (
         0xB355, // 0xB3 'U'
