@@ -98,7 +98,7 @@ impl GameBoyHandle {
 
         let mut scale_image = ScaleImageData::new(160, 144, scale);
         let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
-        let frame_handle = Box::new(move |data: &BoxedArray<u8, 69120>, vram: &[u8]| {
+        let frame_handle = Box::new(move |data: &BoxedArray<u8, 69120>, dbg_data: &[u8]| {
             for (n, rgb) in data.chunks(3).enumerate() {
                 rgba[0] = rgb[0];
                 rgba[1] = rgb[1];
@@ -114,7 +114,7 @@ impl GameBoyHandle {
 
             if let Some((canvas_context, scale_image)) = dbg_canvas_context.as_mut() {
                 // The first tile map, 256x256
-                for (n, rgb) in vram.chunks(3).take(256 * 256).enumerate() {
+                for (n, rgb) in dbg_data.chunks(3).take(256 * 256).enumerate() {
                     rgba[0] = rgb[0];
                     rgba[1] = rgb[1];
                     rgba[2] = rgb[2];
@@ -124,7 +124,7 @@ impl GameBoyHandle {
                 }
 
                 // The second tile map, 256x256
-                for (n, rgb) in vram.chunks(3).skip(256 * 256).take(256 * 256).enumerate() {
+                for (n, rgb) in dbg_data.chunks(3).skip(256 * 256).take(256 * 256).enumerate() {
                     rgba[0] = rgb[0];
                     rgba[1] = rgb[1];
                     rgba[2] = rgb[2];
@@ -134,7 +134,7 @@ impl GameBoyHandle {
                 }
 
                 // Palette colors
-                vram.chunks(3).skip(256 * 256 * 2).enumerate().for_each(|(n, rgb)| {
+                dbg_data.chunks(3).skip(256 * 256 * 2).enumerate().for_each(|(n, rgb)| {
                     rgba[0] = rgb[0];
                     rgba[1] = rgb[1];
                     rgba[2] = rgb[2];
