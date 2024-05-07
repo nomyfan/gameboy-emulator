@@ -111,9 +111,9 @@ impl Memory for Hdma {
             0xFF53 => self.hdma3 = value,
             0xFF54 => self.hdma4 = value,
             0xFF55 => {
-                if self.active {
+                if self.active && !self.terminated {
                     assert!(self.hblank_mode); // Only in mode1 can the program have a chance to write to HDMA5.
-                    if !is_bit_set!(value, 7) {
+                    if !(is_bit_set!(value, 7)) {
                         self.terminated = true;
                     }
                     return;
@@ -272,9 +272,27 @@ mod tests {
             helper.transfer(0, true);
 
             assert!(helper.dma.active(1, true));
+            // Terminate
             helper.dma.write(HDMA5, 0x00);
             assert!(!helper.dma.active(1, true));
             assert_eq!(0x81, helper.dma.read(HDMA5));
+        }
+
+        #[test]
+        fn should_be_able_to_start_new_transfer_after_terminated() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+            helper.transfer(0, true);
+
+            assert!(helper.dma.active(1, true));
+            // Terminate
+            helper.dma.write(HDMA5, 0x00);
+            assert!(!helper.dma.active(1, true));
+            assert_eq!(0x81, helper.dma.read(HDMA5));
+            // Start new transfer
+            helper.start(true, 0x1230, 0x8000, 0x02);
+            helper.dma.active(0, true);
+            assert_eq!(0x02, helper.dma.read(HDMA5));
         }
 
         #[test]
