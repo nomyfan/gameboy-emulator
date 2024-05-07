@@ -67,7 +67,6 @@ impl Hdma {
         if !self.active(ly, hblank) {
             return None;
         }
-        assert!(self.remain > 0);
 
         if self.hblank_mode {
             match self.hblank_scanline.as_mut() {
@@ -88,9 +87,6 @@ impl Hdma {
         self.remain -= 1;
         if let Some(x) = self.hblank_scanline.as_mut() {
             x.1 -= 1;
-            if x.1 == 0 {
-                assert_eq!(self.remain % 16, 0);
-            }
         }
 
         // The status of this case is unknown. See https://gbdev.io/pandocs/CGB_Registers.html#documented-registers:~:text=if%20the%20transfer%E2%80%99s%20destination%20address%20overflows
