@@ -45,14 +45,14 @@ pub(crate) struct PpuWorkState {
 
 pub struct Ppu {
     vram: VideoRam,
-    /// \[0xFE00, 0xFE9F]
+    /// 0xFE00-0xFE9F
     /// OAM(Object Attribute Memory) is used to store objects.
     /// There're up to 40 objects. Each entry consists of 4 bytes.
     /// - Byte 0: Y position.
     /// - Byte 1: X position.
     /// - Byte 2: tile index.
     /// - Byte 3: attributes.
-    oam: BoxedArray<u8, 160>,
+    oam: [u8; 160],
     lcd: LCD,
     palette: Palette,
     /// PPU work state.
@@ -75,7 +75,7 @@ impl Default for Ppu {
 
         Self {
             vram: VideoRam::new(machine_model),
-            oam: Default::default(),
+            oam: [0x00; 160],
             lcd: Default::default(),
             work_state: Default::default(),
             video_buffer,
@@ -557,8 +557,8 @@ impl Memory for Ppu {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PpuSnapshot {
-    vram: VideoRamSnapshot, // 0x2000
-    oam: Vec<u8>,           // 0xA0
+    vram: VideoRamSnapshot,
+    oam: Vec<u8>,
     lcd: LCD,
     palette: PaletteSnapshot,
     //#region Work state
@@ -596,7 +596,7 @@ impl Snapshot for Ppu {
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.vram.restore_snapshot(snapshot.vram);
-        self.oam = BoxedArray::try_from_vec(snapshot.oam).unwrap();
+        self.oam = snapshot.oam.as_slice().try_into().unwrap();
         self.lcd = snapshot.lcd;
         self.palette.restore_snapshot(snapshot.palette);
         self.work_state.scanline_x = snapshot.scanline_x;

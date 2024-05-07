@@ -367,17 +367,18 @@ impl Memory for Bus {
 pub(crate) struct BusSnapshot {
     interrupt_enable: u8,
     interrupt_flag: u8,
+    cart: Vec<u8>,
     wram: WorkRamSnapshot,
     hram: HighRamSnapshot,
     dma: DmaSnapshot,
+    vdma: VdmaSnapshot,
+    mram: MiscRamSnapshot,
     serial: SerialSnapshot,
     joypad: JoypadSnapshot,
     timer: TimerSnapshot,
+    clocks: u8,
     ppu: PpuSnapshot,
     apu: ApuSnapshot,
-    cart: Vec<u8>,
-    vdma: VdmaSnapshot,
-    mram: MiscRamSnapshot,
 }
 
 impl Snapshot for Bus {
@@ -387,33 +388,35 @@ impl Snapshot for Bus {
         BusSnapshot {
             interrupt_enable: self.interrupt_enable,
             interrupt_flag: self.interrupt_flag,
+            cart: self.cart.take_snapshot(),
             wram: self.wram.take_snapshot(),
             hram: self.hram.take_snapshot(),
             dma: self.dma.take_snapshot(),
+            vdma: self.vdma.take_snapshot(),
+            mram: self.mram.take_snapshot(),
             serial: self.serial.take_snapshot(),
             joypad: self.joypad.take_snapshot(),
             timer: self.timer.take_snapshot(),
+            clocks: self.clocks,
             ppu: self.ppu.take_snapshot(),
             apu: self.apu.take_snapshot(),
-            cart: self.cart.take_snapshot(),
-            vdma: self.vdma.take_snapshot(),
-            mram: self.mram.take_snapshot(),
         }
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         self.interrupt_enable = snapshot.interrupt_enable;
         self.interrupt_flag = snapshot.interrupt_flag;
+        self.cart.restore_snapshot(snapshot.cart);
         self.wram.restore_snapshot(snapshot.wram);
         self.hram.restore_snapshot(snapshot.hram);
         self.dma.restore_snapshot(snapshot.dma);
+        self.vdma.restore_snapshot(snapshot.vdma);
+        self.mram.restore_snapshot(snapshot.mram);
         self.serial.restore_snapshot(snapshot.serial);
         self.joypad.restore_snapshot(snapshot.joypad);
         self.timer.restore_snapshot(snapshot.timer);
+        self.clocks = snapshot.clocks;
         self.ppu.restore_snapshot(snapshot.ppu);
         self.apu.restore_snapshot(snapshot.apu);
-        self.cart.restore_snapshot(snapshot.cart);
-        self.vdma.restore_snapshot(snapshot.vdma);
-        self.mram.restore_snapshot(snapshot.mram);
     }
 }
