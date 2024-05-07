@@ -196,7 +196,7 @@ impl Ppu {
                             false,
                         );
                         let color = self.palette.background_color(palette_id, color_id);
-                        let base_addr = (y as usize * 256 + x as usize) * 3 + (i * 256 * 256 * 3);
+                        let base_addr = (y * 256 + x) * 3 + (i * 256 * 256 * 3);
                         self.dbg_video_buffer[base_addr..(base_addr + 3)]
                             .copy_from_slice(&color.to_be_bytes()[1..]);
                     }
