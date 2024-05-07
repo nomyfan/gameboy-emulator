@@ -105,7 +105,15 @@ impl Memory for BusInner {
                     }
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.write(addr, value),
-                    0xFF51..=0xFF55 => self.hdma.write(addr, value),
+                    0xFF51..=0xFF54 => self.hdma.write(addr, value),
+                    0xFF55 => {
+                        // @see https://gbdev.io/pandocs/CGB_Registers.html#documented-registers:~:text=hblank%20dma%20should%20not%20be%20started%20(write%20to%20ff55)%20during%20a%20hblank%20period
+                        if self.ppu.lcd_mode().hblank() {
+                            log::error!("HBlank DMA should not be started during HBlank period.");
+                            return;
+                        }
+                        self.hdma.write(addr, value);
+                    }
                     0xFF56 => {
                         log::warn!("RP is not supported yet");
                     }

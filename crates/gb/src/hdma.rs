@@ -93,8 +93,6 @@ impl Hdma {
             }
         }
 
-        // TODO: https://gbdev.io/pandocs/CGB_Registers.html#documented-registers:~:text=hblank%20dma%20should%20not%20be%20started%20(write%20to%20ff55)%20during%20a%20hblank%20period%20(stat%20mode%200).
-
         // The status of this case is unknown. See https://gbdev.io/pandocs/CGB_Registers.html#documented-registers:~:text=if%20the%20transfer%E2%80%99s%20destination%20address%20overflows
         if self.dst_addr > 0x9FFF {
             self.remain = 0;
