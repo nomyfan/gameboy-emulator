@@ -1,11 +1,11 @@
 mod bus;
 mod dma;
-mod hdma;
 mod hram;
 mod joypad;
 mod misc_ram;
 mod serial;
 mod timer;
+mod vdma;
 mod wram;
 
 use bus::{Bus, BusSnapshot};

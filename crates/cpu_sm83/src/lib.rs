@@ -430,10 +430,10 @@ where
     }
 
     pub fn step(&mut self) {
-        if self.bus.hdma_active() {
-            // TODO: In normal speed, transfer 2 bytes in 1 M-cycle. In double speed, transfer 2 bytes in 2 M-cycles. Thus, call `step_hdma` once on double speed mode.
-            self.bus.step_hdma();
-            self.bus.step_hdma();
+        if self.bus.vdma_active() {
+            // TODO: In normal speed, transfer 2 bytes in 1 M-cycle. In double speed, transfer 2 bytes in 2 M-cycles. Thus, call `step_vdma` once on double speed mode.
+            self.bus.step_vdma();
+            self.bus.step_vdma();
             self.adv_clocks(4);
             return;
         }
@@ -1288,11 +1288,11 @@ mock! {
             // Noop
         }
 
-        fn hdma_active(&self) -> bool {
+        fn vdma_active(&self) -> bool {
             false
         }
 
-        fn step_hdma(&mut self) {
+        fn step_vdma(&mut self) {
             // Noop
         }
     }

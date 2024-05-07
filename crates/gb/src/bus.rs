@@ -6,12 +6,12 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     dma::{DmaSnapshot, DMA},
-    hdma::{Hdma, HdmaSnapshot},
     hram::{HighRam, HighRamSnapshot},
     joypad::{Joypad, JoypadSnapshot},
     misc_ram::{MiscRam, MiscRamSnapshot},
     serial::{Serial, SerialSnapshot},
     timer::{Timer, TimerSnapshot},
+    vdma::{Vdma, VdmaSnapshot},
     wram::{WorkRam, WorkRamSnapshot},
 };
 
@@ -40,7 +40,7 @@ pub(crate) struct BusInner {
     wram: WorkRam,
     hram: HighRam,
     dma: DMA,
-    hdma: Hdma,
+    vdma: Vdma,
     mram: MiscRam,
     /// Serial transfer
     serial: Serial,
@@ -105,14 +105,14 @@ impl Memory for BusInner {
                     }
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.write(addr, value),
-                    0xFF51..=0xFF54 => self.hdma.write(addr, value),
+                    0xFF51..=0xFF54 => self.vdma.write(addr, value),
                     0xFF55 => {
                         // @see https://gbdev.io/pandocs/CGB_Registers.html#documented-registers:~:text=hblank%20dma%20should%20not%20be%20started%20(write%20to%20ff55)%20during%20a%20hblank%20period
                         if self.ppu.lcd_mode().hblank() {
                             log::error!("HBlank DMA should not be started during HBlank period.");
                             return;
                         }
-                        self.hdma.write(addr, value);
+                        self.vdma.write(addr, value);
                     }
                     0xFF56 => {
                         log::warn!("RP is not supported yet");
@@ -190,7 +190,7 @@ impl Memory for BusInner {
                     0xFF4D => 0x00,
                     // VRAM bank(VBK)
                     0xFF4F => self.ppu.read(addr),
-                    0xFF51..=0xFF55 => self.hdma.read(addr),
+                    0xFF51..=0xFF55 => self.vdma.read(addr),
                     0xFF56 => {
                         log::warn!("RP is not supported yet");
                         0
@@ -253,7 +253,7 @@ impl Bus {
                 timer: Timer::new(),
                 ppu: Ppu::new(machine_model, compatibility_palette_id),
                 apu: Apu::new(sample_rate),
-                hdma: Hdma::new(),
+                vdma: Vdma::new(),
                 mram: MiscRam::new(machine_model),
                 clocks: 0,
                 ref_count: 1,
@@ -310,20 +310,20 @@ impl gb_shared::Bus for Bus {
         }
     }
 
-    fn hdma_active(&self) -> bool {
+    fn vdma_active(&self) -> bool {
         let ly = self.ppu.ly();
         let hblank = self.ppu.lcd_mode().hblank();
-        self.hdma.active(ly, hblank)
+        self.vdma.active(ly, hblank)
     }
 
-    fn step_hdma(&mut self) {
+    fn step_vdma(&mut self) {
         let ly = self.ppu.ly();
         let hblank = self.ppu.lcd_mode().hblank();
-        if !self.hdma.active(ly, hblank) {
+        if !self.vdma.active(ly, hblank) {
             return;
         }
 
-        if let Some((src_addr, dst_addr)) = self.hdma.step(ly, hblank) {
+        if let Some((src_addr, dst_addr)) = self.vdma.step(ly, hblank) {
             let value = self.read(src_addr);
             self.ppu.write(dst_addr, value);
         }
@@ -376,7 +376,7 @@ pub(crate) struct BusSnapshot {
     ppu: PpuSnapshot,
     apu: ApuSnapshot,
     cart: Vec<u8>,
-    hdma: HdmaSnapshot,
+    vdma: VdmaSnapshot,
     mram: MiscRamSnapshot,
 }
 
@@ -396,7 +396,7 @@ impl Snapshot for Bus {
             ppu: self.ppu.take_snapshot(),
             apu: self.apu.take_snapshot(),
             cart: self.cart.take_snapshot(),
-            hdma: self.hdma.take_snapshot(),
+            vdma: self.vdma.take_snapshot(),
             mram: self.mram.take_snapshot(),
         }
     }
@@ -413,7 +413,7 @@ impl Snapshot for Bus {
         self.ppu.restore_snapshot(snapshot.ppu);
         self.apu.restore_snapshot(snapshot.apu);
         self.cart.restore_snapshot(snapshot.cart);
-        self.hdma.restore_snapshot(snapshot.hdma);
+        self.vdma.restore_snapshot(snapshot.vdma);
         self.mram.restore_snapshot(snapshot.mram);
     }
 }

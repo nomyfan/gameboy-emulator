@@ -4,20 +4,22 @@ use gb_shared::{is_bit_set, Memory, Snapshot};
 
 /// VRAM takes 8 M-cycles to copy 16 bytes of data in normal speed mode,
 /// and 16 M-cycles in double speed mode. Older MBC(like MBC1-3) and slower
-/// ROMS(TODO: investigate) are not guaranteed to support General Purpose DMA or HBlank DMA.
+/// ROMS(TODO: investigate) are not guaranteed to support General Purpose DMA(GDMA)
+/// or HBlank DMA(HDMA).
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
-pub(crate) struct Hdma {
+pub(crate) struct Vdma {
     hdma1: u8,
     hdma2: u8,
     hdma3: u8,
     hdma4: u8,
-    hblank_mode: bool,
+    /// `true` for HDMA, `false` for GDMA.
+    hdma: bool,
     /// Indicate whether DMA is in progress. Whatever the mode is,
     /// if `active` is false, then HDMA5 returns 0xFF.
     active: bool,
     /// Total remaining bytes to copy.
     remain: u16,
-    /// While in HBlank DMA, it's possible for the program to terminate
+    /// While in HDMA, it's possible for the program to terminate
     /// the progress early via writing a value with Bit.7 set to 0 to HDMA5.
     /// In this case, HDMA5 returns the remaining length with Bit.7 set to 1.
     terminated: bool,
@@ -27,14 +29,14 @@ pub(crate) struct Hdma {
     hblank_scanline: Option<(u8, u8)>,
 }
 
-impl Hdma {
+impl Vdma {
     pub(crate) fn new() -> Self {
         Self {
             hdma1: 0xFF,
             hdma2: 0xF0,
             hdma3: 0x9F,
             hdma4: 0xF0,
-            hblank_mode: false,
+            hdma: false,
             active: false,
             remain: 0,
             terminated: false,
@@ -45,10 +47,10 @@ impl Hdma {
     }
 }
 
-impl Hdma {
+impl Vdma {
     pub(crate) fn active(&self, ly: u8, hblank: bool) -> bool {
         let mut active = self.active && !self.terminated;
-        if self.hblank_mode {
+        if self.hdma {
             active &= hblank;
             active &= self.hblank_scanline.map_or(true, |x| {
                 if x.0 == ly {
@@ -68,7 +70,7 @@ impl Hdma {
             return None;
         }
 
-        if self.hblank_mode {
+        if self.hdma {
             match self.hblank_scanline.as_mut() {
                 Some(scanline) => {
                     if scanline.1 == 0 {
@@ -103,7 +105,7 @@ impl Hdma {
     }
 }
 
-impl Memory for Hdma {
+impl Memory for Vdma {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0xFF51 => self.hdma1 = value,
@@ -112,7 +114,7 @@ impl Memory for Hdma {
             0xFF54 => self.hdma4 = value,
             0xFF55 => {
                 if self.active && !self.terminated {
-                    assert!(self.hblank_mode); // Only in mode1 can the program have a chance to write to HDMA5.
+                    assert!(self.hdma); // Only in HDMA can the program have a chance to write to HDMA5.
                     if !(is_bit_set!(value, 7)) {
                         self.terminated = true;
                     }
@@ -135,7 +137,7 @@ impl Memory for Hdma {
 
                 self.src_addr = src_addr;
                 self.dst_addr = dst_addr;
-                self.hblank_mode = is_bit_set!(value, 7);
+                self.hdma = is_bit_set!(value, 7);
                 self.active = true;
                 self.remain = ((value & 0x7F) + 1) as u16 * 16;
                 self.hblank_scanline = None;
@@ -149,9 +151,9 @@ impl Memory for Hdma {
         match addr {
             // 0xFF51-0xFF54 is write-only.
             0xFF55 => {
-                if !self.hblank_mode {
+                if !self.hdma {
                     if self.active {
-                        unreachable!("In General Purpose DMA mode, the program should have no chance to execute because the DMA copies all data once.")
+                        unreachable!("In GDMA, the program should have no chance to execute because the DMA copies all data once.")
                     }
                     // Completed
                     0xFF
@@ -173,10 +175,10 @@ impl Memory for Hdma {
     }
 }
 
-pub(crate) type HdmaSnapshot = Hdma;
+pub(crate) type VdmaSnapshot = Vdma;
 
-impl Snapshot for Hdma {
-    type Snapshot = HdmaSnapshot;
+impl Snapshot for Vdma {
+    type Snapshot = VdmaSnapshot;
 
     fn take_snapshot(&self) -> Self::Snapshot {
         self.clone()
@@ -198,12 +200,12 @@ mod tests {
     const HDMA5: u16 = 0xFF55;
 
     struct DmaHelper {
-        dma: Hdma,
+        dma: Vdma,
     }
 
     impl DmaHelper {
         fn new() -> Self {
-            DmaHelper { dma: Hdma::new() }
+            DmaHelper { dma: Vdma::new() }
         }
 
         fn start(&mut self, hdma: bool, src_addr: u16, dst_addr: u16, length: u8) {
