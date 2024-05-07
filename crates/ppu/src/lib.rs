@@ -134,7 +134,8 @@ impl Ppu {
             self.lcd.background_tile_map_area()
         };
         let nth = addr_base as usize - 0x9800 + (y as usize / 8) * 32 + (x as usize) / 8;
-        self.vram.bgw_tile_info(nth)
+
+        (self.vram.tile_index(nth), self.vram.tile_attrs(nth))
     }
 
     fn read_tile_data(&self, bank_num: u8, index: u8, for_object: bool) -> &[u8; 16] {
@@ -181,8 +182,8 @@ impl Ppu {
                     for x in 0..256 {
                         let nth = y / 8 * 32 + (x / 8);
                         let tile_index = self.vram.tile_index(vram_offset + nth);
+                        let attrs = self.vram.tile_attrs(vram_offset + nth);
 
-                        let attrs = self.vram.bgw_tile_attrs(vram_offset + nth);
                         let bank_num = attrs.map(|x| x.bank_num()).unwrap_or_default();
                         let palette_id = attrs.map(|x| x.palette()).unwrap_or_default();
 

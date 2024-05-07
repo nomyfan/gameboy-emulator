@@ -50,12 +50,8 @@ impl VideoRam {
         self.ram[nth + 0x1800]
     }
 
-    pub(crate) fn bgw_tile_attrs(&self, nth: usize) -> Option<BackgroundAttrs> {
+    pub(crate) fn tile_attrs(&self, nth: usize) -> Option<BackgroundAttrs> {
         self.ram.get(0x3800 + nth).map(|&value| BackgroundAttrs(value))
-    }
-
-    pub(crate) fn bgw_tile_info(&self, nth: usize) -> (u8, Option<BackgroundAttrs>) {
-        (self.tile_index(nth), self.bgw_tile_attrs(nth))
     }
 }
 
