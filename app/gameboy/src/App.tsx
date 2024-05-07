@@ -15,7 +15,9 @@ const handleBeforeUnload = (evt: BeforeUnloadEvent) => {
   evt.preventDefault();
 };
 
-window.addEventListener("beforeunload", handleBeforeUnload);
+if (process.env.NODE_ENV !== "development") {
+  window.addEventListener("beforeunload", handleBeforeUnload);
+}
 
 export function App() {
   const snapshotModalOpen = useAppStore((st) => st.dialog.snapshot.open);
@@ -39,7 +41,9 @@ export function App() {
           // Cancelled
           return;
         }
-        window.removeEventListener("beforeunload", handleBeforeUnload);
+        if (process.env.NODE_ENV !== "development") {
+          window.removeEventListener("beforeunload", handleBeforeUnload);
+        }
         await updateServiceWorker(true);
       })();
     },

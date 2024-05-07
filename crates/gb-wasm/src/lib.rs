@@ -12,45 +12,43 @@ use web_sys::{
     OffscreenCanvas, OffscreenCanvasRenderingContext2d, WritableStream,
 };
 
-const COLORS: [[u8; 4]; 4] = [
-    [0xFF, 0xFF, 0xFF, 0xFF],
-    [0xAA, 0xAA, 0xAA, 0xFF],
-    [0x55, 0x55, 0x55, 0xFF],
-    [0x00, 0x00, 0x00, 0xFF],
-];
-
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
 }
 
-struct ScaleImageData(Vec<u8>, u8);
+struct ScaleImageData {
+    raw: Vec<u8>,
+    scale: u8,
+    width: usize,
+    height: usize,
+}
 
 impl ScaleImageData {
     fn new(width: usize, height: usize, scale: u8) -> ScaleImageData {
         let scaled_size = width * scale as usize * height * scale as usize * 4;
-        ScaleImageData(vec![0; scaled_size], scale)
+        Self { raw: vec![0; scaled_size], scale, width, height }
     }
 
     fn set(&mut self, x: usize, y: usize, color: &[u8; 4]) {
-        let scale = self.1 as usize;
+        let scale = self.scale as usize;
         let x_begin = x * scale;
         let x_end = x_begin + scale;
         let y_begin = y * scale;
         let y_end = y_begin + scale;
 
         for y in y_begin..y_end {
-            let begin = (y * 160 * scale + x_begin) * 4;
-            let end = (y * 160 * scale + x_end) * 4;
-            self.0[begin..end].chunks_mut(4).for_each(|chunk| chunk.copy_from_slice(color));
+            let begin = (y * self.width * scale + x_begin) * 4;
+            let end = (y * self.width * scale + x_end) * 4;
+            self.raw[begin..end].chunks_mut(4).for_each(|chunk| chunk.copy_from_slice(color));
         }
     }
 
     fn as_image_data(&self) -> ImageData {
         ImageData::new_with_u8_clamped_array_and_sh(
-            Clamped(&self.0),
-            160 * self.1 as u32,
-            144 * self.1 as u32,
+            Clamped(&self.raw),
+            self.width as u32 * self.scale as u32,
+            self.height as u32 * self.scale as u32,
         )
         .unwrap()
     }
@@ -69,6 +67,7 @@ impl GameBoyHandle {
         sav: Option<Vec<u8>>,
         sample_rate: Option<u32>,
         audio_stream: Option<WritableStream>,
+        dbg_canvas: Option<HtmlCanvasElement>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
@@ -86,26 +85,74 @@ impl GameBoyHandle {
             .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
 
+        let mut dbg_canvas_context = dbg_canvas.map(|canvas| {
+            let context = canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<CanvasRenderingContext2d>()
+                .unwrap();
+            let scale_image = ScaleImageData::new(256 + 10 + 40, 256 + 10 + 256, 1);
+            (context, scale_image)
+        });
+
         let mut scale_image = ScaleImageData::new(160, 144, scale);
-        let frame_handle =
-            Box::new(
-                move |data: &BoxedArray<u8, 23040>,
-                      #[cfg(debug_assertions)] _dbg_data: Option<(
-                    &BoxedArray<u8, 0x2000>,
-                    bool,
-                )>| {
-                    data.iter().enumerate().for_each(|(n, color_id)| {
-                        let color = &COLORS[*color_id as usize];
+        let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
+        let frame_handle = Box::new(move |data: &BoxedArray<u8, 69120>, dbg_data: &[u8]| {
+            for (n, rgb) in data.chunks(3).enumerate() {
+                rgba[0] = rgb[0];
+                rgba[1] = rgb[1];
+                rgba[2] = rgb[2];
 
-                        let y = n / 160;
-                        let x = n % 160;
-                        scale_image.set(x, y, color);
-                    });
+                let y = n / 160;
+                let x = n % 160;
+                scale_image.set(x, y, &rgba);
+            }
 
-                    let image_data = scale_image.as_image_data();
-                    canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
-                },
-            );
+            let image_data = scale_image.as_image_data();
+            canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+
+            if let Some((canvas_context, scale_image)) = dbg_canvas_context.as_mut() {
+                // The first tile map, 256x256
+                for (n, rgb) in dbg_data.chunks(3).take(256 * 256).enumerate() {
+                    rgba[0] = rgb[0];
+                    rgba[1] = rgb[1];
+                    rgba[2] = rgb[2];
+                    let y = n / 256;
+                    let x = n % 256;
+                    scale_image.set(x, y, &rgba);
+                }
+
+                // The second tile map, 256x256
+                for (n, rgb) in dbg_data.chunks(3).skip(256 * 256).take(256 * 256).enumerate() {
+                    rgba[0] = rgb[0];
+                    rgba[1] = rgb[1];
+                    rgba[2] = rgb[2];
+                    let y = n / 256;
+                    let x = n % 256;
+                    scale_image.set(x, y + 256 + 10, &rgba);
+                }
+
+                // Palette colors
+                dbg_data.chunks(3).skip(256 * 256 * 2).enumerate().for_each(|(n, rgb)| {
+                    rgba[0] = rgb[0];
+                    rgba[1] = rgb[1];
+                    rgba[2] = rgb[2];
+
+                    let x = 266 + (n % 4) * 10;
+                    let y = (n / 4) * 10;
+                    let gap = (n / 4) * 5;
+                    for i in 0..10 {
+                        for j in 0..10 {
+                            scale_image.set(x + i, y + j + gap, &rgba);
+                        }
+                    }
+                });
+
+                let image_data = scale_image.as_image_data();
+                canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+            }
+        });
 
         match (audio_stream, sample_rate) {
             (Some(stream), Some(sample_rate)) => {
@@ -216,27 +263,22 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
         .dyn_into::<OffscreenCanvasRenderingContext2d>()
         .unwrap();
     let mut scale_image = ScaleImageData::new(160, 144, SCALE as u8);
+    let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
     gb.set_handles(
-        Some(
-            Box::new(
-                move |data: &BoxedArray<u8, 23040>,
-                      #[cfg(debug_assertions)] _dbg_data: Option<(
-                    &BoxedArray<u8, 0x2000>,
-                    bool,
-                )>| {
-                    data.iter().enumerate().for_each(|(n, color_id)| {
-                        let color = &COLORS[*color_id as usize];
+        Some(Box::new(move |data, _| {
+            data.chunks(3).enumerate().for_each(|(n, rgb)| {
+                rgba[0] = rgb[0];
+                rgba[1] = rgb[1];
+                rgba[2] = rgb[2];
 
-                        let y = n / 160;
-                        let x = n % 160;
-                        scale_image.set(x, y, color);
-                    });
+                let y = n / 160;
+                let x = n % 160;
+                scale_image.set(x, y, &rgba);
+            });
 
-                    let image_data = scale_image.as_image_data();
-                    canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
-                },
-            ),
-        ),
+            let image_data = scale_image.as_image_data();
+            canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+        })),
         None,
     );
 
@@ -244,7 +286,7 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
     gb.continue_clocks(70224 * frame_at.unwrap_or(60));
 
     let mut encode_options = ImageEncodeOptions::new();
-    encode_options.type_(&"image/jpeg").quality(1.0);
+    encode_options.type_("image/jpeg").quality(1.0);
     let cover = wasm_bindgen_futures::JsFuture::from(
         canvas.convert_to_blob_with_options(&encode_options).unwrap(),
     )
@@ -259,4 +301,9 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
 #[wasm_bindgen]
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
+}
+
+#[wasm_bindgen]
+pub fn init_log(max_level: &str, filters: &str) {
+    gb_console_log::init(max_level, filters)
 }

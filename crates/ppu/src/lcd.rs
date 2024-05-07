@@ -2,7 +2,7 @@ use gb_shared::is_bit_set;
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum LCDMode {
+pub enum LCDMode {
     /// OAM is inaccessible(except DMA) during this period.
     OamScan = 2,
     /// VRAM is inaccessible during this period.
@@ -16,6 +16,12 @@ impl From<u8> for LCDMode {
     fn from(value: u8) -> Self {
         let value = value & 0b11;
         unsafe { std::mem::transmute::<[u8; 1], Self>([value]) }
+    }
+}
+
+impl LCDMode {
+    pub fn hblank(&self) -> bool {
+        self == &Self::HBlank
     }
 }
 
@@ -69,11 +75,11 @@ impl Default for LCD {
 }
 
 impl LCD {
-    pub(crate) fn is_bgw_enabled(&self) -> bool {
+    pub(crate) fn lcdc0(&self) -> bool {
         is_bit_set!(self.lcdc, 0)
     }
 
-    pub(crate) fn is_object_enabled(&self) -> bool {
+    pub(crate) fn object_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 1)
     }
 
@@ -93,7 +99,7 @@ impl LCD {
         }
     }
 
-    pub(crate) fn is_window_enabled(&self) -> bool {
+    pub(crate) fn window_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 5)
     }
 
@@ -105,7 +111,7 @@ impl LCD {
         }
     }
 
-    pub(crate) fn is_lcd_enabled(&self) -> bool {
+    pub(crate) fn lcd_enabled(&self) -> bool {
         is_bit_set!(self.lcdc, 7)
     }
 }

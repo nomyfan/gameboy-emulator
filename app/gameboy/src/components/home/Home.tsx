@@ -101,7 +101,10 @@ export function Home() {
             } else if (id === "add") {
               let files: FileList | null = null;
               try {
-                files = await fs.pickFile({ accept: ".gb", multiple: true });
+                files = await fs.pickFile({
+                  accept: ".gb,.gbc",
+                  multiple: true,
+                });
               } catch {
                 // Cancelled
                 return;

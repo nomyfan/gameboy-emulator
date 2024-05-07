@@ -64,6 +64,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
+name = "env_filter"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "fragile"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -93,6 +102,7 @@ dependencies = [
  "anyhow",
  "console_error_panic_hook",
  "gb",
+ "gb_console_log",
  "gb_shared",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -123,6 +133,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gb_console_log"
+version = "0.1.0"
+dependencies = [
+ "env_filter",
+ "log",
+ "web-sys",
+]
+
+[[package]]
 name = "gb_cpu_sm83"
 version = "0.1.0"
 dependencies = [
@@ -138,6 +157,7 @@ dependencies = [
 name = "gb_ppu"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "gb_shared",
  "log",
  "mockall",

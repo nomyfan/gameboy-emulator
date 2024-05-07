@@ -13,5 +13,7 @@
 /roms/games
 # Log files
 *.log
+/roms/**/*.sav
+/roms/**/*.rtc
 
 flamegraph.svg

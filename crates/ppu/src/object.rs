@@ -40,6 +40,14 @@ impl ObjectAttrs {
     pub(crate) fn dmg_palette(&self) -> u8 {
         is_bit_set!(self.0, 4) as u8
     }
+
+    pub(crate) fn bank_num(&self) -> u8 {
+        is_bit_set!(self.0, 3) as u8
+    }
+
+    pub(crate) fn cgb_palette(&self) -> u8 {
+        self.0 & 0x7
+    }
 }
 
 impl From<u8> for ObjectAttrs {

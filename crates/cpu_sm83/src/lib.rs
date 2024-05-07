@@ -4,12 +4,12 @@ mod interrupt;
 mod proc;
 
 use cpu16::{Cpu16, Register16, Register8};
-use gb_shared::{is_bit_set, set_bits, unset_bits, Snapshot};
+use gb_shared::{is_bit_set, set_bits, unset_bits, MachineModel, Snapshot};
 use interrupt::INTERRUPTS;
 
 impl<BUS> Cpu16 for Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     fn adv_clocks(&mut self, clocks: u8) {
         self.clocks = self.clocks.wrapping_add(clocks);
@@ -139,7 +139,7 @@ where
 
 pub struct Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     /// Accumulator register
     pub reg_a: u8,
@@ -193,11 +193,12 @@ where
     /// Get set in HALT instruction only.
     /// Get read in HALT mode only.
     handle_itr: bool,
+    machine_model: MachineModel,
 }
 
 impl<BUS> core::fmt::Debug for Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Cpu")
@@ -229,7 +230,7 @@ fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
 
 impl<BUS> Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     pub fn new(bus: BUS) -> Self {
         Self {
@@ -251,8 +252,31 @@ where
             clocks: 0,
             ir: 0,
             handle_itr: true,
+            machine_model: MachineModel::DMG,
             bus,
         }
+    }
+
+    pub fn new_dmg(bus: BUS, cart_header_checksum: u8) -> Self {
+        let mut cpu = Self::new(bus);
+        cpu.set_af(if cart_header_checksum == 0 { 0x0180 } else { 0x01B0 });
+        cpu.set_bc(0x0013);
+        cpu.set_de(0x00D8);
+        cpu.set_hl(0x014D);
+        cpu.machine_model = MachineModel::DMG;
+
+        cpu
+    }
+
+    pub fn new_cgb(bus: BUS) -> Self {
+        let mut cpu = Self::new(bus);
+        cpu.set_af(0x1180);
+        cpu.set_bc(0x0000);
+        cpu.set_de(0xFF56);
+        cpu.set_hl(0x000D);
+        cpu.machine_model = MachineModel::CGB;
+
+        cpu
     }
 
     #[inline]
@@ -406,6 +430,14 @@ where
     }
 
     pub fn step(&mut self) {
+        if self.bus.vdma_active() {
+            // TODO: In normal speed, transfer 2 bytes in 1 M-cycle. In double speed, transfer 2 bytes in 2 M-cycles. Thus, call `step_vdma` once on double speed mode.
+            self.bus.step_vdma();
+            self.bus.step_vdma();
+            self.adv_clocks(4);
+            return;
+        }
+
         if self.halted {
             if self.itr_pending() {
                 self.halted = false;
@@ -1251,8 +1283,16 @@ mock! {
         }
     }
 
-    impl gb_shared::Component for Bus {
+    impl gb_shared::Bus for Bus {
         fn step(&mut self, cycles: u8) {
+            // Noop
+        }
+
+        fn vdma_active(&self) -> bool {
+            false
+        }
+
+        fn step_vdma(&mut self) {
             // Noop
         }
     }
@@ -1543,7 +1583,7 @@ pub struct CpuSnapshot {
 
 impl<BUS> Snapshot for Cpu<BUS>
 where
-    BUS: gb_shared::Memory + gb_shared::Component,
+    BUS: gb_shared::Bus,
 {
     type Snapshot = CpuSnapshot;
 

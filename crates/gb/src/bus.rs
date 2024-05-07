@@ -8,8 +8,10 @@ use crate::{
     dma::{DmaSnapshot, DMA},
     hram::{HighRam, HighRamSnapshot},
     joypad::{Joypad, JoypadSnapshot},
+    misc_ram::{MiscRam, MiscRamSnapshot},
     serial::{Serial, SerialSnapshot},
     timer::{Timer, TimerSnapshot},
+    vdma::{Vdma, VdmaSnapshot},
     wram::{WorkRam, WorkRamSnapshot},
 };
 
@@ -37,12 +39,14 @@ pub(crate) struct BusInner {
     pub(crate) cart: Cartridge,
     wram: WorkRam,
     hram: HighRam,
-    /// DMA state.
     dma: DMA,
+    vdma: Vdma,
+    mram: MiscRam,
     /// Serial transfer
     serial: Serial,
     joypad: Joypad,
     timer: Timer,
+    clocks: u8,
     pub(crate) ppu: Ppu,
     pub(crate) apu: Apu,
     ref_count: usize,
@@ -96,8 +100,31 @@ impl Memory for BusInner {
                     0xFF40..=0xFF4B => {
                         self.ppu.write(addr, value);
                     }
+                    0xFF4D => {
+                        log::error!("Switch speed is not supported yet, {}", value);
+                    }
+                    // VRAM bank(VBK)
+                    0xFF4F => self.ppu.write(addr, value),
+                    0xFF51..=0xFF54 => self.vdma.write(addr, value),
+                    0xFF55 => {
+                        // @see https://gbdev.io/pandocs/CGB_Registers.html#documented-registers:~:text=hblank%20dma%20should%20not%20be%20started%20(write%20to%20ff55)%20during%20a%20hblank%20period
+                        if self.ppu.lcd_mode().hblank() {
+                            log::error!("HBlank DMA should not be started during HBlank period.");
+                            return;
+                        }
+                        self.vdma.write(addr, value);
+                    }
+                    0xFF56 => {
+                        log::warn!("RP is not supported yet");
+                    }
+                    // BCPS, BCPD, OCPS, OCPD
+                    0xFF68..=0xFF6B => self.ppu.write(addr, value),
+                    // OPRI
+                    0xFF6C => self.ppu.write(addr, value),
+                    // WRAM bank(SVBK)
+                    0xFF70 => self.wram.write(addr, value),
                     _ => {
-                        log::error!("Unsupported");
+                        log::error!("Unsupported bus write {:#X} {:#X}", addr, value);
                     }
                 }
             }
@@ -157,14 +184,28 @@ impl Memory for BusInner {
                     }
                     0xFF10..=0xFF3F => self.apu.read(addr),
                     0xFF46 => self.dma.read(addr),
+                    // Exclude 0xFF46(DMA)
                     0xFF40..=0xFF4B => self.ppu.read(addr),
+                    // TODO: Switch speed.
+                    0xFF4D => 0x00,
+                    // VRAM bank(VBK)
+                    0xFF4F => self.ppu.read(addr),
+                    0xFF51..=0xFF55 => self.vdma.read(addr),
+                    0xFF56 => {
+                        log::warn!("RP is not supported yet");
+                        0
+                    }
+                    // BCPS, BCPD, OCPS, OCPD
+                    0xFF68..=0xFF6B => self.ppu.read(addr),
+                    0xFF6C => self.ppu.read(addr),
+                    // WRAM bank(SVBK)
+                    0xFF70 => self.wram.read(addr),
                     _ => {
-                        log::error!("Unsupported");
+                        log::error!("Unsupported bus read {:#X}", addr);
                         0
                     }
                 }
             }
-            // Exclude 0xFF46(DMA)
             0xFF80..=0xFFFE => {
                 // HRAM
                 self.hram.read(addr)
@@ -197,10 +238,12 @@ impl DerefMut for Bus {
 
 impl Bus {
     pub(crate) fn new(cart: Cartridge, sample_rate: Option<u32>) -> Self {
+        let machine_model = cart.machine_model();
+        let compatibility_palette_id = cart.compatibility_palette_id().unwrap_or_default();
         Self {
             ptr: Box::into_raw(Box::new(BusInner {
                 cart,
-                wram: WorkRam::new(),
+                wram: WorkRam::new(machine_model),
                 hram: HighRam::new(),
                 interrupt_enable: 0,
                 interrupt_flag: 0xE0,
@@ -208,8 +251,11 @@ impl Bus {
                 serial: Serial::new(),
                 joypad: Joypad::new(),
                 timer: Timer::new(),
-                ppu: Ppu::new(),
+                ppu: Ppu::new(machine_model, compatibility_palette_id),
                 apu: Apu::new(sample_rate),
+                vdma: Vdma::new(),
+                mram: MiscRam::new(machine_model),
+                clocks: 0,
                 ref_count: 1,
             })),
         }
@@ -238,9 +284,11 @@ impl Bus {
     }
 }
 
-impl gb_shared::Component for Bus {
-    fn step(&mut self, cycles: u8) {
-        let m_cycles = cycles / 4;
+impl gb_shared::Bus for Bus {
+    fn step(&mut self, clocks: u8) {
+        let clocks = self.clocks + clocks;
+        let m_cycles = clocks / 4;
+        self.clocks = clocks % 4;
         debug_assert!(m_cycles > 0);
 
         for _ in 0..m_cycles {
@@ -259,6 +307,25 @@ impl gb_shared::Component for Bus {
             // It costs 160 machine cycles to transfer 160 bytes of data.
             // https://gbdev.io/pandocs/OAM_DMA_Transfer.html#ff46--dma-oam-dma-source-address--start:~:text=the%20transfer%20takes%20160%20machine%20cycles
             self.step_dma();
+        }
+    }
+
+    fn vdma_active(&self) -> bool {
+        let ly = self.ppu.ly();
+        let hblank = self.ppu.lcd_mode().hblank();
+        self.vdma.active(ly, hblank)
+    }
+
+    fn step_vdma(&mut self) {
+        let ly = self.ppu.ly();
+        let hblank = self.ppu.lcd_mode().hblank();
+        if !self.vdma.active(ly, hblank) {
+            return;
+        }
+
+        if let Some((src_addr, dst_addr)) = self.vdma.step(ly, hblank) {
+            let value = self.read(src_addr);
+            self.ppu.write(dst_addr, value);
         }
     }
 }
@@ -309,6 +376,8 @@ pub(crate) struct BusSnapshot {
     ppu: PpuSnapshot,
     apu: ApuSnapshot,
     cart: Vec<u8>,
+    vdma: VdmaSnapshot,
+    mram: MiscRamSnapshot,
 }
 
 impl Snapshot for Bus {
@@ -327,6 +396,8 @@ impl Snapshot for Bus {
             ppu: self.ppu.take_snapshot(),
             apu: self.apu.take_snapshot(),
             cart: self.cart.take_snapshot(),
+            vdma: self.vdma.take_snapshot(),
+            mram: self.mram.take_snapshot(),
         }
     }
 
@@ -342,5 +413,7 @@ impl Snapshot for Bus {
         self.ppu.restore_snapshot(snapshot.ppu);
         self.apu.restore_snapshot(snapshot.apu);
         self.cart.restore_snapshot(snapshot.cart);
+        self.vdma.restore_snapshot(snapshot.vdma);
+        self.mram.restore_snapshot(snapshot.mram);
     }
 }
