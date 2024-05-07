@@ -113,7 +113,7 @@ impl Memory for Hdma {
             0xFF55 => {
                 if self.active {
                     assert!(self.hblank_mode); // Only in mode1 can the program have a chance to write to HDMA5.
-                    if is_bit_set!(value, 7) {
+                    if !is_bit_set!(value, 7) {
                         self.terminated = true;
                     }
                     return;
@@ -184,5 +184,150 @@ impl Snapshot for Hdma {
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
         (*self) = snapshot;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HDMA1: u16 = 0xFF51;
+    const HDMA2: u16 = 0xFF52;
+    const HDMA3: u16 = 0xFF53;
+    const HDMA4: u16 = 0xFF54;
+    const HDMA5: u16 = 0xFF55;
+
+    struct DmaHelper {
+        dma: Hdma,
+    }
+
+    impl DmaHelper {
+        fn new() -> Self {
+            DmaHelper { dma: Hdma::new() }
+        }
+
+        fn start(&mut self, hdma: bool, src_addr: u16, dst_addr: u16, length: u8) {
+            self.dma.write(HDMA1, (src_addr >> 8) as u8);
+            self.dma.write(HDMA2, src_addr as u8);
+            self.dma.write(HDMA3, (dst_addr >> 8) as u8);
+            self.dma.write(HDMA4, dst_addr as u8);
+            self.dma.write(HDMA5, length | if hdma { 0x80 } else { 0 });
+        }
+
+        fn transfer(&mut self, ly: u8, hblank: bool) {
+            for _ in 0..16 {
+                assert!(self.dma.active(ly, hblank));
+                assert!(self.dma.step(ly, hblank).is_some());
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn src_address_range() {
+        let mut helper = DmaHelper::new();
+        helper.start(
+            false,  //
+            0xE034, // Invalid source address
+            0x8005, 0x01,
+        );
+    }
+
+    #[test]
+    fn address_should_be_divied_by_16() {
+        let mut helper = DmaHelper::new();
+        helper.start(true, 0x1234, 0x8005, 0x01);
+        let addr = helper.dma.step(0, true);
+        assert_eq!(addr, Some((0x1230, 0x8000)));
+    }
+
+    mod hdma {
+        use super::*;
+
+        #[test]
+        fn should_be_active_during_transferring_16_bytes() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+
+            helper.transfer(0, true);
+            assert!(!helper.dma.active(0, true));
+        }
+
+        #[test]
+        #[should_panic]
+        fn should_transfer_16_bytes_before_entering_new_scanline() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+
+            // LY 0
+            assert!(helper.dma.step(0, true).is_some());
+            // LY 1
+            helper.dma.step(1, true);
+        }
+
+        #[test]
+        fn manual_terminate() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+            helper.transfer(0, true);
+
+            assert!(helper.dma.active(1, true));
+            helper.dma.write(HDMA5, 0x00);
+            assert!(!helper.dma.active(1, true));
+            assert_eq!(0x81, helper.dma.read(HDMA5));
+        }
+
+        #[test]
+        #[should_panic]
+        fn should_not_read_hdma5_during_transferring() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+
+            helper.dma.step(0, true);
+            helper.dma.read(HDMA5);
+        }
+
+        #[test]
+        fn should_hdma5_return_remining_length() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+
+            assert_eq!(0x02, helper.dma.read(HDMA5));
+            helper.transfer(0, true);
+            assert_eq!(0x01, helper.dma.read(HDMA5));
+        }
+
+        #[test]
+        fn should_be_inactive_when_not_in_hblank() {
+            let mut helper = DmaHelper::new();
+            helper.start(true, 0x1230, 0x8000, 0x02);
+
+            assert!(!helper.dma.active(0, false));
+        }
+    }
+
+    mod gdma {
+        use super::*;
+
+        #[test]
+        #[should_panic]
+        fn gdma_should_transfer_all_data_at_once_failure() {
+            let mut helper = DmaHelper::new();
+            helper.start(false, 0x1230, 0x8000, 0x02);
+
+            helper.transfer(0, false);
+            helper.dma.read(HDMA5);
+        }
+
+        #[test]
+        #[should_panic]
+        fn gdma_should_transfer_all_data_at_once_success() {
+            let mut helper = DmaHelper::new();
+            helper.start(false, 0x1230, 0x8000, 0x02);
+
+            helper.transfer(0, false);
+            helper.transfer(0, false);
+            helper.dma.read(HDMA5);
+        }
     }
 }
