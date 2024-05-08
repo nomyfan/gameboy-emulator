@@ -1,4 +1,5 @@
 build:
   wasm-pack build --release --out-dir npm --target web --mode no-install
 build-dev:
-  wasm-pack build --dev --out-dir npm --target web --mode no-install
+  # As a workaround now. Make sure run `build` first to generate the `package.json` file.
+  cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --keep-debug --web --out-dir npm ../../target/wasm32-unknown-unknown/release/gb_wasm.wasm
