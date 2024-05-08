@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - ".github/workflows/**"
+      - ".github/workflows/ci.yml"
       - "app/**"
       - "crates/**"
       - "Cargo.toml"
@@ -13,8 +13,11 @@ on:
       - "package.json"
   pull_request:
     branches: ["main"]
+    types:
+      - opened
+      - synchronize
     paths:
-      - ".github/workflows/**"
+      - ".github/workflows/ci.yml"
       - "app/**"
       - "crates/**"
       - "Cargo.toml"
@@ -37,7 +40,7 @@ jobs:
 
     steps:
       - name: Comment deploy start
-        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false }}
+        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' }}
         uses: mshick/add-pr-comment@v2
         with:
           message-id: cloudflare-deploy
@@ -124,7 +127,7 @@ jobs:
 
       - name: Comment deploy URL
         uses: mshick/add-pr-comment@v2
-        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' && github.event.pull_request.state == 'open' && github.event.pull_request.merged == false }}
+        if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' }}
         with:
           message-id: cloudflare-deploy
           message: |
