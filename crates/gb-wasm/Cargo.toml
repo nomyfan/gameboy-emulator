@@ -38,3 +38,6 @@ wasm-bindgen-futures = "0.4.42"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.42"
+
+[package.metadata.wasm-pack.profile.profiling.wasm-bindgen]
+dwarf-debug-info = true
