@@ -139,7 +139,7 @@ class GameBoyControl {
       const start = performance.now();
       const delayed = this.nextTickTime_ === 0 ? 0 : start - this.nextTickTime_;
       this.instance_!.continue();
-      const nextTickTime = start + 16.666666 - delayed;
+      const nextTickTime = start + 17 - delayed;
       this.nextTickTime_ = nextTickTime;
 
       this.playCallbackId_ = setTimeout(() => {
