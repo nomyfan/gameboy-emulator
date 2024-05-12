@@ -18,7 +18,10 @@ use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
 
+#[cfg(feature = "debug_frame")]
 pub type FrameOutHandle = dyn FnMut(&VideoFrame, &[u8]);
+#[cfg(not(feature = "debug_frame"))]
+pub type FrameOutHandle = dyn FnMut(&VideoFrame);
 
 #[derive(Debug, Default)]
 pub(crate) struct PpuWorkState {
@@ -59,6 +62,7 @@ pub struct Ppu {
     work_state: PpuWorkState,
     /// Storing palettes.
     video_buffer: VideoFrame,
+    #[cfg(feature = "debug_frame")]
     dbg_video_buffer: Vec<u8>,
 
     irq: Interrupt,
@@ -83,6 +87,7 @@ impl Default for Ppu {
             machine_model,
             frame_out_handle: None,
             palette: Palette::new(machine_model, 0),
+            #[cfg(feature = "debug_frame")]
             dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
         }
     }
@@ -92,6 +97,7 @@ impl Ppu {
     pub fn new(machine_model: MachineModel, compatibility_palette_id: u16) -> Self {
         Self {
             palette: Palette::new(machine_model, compatibility_palette_id),
+            #[cfg(feature = "debug_frame")]
             dbg_video_buffer: match machine_model {
                 MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
                 MachineModel::CGB => vec![0xFF; (256 * 256 * 3 * 2) + (16 * 12)],
@@ -176,6 +182,7 @@ impl Ppu {
     }
 
     fn push_frame(&mut self) {
+        #[cfg(feature = "debug_frame")]
         if self.frame_out_handle.is_some() {
             for (i, vram_offset) in [0, 0x400].iter().enumerate() {
                 for y in 0..256 {
@@ -214,7 +221,11 @@ impl Ppu {
         }
 
         if let Some(handle) = self.frame_out_handle.as_mut() {
-            handle(&self.video_buffer, &self.dbg_video_buffer);
+            handle(
+                &self.video_buffer,
+                #[cfg(feature = "debug_frame")]
+                &self.dbg_video_buffer,
+            );
         }
     }
 

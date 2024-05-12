@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["console_error_panic_hook"]
+debug_frame = ['gb/debug_frame']
 
 [dependencies]
 wasm-bindgen = { workspace = true }

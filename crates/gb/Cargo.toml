@@ -3,6 +3,10 @@ name = "gb"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+debug_frame = ["gb_ppu/debug_frame"]
+
 [dependencies]
 gb_apu = { workspace = true }
 gb_ppu = { workspace = true }

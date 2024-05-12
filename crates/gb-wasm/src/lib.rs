@@ -83,6 +83,7 @@ impl GameBoyHandle {
             .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
 
+        #[cfg(feature = "debug_frame")]
         let mut dbg_canvas_context = dbg_canvas.map(|canvas| {
             let context = canvas
                 .get_context("2d")
@@ -96,61 +97,64 @@ impl GameBoyHandle {
 
         let mut scale_image = ScaleImageData::new(160, 144, scale);
         let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
-        let frame_handle = Box::new(move |data: &BoxedArray<u8, 69120>, dbg_data: &[u8]| {
-            for (n, rgb) in data.chunks(3).enumerate() {
-                rgba[0] = rgb[0];
-                rgba[1] = rgb[1];
-                rgba[2] = rgb[2];
-
-                let y = n / 160;
-                let x = n % 160;
-                scale_image.set(x, y, &rgba);
-            }
-
-            let image_data = scale_image.as_image_data();
-            canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
-
-            if let Some((canvas_context, scale_image)) = dbg_canvas_context.as_mut() {
-                // The first tile map, 256x256
-                for (n, rgb) in dbg_data.chunks(3).take(256 * 256).enumerate() {
+        let frame_handle = Box::new(
+            move |data: &BoxedArray<u8, 69120>, #[cfg(feature = "debug_frame")] dbg_data: &[u8]| {
+                for (n, rgb) in data.chunks(3).enumerate() {
                     rgba[0] = rgb[0];
                     rgba[1] = rgb[1];
                     rgba[2] = rgb[2];
-                    let y = n / 256;
-                    let x = n % 256;
+
+                    let y = n / 160;
+                    let x = n % 160;
                     scale_image.set(x, y, &rgba);
                 }
 
-                // The second tile map, 256x256
-                for (n, rgb) in dbg_data.chunks(3).skip(256 * 256).take(256 * 256).enumerate() {
-                    rgba[0] = rgb[0];
-                    rgba[1] = rgb[1];
-                    rgba[2] = rgb[2];
-                    let y = n / 256;
-                    let x = n % 256;
-                    scale_image.set(x, y + 256 + 10, &rgba);
-                }
-
-                // Palette colors
-                dbg_data.chunks(3).skip(256 * 256 * 2).enumerate().for_each(|(n, rgb)| {
-                    rgba[0] = rgb[0];
-                    rgba[1] = rgb[1];
-                    rgba[2] = rgb[2];
-
-                    let x = 266 + (n % 4) * 10;
-                    let y = (n / 4) * 10;
-                    let gap = (n / 4) * 5;
-                    for i in 0..10 {
-                        for j in 0..10 {
-                            scale_image.set(x + i, y + j + gap, &rgba);
-                        }
-                    }
-                });
-
                 let image_data = scale_image.as_image_data();
                 canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
-            }
-        });
+
+                #[cfg(feature = "debug_frame")]
+                if let Some((canvas_context, scale_image)) = dbg_canvas_context.as_mut() {
+                    // The first tile map, 256x256
+                    for (n, rgb) in dbg_data.chunks(3).take(256 * 256).enumerate() {
+                        rgba[0] = rgb[0];
+                        rgba[1] = rgb[1];
+                        rgba[2] = rgb[2];
+                        let y = n / 256;
+                        let x = n % 256;
+                        scale_image.set(x, y, &rgba);
+                    }
+
+                    // The second tile map, 256x256
+                    for (n, rgb) in dbg_data.chunks(3).skip(256 * 256).take(256 * 256).enumerate() {
+                        rgba[0] = rgb[0];
+                        rgba[1] = rgb[1];
+                        rgba[2] = rgb[2];
+                        let y = n / 256;
+                        let x = n % 256;
+                        scale_image.set(x, y + 256 + 10, &rgba);
+                    }
+
+                    // Palette colors
+                    dbg_data.chunks(3).skip(256 * 256 * 2).enumerate().for_each(|(n, rgb)| {
+                        rgba[0] = rgb[0];
+                        rgba[1] = rgb[1];
+                        rgba[2] = rgb[2];
+
+                        let x = 266 + (n % 4) * 10;
+                        let y = (n / 4) * 10;
+                        let gap = (n / 4) * 5;
+                        for i in 0..10 {
+                            for j in 0..10 {
+                                scale_image.set(x + i, y + j + gap, &rgba);
+                            }
+                        }
+                    });
+
+                    let image_data = scale_image.as_image_data();
+                    canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+                }
+            },
+        );
 
         match (audio_stream, sample_rate) {
             (Some(stream), Some(sample_rate)) => {
@@ -263,7 +267,7 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
     let mut scale_image = ScaleImageData::new(160, 144, SCALE as u8);
     let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
     gb.set_handles(
-        Some(Box::new(move |data, _| {
+        Some(Box::new(move |data, #[cfg(feature = "debug_frame")] _| {
             data.chunks(3).enumerate().for_each(|(n, rgb)| {
                 rgba[0] = rgb[0];
                 rgba[1] = rgb[1];

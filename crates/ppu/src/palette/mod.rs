@@ -87,6 +87,7 @@ impl Palette {
         }
     }
 
+    #[cfg(feature = "debug_frame")]
     pub(crate) fn colors(&self) -> &[[u32; 4]] {
         match self.machine_model {
             MachineModel::DMG => &self.colors[..3],

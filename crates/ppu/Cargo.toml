@@ -3,6 +3,10 @@ name = "gb_ppu"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+debug_frame = []
+
 [dependencies]
 gb_shared = { workspace = true }
 log = { workspace = true }
