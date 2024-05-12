@@ -103,7 +103,7 @@ jobs:
 
       - name: Build WASM
         working-directory: ./crates/gb-wasm
-        run: wasm-pack build --release --out-dir npm --target web
+        run: "./x.mjs build"
 
       - name: Install dependencies for web app
         run: pnpm install --frozen-lockfile

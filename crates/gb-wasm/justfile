@@ -1,4 +1,0 @@
-build:
-  wasm-pack build --release --out-dir npm --target web
-build-dev:
-  wasm-pack build --profiling --out-dir npm --target web --mode no-install --no-opt
