@@ -9,7 +9,7 @@ import { obtainMetadata } from "gb-wasm";
 type IZipManifest = {
   name: string;
   id: string;
-  snapshots: { id: string; name: string; time: number; hash: string }[];
+  snapshots: { name: string; time: number; hash: string }[];
 };
 
 class DB extends Dexie {
@@ -177,17 +177,15 @@ class GameBoyStorage implements IGameBoyStorage {
     }
 
     for (const snapshot of snapshots) {
-      const snapshotId = `${snapshot.gameId}-${snapshot.id}`;
       entries.push({
-        path: `snapshots/${snapshotId}.ss`,
+        path: `snapshots/${snapshot.hash}.ss`,
         data: snapshot.data,
       });
       entries.push({
-        path: `snapshots/${snapshotId}.jpg`,
+        path: `snapshots/${snapshot.hash}.jpg`,
         data: snapshot.cover,
       });
       zipManifest.snapshots.push({
-        id: snapshotId,
         name: snapshot.name,
         time: snapshot.time,
         hash: snapshot.hash,
@@ -245,10 +243,10 @@ class GameBoyStorage implements IGameBoyStorage {
       manifest.snapshots.map(async (snapshot) => {
         if (!hashSet.has(snapshot.hash)) {
           const ss = (await zipReader.getUint8Array(
-            `snapshots/${snapshot.id}.ss`,
+            `snapshots/${snapshot.hash}.ss`,
           ))!;
           const cover = (await zipReader.getBlob(
-            `snapshots/${snapshot.id}.jpg`,
+            `snapshots/${snapshot.hash}.jpg`,
           ))!;
           snapshots.push({
             data: ss,
