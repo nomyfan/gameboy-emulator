@@ -12,7 +12,6 @@ export async function pickFile(options?: {
     input.setAttribute("multiple", "");
   }
   input.style.display = "none";
-  document.body.appendChild(input);
 
   return new Promise<FileList | null>((resolve, reject) => {
     input.addEventListener("change", () => {
@@ -27,6 +26,12 @@ export async function pickFile(options?: {
     });
 
     input.click();
-    input.remove();
   });
+}
+
+export function downloadFile(url: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
 }

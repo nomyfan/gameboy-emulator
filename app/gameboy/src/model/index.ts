@@ -15,6 +15,7 @@ export interface ISnapshot {
   data: Uint8Array;
   cover: Blob;
   gameId: IGame["id"];
+  hash: string;
 }
 
 export interface IGameBoyStorage {

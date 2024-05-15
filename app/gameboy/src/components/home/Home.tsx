@@ -8,7 +8,9 @@ import {
   IconPlay,
   IconFullscreen,
   IconFullscreenExit,
+  IconFileDownload,
 } from "gameboy/components/icons";
+import { useToast } from "gameboy/components/toast/useToast";
 import * as fs from "gameboy/fs";
 import { useFullscreen } from "gameboy/hooks/useFullscreen";
 import { storage } from "gameboy/storage/indexdb";
@@ -18,6 +20,7 @@ import { ReactNode, useMemo } from "react";
 import * as styles from "./Home.css";
 
 export function Home() {
+  const { addToast } = useToast();
   const selected = useAppStore((st) => st.selectedGameId !== undefined);
 
   const isFullscreen = useFullscreen();
@@ -36,40 +39,32 @@ export function Home() {
           icon: <IconDelete />,
           alert: true,
         },
+        {
+          id: "export-backup",
+          icon: <IconFileDownload />,
+        },
       ]);
     }
 
-    if (isFullscreen) {
-      items.push([
-        {
-          id: "add",
-          icon: <IconAdd />,
-        },
-        {
-          id: "exit-fullscreen",
-          icon: <IconFullscreenExit />,
-        },
-        // {
-        //   id: "settings",
-        //   icon: <IconSettings />,
-        // },
-      ]);
-    } else {
-      items.push([
-        {
-          id: "add",
-          icon: <IconAdd />,
-        },
-        {
-          id: "fullscreen",
-          icon: <IconFullscreen />,
-        },
-        // {
-        //   id: "settings",
-        //   icon: <IconSettings />,
-        // },
-      ]);
-    }
+    items.push([
+      {
+        id: "add",
+        icon: <IconAdd />,
+      },
+      isFullscreen
+        ? {
+            id: "exit-fullscreen",
+            icon: <IconFullscreenExit />,
+          }
+        : {
+            id: "fullscreen",
+            icon: <IconFullscreen />,
+          },
+      // {
+      //   id: "settings",
+      //   icon: <IconSettings />,
+      // },
+    ]);
 
     return items;
   }, [selected, isFullscreen]);
@@ -95,24 +90,37 @@ export function Home() {
         <OperationBar
           className={styles.operationBar}
           onClick={async (id) => {
-            console.log("bar " + id + " clicked");
             if (id === "snapshots") {
               actions.toggleSnapshotModal(true);
             } else if (id === "add") {
-              let files: FileList | null = null;
+              let files: File[] | null = null;
               try {
-                files = await fs.pickFile({
-                  accept: ".gb,.gbc",
-                  multiple: true,
-                });
+                files = await fs
+                  .pickFile({
+                    accept: ".gb,.gbc,.gbpack",
+                    multiple: true,
+                  })
+                  .then((files) => (files ? Array.from(files) : null));
               } catch {
                 // Cancelled
                 return;
               }
-              if (files) {
-                for (const file of files) {
+              if (files && files.length) {
+                const removeToast = addToast("正在导入游戏，请稍候...");
+                const packFiles = files.filter((file) =>
+                  file.name.endsWith(".gbpack"),
+                );
+                const cartFiles = files.filter(
+                  (file) => !file.name.endsWith(".gbpack"),
+                );
+                for (const file of cartFiles) {
                   await storage.installGame(file);
                 }
+                for (const packFile of packFiles) {
+                  await storage.importGame(packFile);
+                }
+                removeToast();
+                addToast("导入成功");
                 await actions.loadGames();
               }
             } else if (id === "fullscreen") {
@@ -132,6 +140,14 @@ export function Home() {
               await actions.deleteSelectedGame();
             } else if (id === "play") {
               actions.openPlayModal();
+            } else if (id === "export-backup") {
+              const removeToast = addToast("正在导出游戏，请稍候...");
+              const { pack, filename } = await actions.exportSelectedGame();
+              const url = URL.createObjectURL(pack);
+              fs.downloadFile(url, filename + ".gbpack");
+              URL.revokeObjectURL(url);
+              removeToast();
+              addToast("导出成功");
             }
           }}
           items={items}

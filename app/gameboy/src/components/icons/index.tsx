@@ -5,3 +5,5 @@ export { default as IconAdd } from "./playlist_add.svg?react";
 export { default as IconSettings } from "./settings.svg?react";
 export { default as IconFullscreen } from "./fullscreen.svg?react";
 export { default as IconFullscreenExit } from "./fullscreen_exit.svg?react";
+export { default as IconFileDownload } from "./file_download.svg?react";
+export { default as IconFileUpload } from "./file_upload.svg?react";

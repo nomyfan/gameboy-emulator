@@ -150,3 +150,12 @@ export async function deleteSelectedGame() {
   await deleteGame(id);
   selectCartridge();
 }
+
+export async function exportSelectedGame() {
+  const id = store.getState().selectedGameId;
+  if (!id) {
+    throw new Error();
+  }
+
+  return await storage.exportGame(id);
+}

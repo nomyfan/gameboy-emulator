@@ -1,9 +1,22 @@
-import { xxhash32 } from "hash-wasm";
+import { buf } from "crc-32";
+import { xxHash32 } from "js-xxhash";
 
-export async function hashFile(file: File) {
-  const buffer = await file.arrayBuffer();
-  const data = new Uint8Array(buffer);
-  return await xxhash32(data);
+export function hash(data: Uint8Array): string;
+export function hash(data: Blob): Promise<string>;
+export function hash(data: Uint8Array | Blob): string | Promise<string> {
+  if (data instanceof Blob) {
+    return data.arrayBuffer().then((buf) => hash(new Uint8Array(buf)));
+  }
+  return xxHash32(data).toString(16);
+}
+
+export function crc32(data: Uint8Array): string;
+export function crc32(data: Blob): Promise<string>;
+export function crc32(data: Uint8Array | Blob): string | Promise<string> {
+  if (data instanceof Blob) {
+    return data.arrayBuffer().then((buf) => crc32(new Uint8Array(buf)));
+  }
+  return (buf(data) >>> 0).toString(16);
 }
 
 export async function canvasToBlob(

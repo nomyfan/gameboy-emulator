@@ -196,12 +196,14 @@ export function Play(props: IPagePlayProps) {
                   "image/jpeg",
                   0.7,
                 );
+                const hash = utils.hash(snapshot);
                 storage.snapshotStore.insert({
                   data: snapshot,
                   gameId,
                   time,
                   name: "Snapshot",
                   cover,
+                  hash,
                 });
                 actions.closePlayModal("snapshot");
               } else if (action === "no_snapshot") {
