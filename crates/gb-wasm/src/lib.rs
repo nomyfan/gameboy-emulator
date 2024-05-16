@@ -15,40 +15,94 @@ pub struct GameBoyHandle {
     gb: GameBoy,
 }
 
-struct ScaleImageData {
+struct Frame {
     raw: Vec<u8>,
-    scale: u8,
-    width: usize,
-    height: usize,
+    canvas: OffscreenCanvas,
+    context: OffscreenCanvasRenderingContext2d,
+    width: u32,
+    height: u32,
 }
 
-impl ScaleImageData {
-    fn new(width: usize, height: usize, scale: u8) -> ScaleImageData {
-        let scaled_size = width * scale as usize * height * scale as usize * 4;
-        Self { raw: vec![0; scaled_size], scale, width, height }
-    }
-
-    fn set(&mut self, x: usize, y: usize, color: &[u8; 4]) {
-        let scale = self.scale as usize;
-        let x_begin = x * scale;
-        let x_end = x_begin + scale;
-        let y_begin = y * scale;
-        let y_end = y_begin + scale;
-
-        for y in y_begin..y_end {
-            let begin = (y * self.width * scale + x_begin) * 4;
-            let end = (y * self.width * scale + x_end) * 4;
-            self.raw[begin..end].chunks_mut(4).for_each(|chunk| chunk.copy_from_slice(color));
+impl Frame {
+    fn new(width: u32, height: u32) -> Frame {
+        let canvas = OffscreenCanvas::new(width, height).unwrap();
+        Self {
+            raw: vec![0xFF; width as usize * height as usize * 4],
+            width,
+            height,
+            context: canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<OffscreenCanvasRenderingContext2d>()
+                .unwrap(),
+            canvas,
         }
     }
 
+    #[cfg(feature = "debug_frame")]
+    fn set_with_rgb(&mut self, x: usize, y: usize, rgb: &[u8]) {
+        let offset = (y * self.width as usize + x) * 4;
+        self.raw[offset..offset + 3].copy_from_slice(rgb);
+    }
+
+    fn render_with_rgb(&mut self, rgb: &[u8]) {
+        rgb.chunks(3).zip(self.raw.chunks_mut(4)).for_each(|(src, dst)| {
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+        });
+        let image_data = self.as_image_data();
+        self.context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+    }
+
+    fn render_canvas_with_rgb(
+        &mut self,
+        rgb: &[u8],
+        context: &CanvasRenderingContext2d,
+        scale: f64,
+    ) {
+        self.render_with_rgb(rgb);
+        context
+            .draw_image_with_offscreen_canvas_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                &self.canvas,
+                0.0,
+                0.0,
+                self.width as f64,
+                self.height as f64,
+                0.0,
+                0.0,
+                self.width as f64 * scale,
+                self.height as f64 * scale,
+            )
+            .unwrap();
+    }
+
+    fn render_offscreen_canvas_with_rgb(
+        &mut self,
+        rgb: &[u8],
+        context: &OffscreenCanvasRenderingContext2d,
+        scale: f64,
+    ) {
+        self.render_with_rgb(rgb);
+        context
+            .draw_image_with_offscreen_canvas_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                &self.canvas,
+                0.0,
+                0.0,
+                self.width as f64,
+                self.height as f64,
+                0.0,
+                0.0,
+                self.width as f64 * scale,
+                self.height as f64 * scale,
+            )
+            .unwrap();
+    }
+
     fn as_image_data(&self) -> ImageData {
-        ImageData::new_with_u8_clamped_array_and_sh(
-            Clamped(&self.raw),
-            self.width as u32 * self.scale as u32,
-            self.height as u32 * self.scale as u32,
-        )
-        .unwrap()
+        ImageData::new_with_u8_clamped_array_and_sh(Clamped(&self.raw), self.width, self.height)
+            .unwrap()
     }
 }
 
@@ -82,6 +136,7 @@ impl GameBoyHandle {
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
+        canvas_context.set_image_smoothing_enabled(false);
 
         #[cfg(feature = "debug_frame")]
         let mut dbg_canvas_context = dbg_canvas.map(|canvas| {
@@ -91,67 +146,46 @@ impl GameBoyHandle {
                 .unwrap()
                 .dyn_into::<CanvasRenderingContext2d>()
                 .unwrap();
-            let scale_image = ScaleImageData::new(256 + 10 + 40, 256 + 10 + 256, 1);
-            (context, scale_image)
+            let frame = Frame::new(256 + 10 + 40, 256 + 10 + 256);
+            context.set_image_smoothing_enabled(false);
+            (context, frame)
         });
 
-        let mut scale_image = ScaleImageData::new(160, 144, scale);
-        let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
+        let mut frame = Frame::new(160, 144);
         let frame_handle = Box::new(
             move |data: &BoxedArray<u8, 69120>, #[cfg(feature = "debug_frame")] dbg_data: &[u8]| {
-                for (n, rgb) in data.chunks(3).enumerate() {
-                    rgba[0] = rgb[0];
-                    rgba[1] = rgb[1];
-                    rgba[2] = rgb[2];
-
-                    let y = n / 160;
-                    let x = n % 160;
-                    scale_image.set(x, y, &rgba);
-                }
-
-                let image_data = scale_image.as_image_data();
-                canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+                frame.render_canvas_with_rgb(data.as_ref(), &canvas_context, scale as f64);
 
                 #[cfg(feature = "debug_frame")]
-                if let Some((canvas_context, scale_image)) = dbg_canvas_context.as_mut() {
+                if let Some((dbg_canvas_context, dbg_frame)) = dbg_canvas_context.as_mut() {
                     // The first tile map, 256x256
                     for (n, rgb) in dbg_data.chunks(3).take(256 * 256).enumerate() {
-                        rgba[0] = rgb[0];
-                        rgba[1] = rgb[1];
-                        rgba[2] = rgb[2];
                         let y = n / 256;
                         let x = n % 256;
-                        scale_image.set(x, y, &rgba);
+                        dbg_frame.set_with_rgb(x, y, rgb);
                     }
 
                     // The second tile map, 256x256
                     for (n, rgb) in dbg_data.chunks(3).skip(256 * 256).take(256 * 256).enumerate() {
-                        rgba[0] = rgb[0];
-                        rgba[1] = rgb[1];
-                        rgba[2] = rgb[2];
                         let y = n / 256;
                         let x = n % 256;
-                        scale_image.set(x, y + 256 + 10, &rgba);
+                        dbg_frame.set_with_rgb(x, y + 256 + 10, rgb);
                     }
 
                     // Palette colors
                     dbg_data.chunks(3).skip(256 * 256 * 2).enumerate().for_each(|(n, rgb)| {
-                        rgba[0] = rgb[0];
-                        rgba[1] = rgb[1];
-                        rgba[2] = rgb[2];
-
                         let x = 266 + (n % 4) * 10;
                         let y = (n / 4) * 10;
                         let gap = (n / 4) * 5;
                         for i in 0..10 {
                             for j in 0..10 {
-                                scale_image.set(x + i, y + j + gap, &rgba);
+                                dbg_frame.set_with_rgb(x + i, y + j + gap, rgb);
                             }
                         }
                     });
 
-                    let image_data = scale_image.as_image_data();
-                    canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+                    let image_data = dbg_frame.as_image_data();
+                    dbg_canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
                 }
             },
         );
@@ -264,22 +298,11 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
         .unwrap()
         .dyn_into::<OffscreenCanvasRenderingContext2d>()
         .unwrap();
-    let mut scale_image = ScaleImageData::new(160, 144, SCALE as u8);
-    let mut rgba = [0xFF, 0xFF, 0xFF, 0xFF];
+    canvas_context.set_image_smoothing_enabled(false);
+    let mut frame = Frame::new(160, 144);
     gb.set_handles(
         Some(Box::new(move |data, #[cfg(feature = "debug_frame")] _| {
-            data.chunks(3).enumerate().for_each(|(n, rgb)| {
-                rgba[0] = rgb[0];
-                rgba[1] = rgb[1];
-                rgba[2] = rgb[2];
-
-                let y = n / 160;
-                let x = n % 160;
-                scale_image.set(x, y, &rgba);
-            });
-
-            let image_data = scale_image.as_image_data();
-            canvas_context.put_image_data(&image_data, 0.0, 0.0).unwrap();
+            frame.render_offscreen_canvas_with_rgb(data.as_ref(), &canvas_context, SCALE as f64);
         })),
         None,
     );
