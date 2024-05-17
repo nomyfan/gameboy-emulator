@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 use crate::{
     dma::{DmaSnapshot, DMA},
     hram::{HighRam, HighRamSnapshot},
-    joypad::{Joypad, JoypadSnapshot},
+    joypad::Joypad,
     misc_ram::{MiscRam, MiscRamSnapshot},
     serial::{Serial, SerialSnapshot},
     timer::{Timer, TimerSnapshot},
@@ -374,7 +374,6 @@ pub(crate) struct BusSnapshot {
     vdma: VdmaSnapshot,
     mram: MiscRamSnapshot,
     serial: SerialSnapshot,
-    joypad: JoypadSnapshot,
     timer: TimerSnapshot,
     clocks: u8,
     ppu: PpuSnapshot,
@@ -395,7 +394,6 @@ impl Snapshot for Bus {
             vdma: self.vdma.take_snapshot(),
             mram: self.mram.take_snapshot(),
             serial: self.serial.take_snapshot(),
-            joypad: self.joypad.take_snapshot(),
             timer: self.timer.take_snapshot(),
             clocks: self.clocks,
             ppu: self.ppu.take_snapshot(),
@@ -413,7 +411,6 @@ impl Snapshot for Bus {
         self.vdma.restore_snapshot(snapshot.vdma);
         self.mram.restore_snapshot(snapshot.mram);
         self.serial.restore_snapshot(snapshot.serial);
-        self.joypad.restore_snapshot(snapshot.joypad);
         self.timer.restore_snapshot(snapshot.timer);
         self.clocks = snapshot.clocks;
         self.ppu.restore_snapshot(snapshot.ppu);
