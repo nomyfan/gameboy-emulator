@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { Avatar } from "gameboy/components/core/avatar";
 import { GameList } from "gameboy/components/core/game-list";
 import { OperationBar } from "gameboy/components/core/operation-bar";
@@ -144,7 +145,8 @@ export function Home() {
               const removeToast = addToast("正在导出游戏，请稍候...");
               const { pack, filename } = await actions.exportSelectedGame();
               const url = URL.createObjectURL(pack);
-              fs.downloadFile(url, filename + ".gbpack");
+              const timestamp = dayjs().format("YYYYMMDDHHmmss");
+              fs.downloadFile(url, `${filename}-${timestamp}.gbpack`);
               URL.revokeObjectURL(url);
               removeToast();
               addToast("导出成功");
