@@ -191,8 +191,22 @@ export function Play(props: IPagePlayProps) {
               if (action === "snapshot") {
                 const snapshot = gameboy.takeSnapshot();
                 const time = Date.now();
+                const offscreenCanvas = new OffscreenCanvas(320, 288);
+                offscreenCanvas
+                  .getContext("2d")!
+                  .drawImage(
+                    canvas,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height,
+                    0,
+                    0,
+                    offscreenCanvas.width,
+                    offscreenCanvas.height,
+                  );
                 const cover = await utils.canvasToBlob(
-                  canvas,
+                  offscreenCanvas,
                   "image/jpeg",
                   0.7,
                 );

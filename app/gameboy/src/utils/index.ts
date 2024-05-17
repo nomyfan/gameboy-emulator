@@ -20,10 +20,14 @@ export function crc32(data: Uint8Array | Blob): string | Promise<string> {
 }
 
 export async function canvasToBlob(
-  canvas: HTMLCanvasElement,
+  canvas: HTMLCanvasElement | OffscreenCanvas,
   type?: string,
   quality?: number,
 ) {
+  if (canvas instanceof OffscreenCanvas) {
+    return await canvas.convertToBlob({ type, quality });
+  }
+
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
