@@ -108,7 +108,7 @@ export function Play(props: IPagePlayProps) {
         .then((buf) => new Uint8ClampedArray(buf));
       if (!canceled) {
         gameboy.uninstall();
-        await gameboy.install(rom, canvas, 2, sav, dbgCanvas || undefined);
+        await gameboy.install(rom, canvas, sav, dbgCanvas || undefined);
         const snapshot = store.getState().dialog.play.snapshot;
         if (snapshot && snapshot.gameId === gameId) {
           gameboy.restoreSnapshot(snapshot.data);

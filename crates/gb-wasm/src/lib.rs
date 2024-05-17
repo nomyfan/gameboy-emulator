@@ -60,7 +60,8 @@ impl Frame {
         &mut self,
         rgb: &[u8],
         context: &CanvasRenderingContext2d,
-        scale: f64,
+        width: f64,
+        height: f64,
     ) {
         self.render_with_rgb(rgb);
         context
@@ -72,8 +73,8 @@ impl Frame {
                 self.height as f64,
                 0.0,
                 0.0,
-                self.width as f64 * scale,
-                self.height as f64 * scale,
+                width,
+                height,
             )
             .unwrap();
     }
@@ -115,7 +116,6 @@ impl GameBoyHandle {
     pub fn create(
         rom: Uint8ClampedArray,
         canvas: HtmlCanvasElement,
-        scale: Option<u8>,
         sav: Option<Vec<u8>>,
         sample_rate: Option<u32>,
         audio_stream: Option<WritableStream>,
@@ -129,7 +129,6 @@ impl GameBoyHandle {
             gb.resume_cartridge(&sav).unwrap();
         }
 
-        let scale = scale.unwrap_or(1);
         let canvas_context = canvas
             .get_context("2d")
             .unwrap()
@@ -154,7 +153,9 @@ impl GameBoyHandle {
         let mut frame = Frame::new(160, 144);
         let frame_handle = Box::new(
             move |data: &BoxedArray<u8, 69120>, #[cfg(feature = "debug_frame")] dbg_data: &[u8]| {
-                frame.render_canvas_with_rgb(data.as_ref(), &canvas_context, scale as f64);
+                let width = canvas.width() as f64;
+                let height = canvas.height() as f64;
+                frame.render_canvas_with_rgb(data.as_ref(), &canvas_context, width, height);
 
                 #[cfg(feature = "debug_frame")]
                 if let Some((dbg_canvas_context, dbg_frame)) = dbg_canvas_context.as_mut() {

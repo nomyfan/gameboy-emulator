@@ -57,7 +57,6 @@ class GameBoyControl {
   async install(
     rom: Uint8ClampedArray,
     canvas: HTMLCanvasElement,
-    scale?: number,
     sav?: Uint8Array,
     dbgCanvas?: HTMLCanvasElement,
   ) {
@@ -97,7 +96,6 @@ class GameBoyControl {
     this.instance_ = GameBoyHandle.create(
       rom,
       canvas,
-      scale,
       sav,
       sampleRate,
       stream,
