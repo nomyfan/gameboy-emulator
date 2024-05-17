@@ -47,7 +47,7 @@ function Item(props: {
             <span>
               {snapshot.name}
               <span className={styles.itemSubDesc}>
-                （{new Date(snapshot.time).toLocaleDateString()}）
+                （{new Date(snapshot.time).toLocaleString()}）
               </span>
             </span>
           </div>
