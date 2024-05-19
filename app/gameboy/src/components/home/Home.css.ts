@@ -19,5 +19,5 @@ export const gameList = style({
 });
 
 export const operationBar = style({
-  height: 70,
+  padding: "10px 0",
 });

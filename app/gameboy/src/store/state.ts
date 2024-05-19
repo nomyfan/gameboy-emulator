@@ -1,6 +1,6 @@
-import { createStore, useStore } from "zustand";
-import { subscribeWithSelector } from "zustand/middleware";
-import { immer } from "zustand/middleware/immer";
+import { useStore } from "zustand";
+
+import { create } from "./utils";
 
 export interface IStore {
   dialog: {
@@ -11,13 +11,6 @@ export interface IStore {
         gameId: string;
         data: Uint8Array;
       };
-    };
-    snapshot: {
-      open?: boolean;
-    };
-    exitGameConfirm: {
-      open?: boolean;
-      callback?: (action: "snapshot" | "no_snapshot" | "cancel") => void;
     };
     // General confirm modal
     confirm: {
@@ -39,24 +32,12 @@ export interface IStore {
   selectedGameId?: string;
 }
 
-function create() {
-  return createStore(
-    subscribeWithSelector(
-      immer<IStore>(() => {
-        return {
-          dialog: {
-            play: {},
-            snapshot: {},
-            exitGameConfirm: {},
-            confirm: {},
-          },
-        };
-      }),
-    ),
-  );
-}
-
-export const store = create();
+export const store = create<IStore>(() => ({
+  dialog: {
+    play: {},
+    confirm: {},
+  },
+}));
 
 export function useAppStore<T>(selector: (state: Readonly<IStore>) => T) {
   return useStore(store, selector);

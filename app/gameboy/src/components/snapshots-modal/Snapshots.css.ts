@@ -83,9 +83,12 @@ globalStyle(`${menuItem}[data-highlighted]`, {
   color: "white",
 });
 
-export const menuItemAlert = style({
-  color: cssVars.colorAlert,
-});
+export const menuItemAlert = style([
+  menuItem,
+  {
+    color: cssVars.colorAlert,
+  },
+]);
 
 globalStyle(`${menuItemAlert}[data-highlighted]`, {
   backgroundColor: cssVars.colorAlert,

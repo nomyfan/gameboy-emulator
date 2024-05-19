@@ -1,4 +1,4 @@
-import { globalStyle, style } from "@vanilla-extract/css";
+import { style } from "@vanilla-extract/css";
 import * as cssVars from "gameboy/styles/vars.css";
 
 export const bar = style({
@@ -11,8 +11,7 @@ export const barItem = style({
   color: cssVars.colorPrimary,
   backgroundColor: "white",
   borderRadius: "50%",
-  height: 36,
-  width: 36,
+  padding: 6,
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -25,11 +24,6 @@ export const barItemAlert = style([
     color: cssVars.colorAlert,
   },
 ]);
-
-globalStyle(`${barItem} > svg`, {
-  width: 24,
-  height: 24,
-});
 
 export const separator = style({
   width: 2,

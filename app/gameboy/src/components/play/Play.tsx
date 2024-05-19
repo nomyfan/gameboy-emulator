@@ -3,65 +3,28 @@ import { DirectionButton } from "gameboy/components/core/DirectionButton";
 import { FlexBox } from "gameboy/components/core/flex-box";
 import { FnButton } from "gameboy/components/core/FnButton";
 import { Screen } from "gameboy/components/core/Screen";
-import { IconFullscreenExit } from "gameboy/components/icons";
-import { GameBoyControl, JoypadKey } from "gameboy/gameboy";
+import { IconDelete } from "gameboy/components/icons";
+import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
+import { SnapshotsModal } from "gameboy/components/snapshots-modal";
 import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
-import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
 import { store, actions, useAppStore } from "gameboy/store";
-import { IGameBoyButton } from "gameboy/types";
-import * as utils from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, forwardRef } from "react";
 
+import {
+  handleButtonDown,
+  handleButtonUp,
+  gameboy,
+  switchSnapshot,
+  deleteSnapshot,
+} from "./actions";
+import type { IExitGameModalRef } from "./exit-game-modal";
+import { ExitGameModal } from "./exit-game-modal";
 import * as styles from "./Play.css";
-
-const gameboy = new GameBoyControl();
-
-const handleButtonChange = (button: IGameBoyButton, pressed: boolean) => {
-  let key: JoypadKey;
-  switch (button) {
-    case "B":
-      key = JoypadKey.B;
-      break;
-    case "A":
-      key = JoypadKey.A;
-      break;
-    case "LEFT":
-      key = JoypadKey.Left;
-      break;
-    case "RIGHT":
-      key = JoypadKey.Right;
-      break;
-    case "UP":
-      key = JoypadKey.Up;
-      break;
-    case "DOWN":
-      key = JoypadKey.Down;
-      break;
-    case "SELECT":
-      key = JoypadKey.Select;
-      break;
-    case "START":
-      key = JoypadKey.Start;
-      break;
-    default: {
-      const wrongButton: never = button;
-      throw new Error("Wrong button value " + wrongButton);
-    }
-  }
-  gameboy.changeKey(key, pressed);
-};
-
-function handleButtonDown(button: IGameBoyButton) {
-  handleButtonChange(button, true);
-}
-
-function handleButtonUp(button: IGameBoyButton) {
-  handleButtonChange(button, false);
-}
+import { PlayOperationBar } from "./PlayOperationBar";
 
 export interface IPagePlayProps {
   className?: string;
@@ -87,10 +50,10 @@ const DebugCanvas = forwardRef<HTMLCanvasElement, unknown>(
 export function Play(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dbgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const exitGameModalRef = useRef<IExitGameModalRef>(null);
+  const snapshotsModalRef = useRef<ISnapshotsModalRef>(null);
 
-  const gameId = useAppStore((st) => {
-    return st.games?.find((c) => c.id === st.selectedGameId)?.id;
-  });
+  const gameId = useAppStore((st) => st.selectedGameId);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -132,109 +95,68 @@ export function Play(props: IPagePlayProps) {
   useGamepadController({ gameboy });
 
   return (
-    <FlexBox
-      justify="right"
-      className={cn(styles.root, props.className)}
-      style={props.style}
-    >
-      <DebugCanvas ref={dbgCanvasRef} />
-      <FlexBox justify="end" className={styles.side}>
-        <div className={styles.leftSide}>
-          <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
-        </div>
+    <>
+      <FlexBox
+        justify="right"
+        className={cn(styles.root, props.className)}
+        style={props.style}
+      >
+        <DebugCanvas ref={dbgCanvasRef} />
+        <FlexBox justify="end" className={styles.side}>
+          <div className={styles.leftSide}>
+            <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
+          </div>
+        </FlexBox>
+
+        <FlexBox align="center" className={styles.screen}>
+          <Screen ref={canvasRef} />
+        </FlexBox>
+
+        <FlexBox className={styles.side}>
+          <div className={styles.rightSide}>
+            <AbButton
+              style={{ transform: "rotate(-25deg)" }}
+              onDown={handleButtonDown}
+              onUp={handleButtonUp}
+            />
+            <FnButton
+              style={{ marginTop: 140 }}
+              onDown={handleButtonDown}
+              onUp={handleButtonUp}
+            />
+          </div>
+        </FlexBox>
       </FlexBox>
 
-      <FlexBox align="center" className={styles.screen}>
-        <Screen ref={canvasRef} />
-      </FlexBox>
+      <PlayOperationBar
+        canvasRef={canvasRef}
+        snapshotsModalRef={snapshotsModalRef}
+        exitGameModalRef={exitGameModalRef}
+      />
 
-      <FlexBox className={styles.side}>
-        <div className={styles.rightSide}>
-          <AbButton
-            style={{ transform: "rotate(-25deg)" }}
-            onDown={handleButtonDown}
-            onUp={handleButtonUp}
-          />
-          <FnButton
-            style={{ marginTop: 140 }}
-            onDown={handleButtonDown}
-            onUp={handleButtonUp}
-          />
-        </div>
-      </FlexBox>
-
-      <IconFullscreenExit
-        style={{
-          position: "absolute",
-          right: 10,
-          top: 10,
-          height: 36,
-          width: 36,
-        }}
-        onClick={() => {
-          gameboy.pause();
-          actions
-            .openExitConfirmModal()
-            .then(async (action) => {
-              const canvas = canvasRef.current;
-              if (!gameId || !canvas) {
-                return;
-              }
-
-              if (action === "snapshot" || action === "no_snapshot") {
-                const sav = gameboy.createSav();
-                if (sav) {
-                  await storage.gameStore.update({ id: gameId, sav });
-                }
-              }
-
-              if (action === "snapshot") {
-                const snapshot = gameboy.takeSnapshot();
-                const time = Date.now();
-                const offscreenCanvas = new OffscreenCanvas(320, 288);
-                offscreenCanvas
-                  .getContext("2d")!
-                  .drawImage(
-                    canvas,
-                    0,
-                    0,
-                    canvas.width,
-                    canvas.height,
-                    0,
-                    0,
-                    offscreenCanvas.width,
-                    offscreenCanvas.height,
-                  );
-                const cover = await utils.canvasToBlob(
-                  offscreenCanvas,
-                  "image/jpeg",
-                  0.7,
-                );
-                const hash = utils.hash(snapshot);
-                storage.snapshotStore.insert({
-                  data: snapshot,
-                  gameId,
-                  time,
-                  name: "Snapshot",
-                  cover,
-                  hash,
-                });
-                actions.closePlayModal("snapshot");
-              } else if (action === "no_snapshot") {
-                actions.closePlayModal("no_snapshot");
-              }
-            })
-            .catch((err) => {
-              if (err instanceof ModalCanceledError) {
-                gameboy.play();
-
-                return;
-              }
-
-              throw err;
-            });
+      <ExitGameModal ref={exitGameModalRef} />
+      <SnapshotsModal
+        ref={snapshotsModalRef}
+        snapshotsProps={{
+          actionItems: [
+            {
+              label: "加载存档",
+              onClick: async (snapshot) => {
+                await switchSnapshot(snapshot.data);
+              },
+            },
+            {
+              icon: <IconDelete />,
+              label: "删除",
+              alert: true,
+              onClick: async (snapshot, { refresh }) => {
+                await deleteSnapshot(snapshot.id);
+                await refresh();
+              },
+            },
+          ],
         }}
       />
-    </FlexBox>
+    </>
   );
 }

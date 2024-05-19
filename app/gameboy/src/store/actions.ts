@@ -10,12 +10,6 @@ export function selectCartridge(id?: string) {
   });
 }
 
-export function toggleSnapshotModal(open?: boolean) {
-  store.setState((st) => {
-    st.dialog.snapshot.open = open ?? !st.dialog.snapshot.open;
-  });
-}
-
 type IPlayModalCallback = NonNullable<IStore["dialog"]["play"]["callback"]>;
 type IPlayModalCallbackAction = Parameters<IPlayModalCallback>[0];
 export function openPlayModal(snapshot?: IStore["dialog"]["play"]["snapshot"]) {
@@ -42,42 +36,15 @@ export function closePlayModal(action: IPlayModalCallbackAction) {
   store.getState().dialog.play.callback?.(action);
 }
 
-type IExitGameModalCallback = IStore["dialog"]["exitGameConfirm"]["callback"];
-type IExitGameModalCallbackAction = Parameters<
-  NonNullable<IExitGameModalCallback>
->[0];
-export function openExitConfirmModal() {
-  return new Promise<Exclude<IExitGameModalCallbackAction, "cancel">>(
-    (resolve, reject) => {
-      const onClose: NonNullable<IExitGameModalCallback> = (action) => {
-        store.setState((st) => {
-          st.dialog.exitGameConfirm.open = false;
-          st.dialog.exitGameConfirm.callback = undefined;
-        });
-
-        if (action === "cancel") {
-          reject(new ModalCanceledError());
-        } else {
-          resolve(action);
-        }
-      };
-      store.setState((st) => {
-        st.dialog.exitGameConfirm.open = true;
-        st.dialog.exitGameConfirm.callback = onClose;
-      });
-    },
-  );
-}
-
-export function closeExitConfirmModal(action: IExitGameModalCallbackAction) {
-  store.getState().dialog.exitGameConfirm.callback?.(action);
-}
-
 export function openConfirmModal(options: {
   title: string;
   content: string;
   okText?: string;
   cancelText?: string;
+  /**
+   * @default true
+   */
+  ignoreCancel?: boolean;
 }) {
   return new Promise<void>((resolve, reject) => {
     const onClose = (ok: boolean) => {
@@ -85,7 +52,8 @@ export function openConfirmModal(options: {
         st.dialog.confirm = { open: false };
       });
 
-      ok ? resolve() : reject(new ModalCanceledError());
+      const ignoreCancel = options.ignoreCancel ?? true;
+      ok ? resolve() : !ignoreCancel && reject(new ModalCanceledError());
     };
 
     store.setState((st) => {

@@ -7,21 +7,19 @@ import { Fragment } from "react";
 import { Item } from "./Item";
 import * as styles from "./OperationBar.css";
 
-export interface IOperationBarProps<ID extends string | number> {
-  className?: string;
-  onClick?: (id: ID) => void;
-  items: Array<
-    Array<{
-      id: ID;
-      icon: ReactNode;
-      alert?: boolean;
-    }>
-  >;
+export interface IBarItem {
+  id: string | number;
+  icon: ReactNode;
+  alert?: boolean;
+  onClick: () => void;
 }
 
-export function OperationBar<ID extends string | number>(
-  props: IOperationBarProps<ID>,
-) {
+export interface IOperationBarProps {
+  className?: string;
+  items: IBarItem[][];
+}
+
+export function OperationBar(props: IOperationBarProps) {
   const renderItems = () => {
     const items = props.items
       .filter((group) => !!group.length)
@@ -32,10 +30,10 @@ export function OperationBar<ID extends string | number>(
             <Item
               key={item.id}
               icon={item.icon}
-              className={cn(item.alert && styles.barItemAlert)}
+              className={cn(item.alert ? styles.barItemAlert : styles.barItem)}
               onClick={(evt) => {
                 evt.stopPropagation();
-                props.onClick?.(item.id);
+                item.onClick();
               }}
             />
           );
