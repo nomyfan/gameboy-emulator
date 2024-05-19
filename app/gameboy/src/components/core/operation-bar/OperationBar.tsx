@@ -2,9 +2,7 @@ import { Separator } from "@radix-ui/react-separator";
 import { join } from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
-import { Fragment } from "react";
 
-import { Item } from "./Item";
 import * as styles from "./OperationBar.css";
 
 export interface IBarItem {
@@ -27,18 +25,19 @@ export function OperationBar(props: IOperationBarProps) {
         const key = group.map((item) => item.id).join("-");
         const items = group.map((item) => {
           return (
-            <Item
+            <li
               key={item.id}
-              icon={item.icon}
               className={cn(item.alert ? styles.barItemAlert : styles.barItem)}
               onClick={(evt) => {
                 evt.stopPropagation();
                 item.onClick();
               }}
-            />
+            >
+              {item.icon}
+            </li>
           );
         });
-        return <Fragment key={key}>{items}</Fragment>;
+        return <ul key={key}>{items}</ul>;
       });
 
     return join(items, (_, item) => (
@@ -49,5 +48,5 @@ export function OperationBar(props: IOperationBarProps) {
       />
     ));
   };
-  return <div className={cn(styles.bar, props.className)}>{renderItems()}</div>;
+  return <ul className={cn(styles.bar, props.className)}>{renderItems()}</ul>;
 }

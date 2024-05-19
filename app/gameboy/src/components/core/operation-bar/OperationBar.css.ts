@@ -12,7 +12,7 @@ export const barItem = style({
   backgroundColor: "white",
   borderRadius: "50%",
   padding: 6,
-  display: "flex",
+  display: "inline-flex",
   justifyContent: "center",
   alignItems: "center",
   margin: `0 5px`,
