@@ -1,11 +1,14 @@
 import { create } from "gameboy/store/utils";
 import { GameBoy as GameBoyHandle, JoypadKey } from "gb-wasm";
 
+function noop() { }
+
 function createGameBoyStore() {
   return create<{
     status: "playing" | "paused" | "installed" | "uninstalled";
     muted: boolean;
-  }>(() => ({ status: "uninstalled", muted: false }));
+    volume: number;
+  }>(() => ({ status: "uninstalled", muted: false, volume: 1 }));
 }
 
 type GameBoyStore = ReturnType<typeof createGameBoyStore>;
@@ -19,7 +22,7 @@ class GameBoyControl {
   private keyState = 0;
   private readonly audioContext_: AudioContext;
   private audioWorkletModuleAdded_ = false;
-  private audioWorkletNode_?: AudioWorkletNode;
+  private disconnectAudio: () => void = noop;
   private nextTickTime_ = 0;
 
   constructor() {
@@ -65,7 +68,6 @@ class GameBoyControl {
         outputChannelCount: [2], // Stereo
       },
     );
-    this.audioWorkletNode_ = workletNode;
     workletNode.addEventListener("processorerror", (evt) => {
       console.error("processorerror", evt);
     });
@@ -81,7 +83,17 @@ class GameBoyControl {
       workletNode.port.addEventListener("message", handler);
       workletNode.port.start();
     });
-    workletNode.connect(this.audioContext_.destination);
+
+    const gainNode = this.audioContext_.createGain();
+    gainNode.gain.value = this.state.volume;
+    workletNode.connect(gainNode);
+    gainNode.connect(this.audioContext_.destination);
+    this.disconnectAudio = () => {
+      workletNode.disconnect();
+      gainNode.disconnect();
+
+      this.disconnectAudio = noop;
+    };
 
     const instance = GameBoyHandle.create(
       rom,
@@ -91,8 +103,8 @@ class GameBoyControl {
       stream,
       dbgCanvas,
     );
-    instance.mute(this.state.muted);
     this.instance_ = instance;
+    instance.mute(this.state.muted);
     this.store_.setState({ status: "installed" });
   }
 
@@ -101,10 +113,7 @@ class GameBoyControl {
       this.pause();
     }
 
-    if (this.audioWorkletNode_) {
-      this.audioWorkletNode_.disconnect();
-      this.audioWorkletNode_ = undefined;
-    }
+    this.disconnectAudio();
 
     if (this.instance_) {
       this.instance_.free();
