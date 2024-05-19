@@ -1,27 +1,37 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { IconDelete } from "gameboy/components/icons";
+import { Slot } from "@radix-ui/react-slot";
+import { FlexBox } from "gameboy/components/core/flex-box";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
-import { actions, useAppStore } from "gameboy/store";
+import { useAppStore } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
-import type { CSSProperties } from "react";
+import { createContext, ReactNode, useContext, useMemo } from "react";
 import { useEffect, useState } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 
-import { FlexBox } from "../flex-box";
-
 import * as styles from "./Snapshots.css";
 
-function Item(props: {
-  snapshot: ISnapshot;
-  className?: string;
-  style?: CSSProperties;
-  onDelete: (data: ISnapshot) => void;
-  onPlay: (data: ISnapshot) => void;
-}) {
+export interface IActionItem {
+  icon?: ReactNode;
+  label: string;
+  alert?: boolean;
+  onClick: (
+    snapshot: ISnapshot,
+    context: { refresh: () => Promise<void> },
+  ) => void;
+}
+
+const SnapshotsContext = createContext<{
+  refresh: () => Promise<void>;
+}>({
+  refresh: async () => {},
+});
+
+function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
   const snapshot = props.snapshot;
   const cover = snapshot.cover;
+  const context = useContext(SnapshotsContext);
 
   const [coverURL, setCoverURL] = useState<string>();
 
@@ -55,31 +65,33 @@ function Item(props: {
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Content className={styles.menuContent}>
-          <ContextMenu.Item
-            className={cn(styles.menuItem)}
-            onClick={() => {
-              props.onPlay(snapshot);
-            }}
-          >
-            <div className={styles.menuItemIcon} />
-            进入游戏
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            className={cn(styles.menuItem, styles.menuItemAlert)}
-            onClick={() => {
-              props.onDelete(snapshot);
-            }}
-          >
-            <IconDelete className={styles.menuItemIcon} />
-            删除
-          </ContextMenu.Item>
+          {props.menuItems.map((it) => {
+            return (
+              <ContextMenu.Item
+                key={it.label}
+                className={cn(
+                  it.alert ? styles.menuItemAlert : styles.menuItem,
+                )}
+                onClick={() => {
+                  it.onClick(snapshot, context);
+                }}
+              >
+                <Slot className={styles.menuItemIcon}>{it.icon ?? <i />}</Slot>
+                {it.label}
+              </ContextMenu.Item>
+            );
+          })}
         </ContextMenu.Content>
       </ContextMenu.Portal>
     </ContextMenu.Root>
   );
 }
 
-export function Snapshots() {
+export interface ISnapshotsProps {
+  actionItems: IActionItem[];
+}
+
+export function Snapshots(props: ISnapshotsProps) {
   const gameId = useAppStore((st) => st.selectedGameId);
 
   const { data, isLoading, mutate } = useSWR([gameId], async ([gameId]) => {
@@ -108,41 +120,30 @@ export function Snapshots() {
         <Item
           key={snapshot.id}
           snapshot={snapshot}
-          onDelete={async (snapshot) => {
-            try {
-              await actions.openConfirmModal({
-                title: "删除",
-                content: "确认要删除该存档吗？",
-              });
-            } catch {
-              // Cancelled
-              return;
-            }
-            await storage.snapshotStore.delete(snapshot.id);
-            await mutate();
-          }}
-          onPlay={async (snapshot) => {
-            actions
-              .openPlayModal({
-                gameId: snapshot.gameId,
-                data: snapshot.data,
-              })
-              .then((action) => {
-                if (action === "snapshot") {
-                  mutate();
-                }
-              });
-          }}
+          menuItems={props.actionItems}
         />
       );
     });
   };
 
+  const contextValue = useMemo(
+    () => ({
+      refresh: async () => {
+        await mutate();
+      },
+    }),
+    [mutate],
+  );
+
   return (
     <div className={styles.snapshotsRoot}>
       <h1 className={styles.header}>存档</h1>
 
-      <div className={styles.itemsContainer}>{renderItems()}</div>
+      <div className={styles.itemsContainer}>
+        <SnapshotsContext.Provider value={contextValue}>
+          {renderItems()}
+        </SnapshotsContext.Provider>
+      </div>
     </div>
   );
 }

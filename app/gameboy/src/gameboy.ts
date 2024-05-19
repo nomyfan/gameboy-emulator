@@ -35,6 +35,7 @@ class GameBoyControl {
 
   constructor() {
     this.store_ = createGameBoyStore();
+    // TODO: defer audioContext creation until needed
     this.audioContext_ = new AudioContext();
   }
 

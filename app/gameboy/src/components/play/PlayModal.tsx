@@ -24,3 +24,6 @@ export function PlayModal() {
     </Dialog.Root>
   );
 }
+
+// eslint-disable-next-line import/no-default-export
+export default PlayModal;

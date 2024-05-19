@@ -16,6 +16,7 @@
     "@radix-ui/react-context-menu": "^2.1.5",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-separator": "^1.0.3",
+    "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.5",
     "@vanilla-extract/css": "^1.15.1",
     "@zip.js/zip.js": "^2.7.44",
