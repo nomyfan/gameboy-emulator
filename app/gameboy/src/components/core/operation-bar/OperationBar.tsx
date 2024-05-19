@@ -1,9 +1,7 @@
 import { Separator } from "@radix-ui/react-separator";
 import { join } from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
-import type { ReactNode } from "react";
-
-import * as styles from "./OperationBar.css";
+import type { CSSProperties, ReactNode } from "react";
 
 export interface IBarItem {
   id: string | number;
@@ -13,7 +11,7 @@ export interface IBarItem {
 }
 
 export interface IOperationBarProps {
-  className?: string;
+  style?: CSSProperties;
   items: IBarItem[][];
 }
 
@@ -27,7 +25,10 @@ export function OperationBar(props: IOperationBarProps) {
           return (
             <li
               key={item.id}
-              className={cn(item.alert ? styles.barItemAlert : styles.barItem)}
+              className={cn(
+                "bg-white rounded-full p6px inline-flex justify-center items-center mx-1",
+                item.alert ? "text-alert" : "text-text",
+              )}
               onClick={(evt) => {
                 evt.stopPropagation();
                 item.onClick();
@@ -44,9 +45,13 @@ export function OperationBar(props: IOperationBarProps) {
       <Separator
         key={item.key + "-separator"}
         orientation="vertical"
-        className={styles.separator}
+        className="w-2px h-18px bg-white mx-5px"
       />
     ));
   };
-  return <ul className={cn(styles.bar, props.className)}>{renderItems()}</ul>;
+  return (
+    <ul className={cn("flex-center")} style={props.style}>
+      {renderItems()}
+    </ul>
+  );
 }

@@ -1,20 +1,13 @@
-import {
-  Slider,
-  SliderTrack,
-  SliderThumb,
-  SliderRange,
-} from "@radix-ui/react-slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
-import { FlexBox } from "gameboy/components/core/flex-box";
+import { Slider } from "gameboy/components/core/slider";
 import { store, actions } from "gameboy/store";
 import { create } from "gameboy/store/utils";
 import { cloneDeep } from "gameboy/utils";
+import { cn } from "gameboy/utils/cn";
 import { useState } from "react";
 import { useStore } from "zustand";
 
 import { Button } from "../core/button";
-
-import * as styles from "./Settings.css";
 
 enum ETabs {
   Controller = "controller",
@@ -33,53 +26,65 @@ export function Settings() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className="w-screen h-screen bg-bg/75 backdrop-blur-lg">
       <Tabs
         orientation="vertical"
         defaultValue={ETabs.Mics}
-        className={styles.tabs}
+        className="h-full w-full flex gap-5"
       >
-        <TabsList className={styles.list}>
-          <TabsTrigger value={ETabs.Controller} className={styles.trigger}>
+        <TabsList>
+          <TabsTrigger
+            value={ETabs.Controller}
+            className={cn(
+              "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
+              "data-[state=active]:border-primary",
+            )}
+          >
             控制器
           </TabsTrigger>
-          <TabsTrigger value={ETabs.Mics} className={styles.trigger}>
+          <TabsTrigger
+            value={ETabs.Mics}
+            className={cn(
+              "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1",
+              "data-[state=active]:border-primary",
+            )}
+          >
             其他
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={ETabs.Controller} className={styles.content}>
+        <TabsContent
+          value={ETabs.Controller}
+          className={cn(
+            "flex flex-col grow py-1.5 outline-0",
+            "data-[state=inactive]:hidden",
+          )}
+        >
           TBD
         </TabsContent>
-        <TabsContent value={ETabs.Mics} className={styles.content}>
+        <TabsContent
+          value={ETabs.Mics}
+          className={cn(
+            "flex flex-col grow py-1.5 outline-0",
+            "data-[state=inactive]:hidden",
+          )}
+        >
           <div style={{ flexGrow: 1 }}>
-            <label
-              style={{
-                marginBottom: 10,
-                fontSize: "1.17em",
-                fontWeight: "bolder",
-              }}
-            >
+            <label className="font-semibold text-lg mb-2.5">
               游戏音量（{settings.volume}%）
             </label>
             <Slider
-              className={styles.slider}
+              style={{ width: "200px" }}
               value={[settings.volume]}
               onValueChange={([volume]) => {
                 settingsStore.setState((state) => {
                   state.volume = volume;
                 });
               }}
-            >
-              <SliderTrack className={styles.track}>
-                <SliderRange className={styles.range} />
-              </SliderTrack>
-
-              <SliderThumb className={styles.thumb} />
-            </Slider>
+            />
           </div>
 
-          <FlexBox direction="row-reverse" gap={10} style={{ margin: 10 }}>
+          <div className="flex flex-row-reverse gap-2.5 m-2.5">
             <Button type="primary" onClick={flush}>
               保存
             </Button>
@@ -90,7 +95,7 @@ export function Settings() {
             >
               返回
             </Button>
-          </FlexBox>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

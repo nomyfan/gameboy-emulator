@@ -3,9 +3,6 @@ import { cn } from "gameboy/utils/cn";
 import { useEffect } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 
-import { FlexBox } from "../flex-box";
-
-import * as styles from "./GameList.css";
 import { Item } from "./Item";
 
 export interface IListProps {
@@ -29,7 +26,7 @@ export function GameList(props: IListProps) {
   const renderItems = () => {
     if (!games) {
       return (
-        <Item className={styles.placeholderItem}>
+        <Item placeholder>
           <ScaleLoader />
         </Item>
       );
@@ -38,7 +35,7 @@ export function GameList(props: IListProps) {
     if (games.length === 0) {
       // TODO: add guide anchor
       return (
-        <Item className={styles.placeholderItem}>
+        <Item placeholder>
           <span>添加你的第一个游戏吧！</span>
         </Item>
       );
@@ -58,15 +55,17 @@ export function GameList(props: IListProps) {
   };
 
   return (
-    <FlexBox
-      className={cn(styles.list, props.className)}
-      align="center"
-      justify={!games || games.length === 0 ? "center" : undefined}
+    <div
+      className={cn(
+        "flex items-center gap-2.5 px-2.5 overflow-x-auto",
+        (!games || games.length === 0) && "justify-center",
+        props.className,
+      )}
       onClick={() => {
         actions.selectCartridge();
       }}
     >
       {renderItems()}
-    </FlexBox>
+    </div>
   );
 }

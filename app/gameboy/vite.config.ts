@@ -1,9 +1,12 @@
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
+import * as path from "node:path";
+
 import react from "@vitejs/plugin-react";
+import UnoCSS from "unocss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
-import tsconfigPaths from "vite-tsconfig-paths";
+
+const __dirname = new URL(".", import.meta.url).pathname;
 
 // https://vitejs.dev/config/
 // eslint-disable-next-line import/no-default-export
@@ -13,12 +16,16 @@ export default defineConfig(({ mode }) => ({
       allow: ["../.."],
     },
   },
+  resolve: {
+    alias: {
+      gameboy: path.resolve(__dirname, "src"),
+    },
+  },
   define: {
     "process.env.NODE_ENV": JSON.stringify(mode),
   },
   plugins: [
-    tsconfigPaths(),
-    vanillaExtractPlugin(),
+    UnoCSS(),
     svgr(),
     react(),
     VitePWA({

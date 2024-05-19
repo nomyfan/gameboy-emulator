@@ -1,18 +1,22 @@
 import * as RadixAvatar from "@radix-ui/react-avatar";
+import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
-
-import { FlexBox } from "../flex-box";
-
-import * as styles from "./Avatar.css";
 
 export function Avatar(props: { src?: string; fallback?: ReactNode }) {
   return (
-    <RadixAvatar.Root className={styles.avatar}>
-      <RadixAvatar.Image src={props.src} alt="avatar" />
+    <RadixAvatar.Root
+      className={cn(
+        "h-10 w-10 block border-solid border-white border-2 rounded-full shadow-[0_4px_4px_rgba(0,0,0,.25)]",
+      )}
+    >
+      <RadixAvatar.Image
+        className="h-full w-full object-cover rounded-full"
+        src={props.src}
+      />
       <RadixAvatar.Fallback asChild>
-        <FlexBox className={styles.fallback} justify="center" align="center">
+        <div className="flex justify-center items-center h-full w-full text-sm bg-primary text-white rounded-full">
           {props.fallback}
-        </FlexBox>
+        </div>
       </RadixAvatar.Fallback>
     </RadixAvatar.Root>
   );

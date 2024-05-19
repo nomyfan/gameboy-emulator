@@ -1,5 +1,3 @@
-import "./App.css";
-
 import { ToastProvider } from "gameboy/components/toast/ToastProvider";
 import { lazy, Suspense } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";

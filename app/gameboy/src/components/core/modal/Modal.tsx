@@ -1,10 +1,11 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 
 import { Button } from "../button";
 import { FlexBox } from "../flex-box";
 
-import * as styles from "./Modal.css";
+import styles from "./Modal.module.css";
 
 export function Modal(props: {
   open?: boolean;
@@ -39,15 +40,18 @@ export function Modal(props: {
     <Dialog.Root open={props.open} defaultOpen={props.defaultOpen}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={styles.overlay}
+          className={cn(
+            " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
+            styles.overlay,
+          )}
           onClick={() => props.onClose?.()}
         />
-        <Dialog.Content className={styles.content}>
-          <div className={styles.container}>
-            <h1 className={styles.title}>{props.title}</h1>
-            <div className={styles.description}>{props.children}</div>
+        <Dialog.Content className="fixed top-0 left-0 w-screen h-screen">
+          <div className="max-w-lg min-w-xs absolute-center bg-bg py-5 px-6 rounded">
+            <h1 className="mb-6 mt-0 text-6 font-bold">{props.title}</h1>
+            <div className="my-6 text-sm font-medium">{props.children}</div>
 
-            <div className={styles.footer}>{renderFooter()}</div>
+            <div className="mt-6">{renderFooter()}</div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

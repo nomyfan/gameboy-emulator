@@ -21,7 +21,6 @@ import { useMemo, useState } from "react";
 import { useStore } from "zustand";
 
 import { gameboy, takeSnapshot } from "./actions";
-import * as styles from "./PlayOperationBar.css";
 
 export function PlayOperationBar(props: {
   canvasRef: RefObject<HTMLCanvasElement>;
@@ -136,15 +135,15 @@ export function PlayOperationBar(props: {
   return (
     <>
       <div
-        className={styles.container}
+        className="fixed bottom-10px w-full flex justify-center"
         style={{
           visibility: expanded ? "visible" : "hidden",
         }}
       >
-        <div className={styles.barBackground}>
+        <div className="bg-white/30 backdrop-blur-md py-2 pr-30px pl-3 rounded-10px relative">
           <OperationBar items={items} />
           <IconExpandDown
-            className={styles.collapseButton}
+            className="absolute top-50% right-6px transform-translate-y--50%"
             onClick={() => {
               setExpanded(false);
             }}
@@ -153,7 +152,7 @@ export function PlayOperationBar(props: {
       </div>
 
       <IconExpandDown
-        className={styles.expandButton}
+        className="fixed bottom-0 left-0 right-0 m-auto transform-rotate-180"
         style={{
           visibility: expanded ? "hidden" : "visible",
         }}

@@ -1,8 +1,10 @@
 import { Dialog, DialogPortal, DialogContent } from "@radix-ui/react-dialog";
 import { ModalOpenedError } from "gameboy/model/error";
+import { cn } from "gameboy/utils/cn";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
-import * as styles from "./SnapshotModal.css";
+// import * as styles from "./SnapshotModal.css";
+import styles from "./SnapshotModal.module.css";
 import type { ISnapshotsProps } from "./Snapshots";
 import { Snapshots } from "./Snapshots";
 
@@ -47,10 +49,16 @@ export const SnapshotsModal = forwardRef<
               onClose.current?.();
               onClose.current = undefined;
             }}
-            className={styles.overlay}
+            className={cn(
+              "fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
+              styles.overlay,
+            )}
           >
             <div
-              className={styles.drawer}
+              className={cn(
+                "fixed top-0 right-0 h-screen w-sm bg-bg",
+                styles.drawer,
+              )}
               onClick={(evt) => {
                 evt.stopPropagation();
               }}

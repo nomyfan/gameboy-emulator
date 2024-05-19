@@ -1,30 +1,37 @@
 import { cn } from "gameboy/utils/cn";
 import type { CSSProperties, PropsWithChildren } from "react";
 
-import * as styles from "./GameList.css";
-
 export type IListItemProps = PropsWithChildren<{
   coverURL?: string;
   name?: string;
   selected?: boolean;
   onSelected?: () => void;
   style?: CSSProperties;
-  className?: string;
+  placeholder?: boolean;
 }>;
 
 export function Item(props: IListItemProps) {
   const children = props.children ?? (
-    <figure>
-      <img alt={props.name} src={props.coverURL} />
-      <figcaption>{props.name}</figcaption>
+    <figure className="h-full w-full">
+      <img
+        className="w-full object-cover"
+        alt={props.name}
+        src={props.coverURL}
+      />
+      <figcaption className="text-sm font-medium bg-primary text-white p-1 overflow-hidden whitespace-nowrap text-ellipsis">
+        {props.name}
+      </figcaption>
     </figure>
   );
 
   return (
     <div
       className={cn(
-        props.selected ? styles.listItemSelected : styles.listItem,
-        props.className,
+        "flex-grow-0 flex-shrink-0 rounded-[1px] border-solid",
+        props.placeholder
+          ? "flex items-center justify-center w-fit text-primary"
+          : "w-48 shadow-[0_4px_4px_rgba(0,0,0,.25)] border-[3px]",
+        props.selected ? "border-accent" : "border-primary",
       )}
       style={props.style}
       onClick={(evt) => {

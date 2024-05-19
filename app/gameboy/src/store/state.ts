@@ -43,7 +43,9 @@ export const store = create<IStore>(() => {
   const settings = localStorage.getItem("gbos-settings");
   return {
     dialog: {
-      play: {},
+      play: {
+        // open: true,
+      },
       confirm: {},
       settings: {},
     },

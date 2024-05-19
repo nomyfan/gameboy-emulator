@@ -1,6 +1,8 @@
 import * as PrimitiveToast from "@radix-ui/react-toast";
+import { ToastViewport } from "@radix-ui/react-toast";
+import { cn } from "gameboy/utils/cn";
 
-import * as styles from "./Toast.css";
+import styles from "./Toast.module.css";
 
 export interface IToastItem {
   id: string;
@@ -27,13 +29,22 @@ export function Toast(props: {
             <PrimitiveToast.Description>
               {it.message}
             </PrimitiveToast.Description>
-            <PrimitiveToast.Close asChild className={styles.close}>
+            <PrimitiveToast.Close
+              asChild
+              className="rounded py-1 px-2 mx-1 text-xs underline-dashed font-bold [&:hover]:bg-#e5e5e5"
+            >
               <span>关闭</span>
             </PrimitiveToast.Close>
           </PrimitiveToast.Root>
         );
       })}
-      <PrimitiveToast.Viewport className={styles.viewport} />
+      <ToastViewport
+        className={cn(
+          "fixed left-0 text-sm top-0 right-0 m-a w-fit list-none outline-0 z-36 py-2 px-4 flex flex-col-reverse gap-2",
+          "[&>[data-state=open]]:(bg-white flex items-center py-1 pl-3 rounded shadow-[0_0_2px_rgba(0,0,0,0.25)])",
+          styles.viewport,
+        )}
+      />
     </PrimitiveToast.Provider>
   );
 }
