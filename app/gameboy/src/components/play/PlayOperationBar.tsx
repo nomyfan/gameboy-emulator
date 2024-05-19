@@ -6,6 +6,7 @@ import {
   IconPause,
   IconPlay,
   IconSave,
+  IconSettings,
   IconVolumeOff,
   IconVolumeOn,
 } from "gameboy/components/icons";
@@ -108,6 +109,15 @@ export function PlayOperationBar(props: {
 
                 throw err;
               });
+          },
+        },
+        {
+          id: "settings",
+          icon: <IconSettings />,
+          onClick: async () => {
+            gameboy.pause();
+            await actions.openSettingsModal();
+            gameboy.play();
           },
         },
       ],

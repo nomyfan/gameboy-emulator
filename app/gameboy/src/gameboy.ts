@@ -1,7 +1,8 @@
+import { store } from "gameboy/store";
 import { create } from "gameboy/store/utils";
 import { GameBoy as GameBoyHandle, JoypadKey } from "gb-wasm";
 
-function noop() { }
+function noop() {}
 
 function createGameBoyStore() {
   return create<{
@@ -22,13 +23,23 @@ class GameBoyControl {
   private keyState = 0;
   private readonly audioContext_: AudioContext;
   private audioWorkletModuleAdded_ = false;
-  private disconnectAudio: () => void = noop;
+  private disconnectAudio_: () => void = noop;
+  private changeAudioVolume_: (volume: number) => void = noop;
   private nextTickTime_ = 0;
 
   constructor() {
     this.store_ = createGameBoyStore();
     // TODO: defer audioContext creation until needed
     this.audioContext_ = new AudioContext();
+
+    this.store_.setState({ volume: store.getState().settings.volume });
+    // Subscribe to global store volume changes
+    store.subscribe((state) => {
+      if (state.settings.volume !== this.state.volume) {
+        this.store_.setState({ volume: state.settings.volume });
+        this.changeAudioVolume_(state.settings.volume);
+      }
+    });
   }
 
   private get state() {
@@ -85,14 +96,18 @@ class GameBoyControl {
     });
 
     const gainNode = this.audioContext_.createGain();
-    gainNode.gain.value = this.state.volume;
+    gainNode.gain.value = this.state.volume / 100;
     workletNode.connect(gainNode);
     gainNode.connect(this.audioContext_.destination);
-    this.disconnectAudio = () => {
+    this.disconnectAudio_ = () => {
       workletNode.disconnect();
       gainNode.disconnect();
 
-      this.disconnectAudio = noop;
+      this.disconnectAudio_ = noop;
+      this.changeAudioVolume_ = noop;
+    };
+    this.changeAudioVolume_ = (volume: number) => {
+      gainNode.gain.value = volume / 100;
     };
 
     const instance = GameBoyHandle.create(
@@ -113,7 +128,7 @@ class GameBoyControl {
       this.pause();
     }
 
-    this.disconnectAudio();
+    this.disconnectAudio_();
 
     if (this.instance_) {
       this.instance_.free();

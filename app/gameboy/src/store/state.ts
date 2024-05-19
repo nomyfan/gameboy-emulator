@@ -21,6 +21,10 @@ export interface IStore {
       cancelText?: string;
       callback?: (ok: boolean) => void;
     };
+    settings: {
+      open?: boolean;
+      callback?: () => void;
+    };
   };
   games?: Array<{
     id: string;
@@ -30,14 +34,22 @@ export interface IStore {
     lastPlayTime?: number;
   }>;
   selectedGameId?: string;
+  settings: {
+    volume: number;
+  };
 }
 
-export const store = create<IStore>(() => ({
-  dialog: {
-    play: {},
-    confirm: {},
-  },
-}));
+export const store = create<IStore>(() => {
+  const settings = localStorage.getItem("gbos-settings");
+  return {
+    dialog: {
+      play: {},
+      confirm: {},
+      settings: {},
+    },
+    settings: settings ? JSON.parse(settings) : { volume: 100 },
+  };
+});
 
 export function useAppStore<T>(selector: (state: Readonly<IStore>) => T) {
   return useStore(store, selector);

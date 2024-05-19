@@ -1,6 +1,8 @@
 import { buf } from "crc-32";
 import { xxHash32 } from "js-xxhash";
 
+export { default as cloneDeep } from "lodash.clonedeep";
+
 export function hash(data: Uint8Array): string;
 export function hash(data: Blob): Promise<string>;
 export function hash(data: Uint8Array | Blob): string | Promise<string> {

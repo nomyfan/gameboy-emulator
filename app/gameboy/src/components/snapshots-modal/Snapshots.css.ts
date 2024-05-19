@@ -59,7 +59,7 @@ export const menuContent = style({
   boxShadow:
     "0px 10px 38px -10px rgba(22, 23, 24, 0.35), 0px 10px 20px -15px rgba(22, 23, 24, 0.2)",
   lineHeight: 1,
-  color: cssVars.colorPrimary,
+  color: cssVars.colorText,
 });
 
 export const menuItem = style({

@@ -8,7 +8,7 @@ export const bar = style({
 });
 
 export const barItem = style({
-  color: cssVars.colorPrimary,
+  color: cssVars.colorText,
   backgroundColor: "white",
   borderRadius: "50%",
   padding: 6,

@@ -15,6 +15,9 @@ export const darkShadowColor = fallbackVar(
 export const varColorPrimary = createVar();
 export const colorPrimary = fallbackVar(varColorPrimary, "#2C2C2C");
 
+export const varColorText = createVar();
+export const colorText = fallbackVar(varColorText, "#4B4B4B");
+
 export const varColorAlert = createVar();
 export const colorAlert = fallbackVar(varColorAlert, "#DC3545");
 export const varColorAlertRgb = createVar();
@@ -22,6 +25,11 @@ export const colorAlertRgb = fallbackVar(varColorAlertRgb, "220,53,69");
 
 export const varColorBackground = createVar();
 export const colorBackground = fallbackVar(varColorBackground, "#EBEBEB");
+export const varColorBackgroundRgb = createVar();
+export const colorBackgroundRgb = fallbackVar(
+  varColorBackgroundRgb,
+  "235,235,235",
+);
 
 export const varColorHighlight = createVar();
 export const colorHighlight = fallbackVar(varColorHighlight, "#00FFFF");

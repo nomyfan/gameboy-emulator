@@ -9,6 +9,7 @@ export function FlexBox<T>(
     justify?: CSSProperties["justifyContent"];
     grow?: CSSProperties["flexGrow"];
     shrink?: CSSProperties["flexShrink"];
+    gap?: CSSProperties["gap"];
   },
 ) {
   const {
@@ -20,6 +21,7 @@ export function FlexBox<T>(
     justify,
     grow,
     shrink,
+    gap,
     ...restProps
   } = props;
 
@@ -30,6 +32,7 @@ export function FlexBox<T>(
     justifyContent: justify,
     flexGrow: grow,
     flexShrink: shrink,
+    gap,
     ...styleProp,
   };
 

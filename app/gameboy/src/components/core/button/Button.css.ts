@@ -2,11 +2,11 @@ import { style } from "@vanilla-extract/css";
 import { cssVars } from "gameboy/styles";
 
 export const button = style({
-  padding: "10px 20px",
+  padding: "8px 16px",
   fontWeight: 500,
   borderRadius: 5,
   backgroundColor: "white",
-  color: cssVars.colorPrimary,
+  color: cssVars.colorText,
 });
 
 export const buttonPrimary = style([

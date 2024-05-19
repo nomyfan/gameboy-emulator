@@ -11,6 +11,7 @@ import {
   IconFullscreen,
   IconFullscreenExit,
   IconFileDownload,
+  IconSettings,
 } from "gameboy/components/icons";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { SnapshotsModal } from "gameboy/components/snapshots-modal";
@@ -131,10 +132,13 @@ export function Home() {
               await document.body.requestFullscreen();
             },
           },
-      // {
-      //   id: "settings",
-      //   icon: <IconSettings />,
-      // },
+      {
+        id: "settings",
+        icon: <IconSettings />,
+        onClick: () => {
+          actions.openSettingsModal();
+        },
+      },
     ]);
 
     return items;
