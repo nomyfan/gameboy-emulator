@@ -6,6 +6,8 @@ import {
   IconPause,
   IconPlay,
   IconSave,
+  IconVolumeOff,
+  IconVolumeOn,
 } from "gameboy/components/icons";
 import type { IExitGameModalRef } from "gameboy/components/play/exit-game-modal";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
@@ -31,15 +33,19 @@ export function PlayOperationBar(props: {
 
   const { addToast } = useToast();
   const playing = useStore(gameboy.store, (st) => st.status === "playing");
+  const muted = useStore(gameboy.store, (st) => st.muted);
   const gameId = useAppStore((st) => st.selectedGameId);
 
   const items = useMemo(() => {
     return [
       [
-        // {
-        //   id: "mute-unmute",
-        //   icon: <IconVolumeOff />,
-        // },
+        {
+          id: "mute-unmute",
+          icon: muted ? <IconVolumeOn /> : <IconVolumeOff />,
+          onClick: () => {
+            gameboy.mute();
+          },
+        },
         {
           id: "take-snapshot",
           icon: <IconSave />,
@@ -111,6 +117,7 @@ export function PlayOperationBar(props: {
     canvasRef,
     exitGameModalRef,
     gameId,
+    muted,
     playing,
     snapshotsModalRef,
   ]);

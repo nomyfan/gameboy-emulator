@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use gb::GameBoySnapshot;
 use gb::{buffer_size_from_sample_rate, Cartridge, GameBoy, Manifest};
 use gb_shared::boxed::BoxedArray;
@@ -13,6 +15,7 @@ use web_sys::{
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
+    muted: Rc<RefCell<bool>>,
 }
 
 struct Frame {
@@ -191,15 +194,20 @@ impl GameBoyHandle {
             },
         );
 
+        let muted = Rc::new(RefCell::new(false));
         match (audio_stream, sample_rate) {
             (Some(stream), Some(sample_rate)) => {
                 let stream_writer = stream.get_writer().unwrap();
                 let sample_count = buffer_size_from_sample_rate(sample_rate);
                 let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
+                let muted = muted.clone();
 
                 gb.set_handles(
                     Some(frame_handle),
                     Some(Box::new(move |data| {
+                        if *muted.borrow() {
+                            return;
+                        }
                         let len = data.len().min(sample_count as usize);
                         for (i, (left, right)) in data.iter().take(len).enumerate() {
                             audio_buffer.set_index(i as u32 * 2, *left);
@@ -217,7 +225,7 @@ impl GameBoyHandle {
             }
         }
 
-        GameBoyHandle { gb }
+        GameBoyHandle { gb, muted }
     }
 
     #[wasm_bindgen(js_name = continue)]
@@ -256,6 +264,11 @@ impl GameBoyHandle {
             }
             Err(_) => Err(JsError::new("[ESS1]Snapshot is broken")),
         }
+    }
+
+    #[wasm_bindgen]
+    pub fn mute(&mut self, muted: bool) {
+        *self.muted.borrow_mut() = muted;
     }
 }
 

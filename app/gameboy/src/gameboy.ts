@@ -1,22 +1,11 @@
+import { create } from "gameboy/store/utils";
 import { GameBoy as GameBoyHandle, JoypadKey } from "gb-wasm";
-import { createStore } from "zustand";
-import { subscribeWithSelector } from "zustand/middleware";
-import { immer } from "zustand/middleware/immer";
 
 function createGameBoyStore() {
-  return createStore(
-    subscribeWithSelector(
-      immer(() => {
-        return {
-          status: "uninstalled" as
-            | "playing"
-            | "paused"
-            | "installed"
-            | "uninstalled",
-        };
-      }),
-    ),
-  );
+  return create<{
+    status: "playing" | "paused" | "installed" | "uninstalled";
+    muted: boolean;
+  }>(() => ({ status: "uninstalled", muted: false }));
 }
 
 type GameBoyStore = ReturnType<typeof createGameBoyStore>;
@@ -94,7 +83,7 @@ class GameBoyControl {
     });
     workletNode.connect(this.audioContext_.destination);
 
-    this.instance_ = GameBoyHandle.create(
+    const instance = GameBoyHandle.create(
       rom,
       canvas,
       sav,
@@ -102,6 +91,8 @@ class GameBoyControl {
       stream,
       dbgCanvas,
     );
+    instance.mute(this.state.muted);
+    this.instance_ = instance;
     this.store_.setState({ status: "installed" });
   }
 
@@ -192,6 +183,12 @@ class GameBoyControl {
   createSav() {
     this.ensureInstalled();
     return this.instance_!.suspendCartridge();
+  }
+
+  mute(muted?: boolean) {
+    muted ??= !this.state.muted;
+    this.store_.setState({ muted });
+    this.instance_?.mute(muted);
   }
 }
 
