@@ -1,5 +1,3 @@
-import "./App.css";
-
 import { ToastProvider } from "gameboy/components/toast/ToastProvider";
 import { lazy, Suspense } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
@@ -9,6 +7,9 @@ import { useAppStore, actions } from "./store";
 const LazyHome = lazy(() => import("./components/home"));
 const LazyPlayModel = lazy(() => import("./components/play/PlayModal"));
 const LazyConfirmModal = lazy(() => import("./components/confirm-modal"));
+const LazySettingsModal = lazy(
+  () => import("./components/settings/SettingsModal"),
+);
 
 const handleBeforeUnload = (evt: BeforeUnloadEvent) => {
   evt.preventDefault();
@@ -38,6 +39,16 @@ function ConfirmModal() {
   ) : null;
 }
 
+function SettingsModal() {
+  const open = useAppStore((st) => st.dialog.settings.open);
+
+  return open !== undefined ? (
+    <Suspense>
+      <LazySettingsModal />
+    </Suspense>
+  ) : null;
+}
+
 export function App() {
   const { updateServiceWorker } = useRegisterSW({
     onNeedRefresh() {
@@ -62,6 +73,7 @@ export function App() {
         <LazyHome />
       </Suspense>
       <PlayModal />
+      <SettingsModal />
       <ConfirmModal />
     </ToastProvider>
   );

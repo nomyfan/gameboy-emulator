@@ -73,6 +73,25 @@ export function closeConfirmModal(ok: boolean) {
   store.getState().dialog.confirm.callback?.(ok);
 }
 
+export async function openSettingsModal() {
+  return new Promise<void>((resolve) => {
+    store.setState((st) => {
+      st.dialog.settings.open = true;
+      st.dialog.settings.callback = () => {
+        store.setState((st) => {
+          st.dialog.settings = { open: false };
+        });
+
+        resolve();
+      };
+    });
+  });
+}
+
+export function closeSettingsModal() {
+  store.getState().dialog.settings.callback?.();
+}
+
 export async function loadGames(beforeSetState?: () => Promise<void>) {
   const manifests = await storage.loadAllGames();
 
@@ -126,4 +145,11 @@ export async function exportSelectedGame() {
   }
 
   return await storage.exportGame(id);
+}
+
+export function writeSettings(settings: IStore["settings"]) {
+  store.setState((st) => {
+    st.settings = settings;
+  });
+  localStorage.setItem("gbos-settings", JSON.stringify(settings));
 }

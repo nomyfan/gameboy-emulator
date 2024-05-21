@@ -10,8 +10,6 @@ import { useEffect, useState } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 
-import * as styles from "./Snapshots.css";
-
 export interface IActionItem {
   icon?: ReactNode;
   label: string;
@@ -47,16 +45,17 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
-        <div className={styles.item}>
+        <div className="flex bg-primary w-full my-2 rounded">
           <img
             alt={snapshot.name}
             src={coverURL}
-            className={styles.itemImage}
+            style={{ width: 160 * 0.6, height: 144 * 0.6 }}
+            className="grow-0 shrink-0 rounded-l"
           />
-          <div className={styles.itemDesc}>
+          <div className="grow shrink-0 basis-0 p-2 text-sm flex items-center text-white break-all">
             <span>
               {snapshot.name}
-              <span className={styles.itemSubDesc}>
+              <span className="text-xs">
                 （{new Date(snapshot.time).toLocaleString()}）
               </span>
             </span>
@@ -64,19 +63,22 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
         </div>
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <ContextMenu.Content className={styles.menuContent}>
+        <ContextMenu.Content className="bg-white rounded text-xs text-text p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)]">
           {props.menuItems.map((it) => {
             return (
               <ContextMenu.Item
                 key={it.label}
                 className={cn(
-                  it.alert ? styles.menuItemAlert : styles.menuItem,
+                  "min-w-150px bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
+                  !it.alert && "[&[data-highlighted]]:(bg-primary text-white)",
+                  it.alert && "text-alert",
+                  it.alert && "[&[data-highlighted]]:(bg-alert text-white)",
                 )}
                 onClick={() => {
                   it.onClick(snapshot, context);
                 }}
               >
-                <Slot className={styles.menuItemIcon}>{it.icon ?? <i />}</Slot>
+                <Slot className="w-4 h-4 mr-1">{it.icon ?? <i />}</Slot>
                 {it.label}
               </ContextMenu.Item>
             );
@@ -136,10 +138,10 @@ export function Snapshots(props: ISnapshotsProps) {
   );
 
   return (
-    <div className={styles.snapshotsRoot}>
-      <h1 className={styles.header}>存档</h1>
+    <div className="pt-2 px-2 flex flex-col h-full">
+      <h1 className="text-lg font-bold">存档</h1>
 
-      <div className={styles.itemsContainer}>
+      <div className="grow shrink-0 basis-0 of-y-auto">
         <SnapshotsContext.Provider value={contextValue}>
           {renderItems()}
         </SnapshotsContext.Provider>

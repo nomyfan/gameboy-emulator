@@ -1,6 +1,5 @@
 import { AbButton } from "gameboy/components/core/AbButton";
 import { DirectionButton } from "gameboy/components/core/DirectionButton";
-import { FlexBox } from "gameboy/components/core/flex-box";
 import { FnButton } from "gameboy/components/core/FnButton";
 import { Screen } from "gameboy/components/core/Screen";
 import { IconDelete } from "gameboy/components/icons";
@@ -10,7 +9,6 @@ import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
 import { storage } from "gameboy/storage/indexdb";
 import { store, actions, useAppStore } from "gameboy/store";
-import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, forwardRef } from "react";
 
@@ -23,11 +21,9 @@ import {
 } from "./actions";
 import type { IExitGameModalRef } from "./exit-game-modal";
 import { ExitGameModal } from "./exit-game-modal";
-import * as styles from "./Play.css";
 import { PlayOperationBar } from "./PlayOperationBar";
 
 export interface IPagePlayProps {
-  className?: string;
   style?: CSSProperties;
 }
 
@@ -94,26 +90,42 @@ export function Play(props: IPagePlayProps) {
   useKeyboardController({ gameboy });
   useGamepadController({ gameboy });
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        gameboy.state.status !== "uninstalled" &&
+        store.getState().settings.autoPause &&
+        document.hidden
+      ) {
+        gameboy.pause();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      return document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
+  }, []);
+
   return (
     <>
-      <FlexBox
-        justify="right"
-        className={cn(styles.root, props.className)}
-        style={props.style}
-      >
+      <div className="flex justify-end bg-bg" style={props.style}>
         <DebugCanvas ref={dbgCanvasRef} />
-        <FlexBox justify="end" className={styles.side}>
-          <div className={styles.leftSide}>
+        <div className="flex justify-end basis-0 grow shrink-0">
+          <div className="pt-5 pr-5">
             <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
           </div>
-        </FlexBox>
+        </div>
 
-        <FlexBox align="center" className={styles.screen}>
+        <div className="flex items-center shrink-0">
           <Screen ref={canvasRef} />
-        </FlexBox>
+        </div>
 
-        <FlexBox className={styles.side}>
-          <div className={styles.rightSide}>
+        <div className="basis-0 grow shrink-0">
+          <div className="pl-5 pt-5">
             <AbButton
               style={{ transform: "rotate(-25deg)" }}
               onDown={handleButtonDown}
@@ -125,8 +137,8 @@ export function Play(props: IPagePlayProps) {
               onUp={handleButtonUp}
             />
           </div>
-        </FlexBox>
-      </FlexBox>
+        </div>
+      </div>
 
       <PlayOperationBar
         canvasRef={canvasRef}

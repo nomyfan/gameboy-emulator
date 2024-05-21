@@ -1,6 +1,8 @@
 import { buf } from "crc-32";
 import { xxHash32 } from "js-xxhash";
 
+export { default as cloneDeep } from "lodash.clonedeep";
+
 export function hash(data: Uint8Array): string;
 export function hash(data: Blob): Promise<string>;
 export function hash(data: Uint8Array | Blob): string | Promise<string> {
@@ -57,4 +59,17 @@ export function join<T>(
   }
 
   return newArray;
+}
+
+export function isPlainObject(object: unknown) {
+  if (typeof object !== "object" || object === null) {
+    return false;
+  }
+
+  const prototype = Object.getPrototypeOf(object);
+  if (prototype === null || prototype === Object.prototype) {
+    return true;
+  }
+
+  return object.constructor === Object;
 }

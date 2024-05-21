@@ -11,6 +11,7 @@ import {
   IconFullscreen,
   IconFullscreenExit,
   IconFileDownload,
+  IconSettings,
 } from "gameboy/components/icons";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { SnapshotsModal } from "gameboy/components/snapshots-modal";
@@ -20,8 +21,6 @@ import { useFullscreen } from "gameboy/hooks/useFullscreen";
 import { storage } from "gameboy/storage/indexdb";
 import { actions, useAppStore } from "gameboy/store";
 import { useMemo, useRef } from "react";
-
-import * as styles from "./Home.css";
 
 export function Home() {
   const { addToast } = useToast();
@@ -131,19 +130,22 @@ export function Home() {
               await document.body.requestFullscreen();
             },
           },
-      // {
-      //   id: "settings",
-      //   icon: <IconSettings />,
-      // },
+      {
+        id: "settings",
+        icon: <IconSettings />,
+        onClick: () => {
+          actions.openSettingsModal();
+        },
+      },
     ]);
 
     return items;
   }, [selected, isFullscreen, addToast]);
 
   return (
-    <main className={styles.home}>
+    <main className="bg-bg h-screen w-screen flex flex-col">
       <section
-        className={styles.statusBar}
+        className="p-2"
         onClick={() => {
           actions.selectCartridge();
         }}
@@ -151,14 +153,14 @@ export function Home() {
         <Avatar fallback="O" />
       </section>
 
-      <GameList className={styles.gameList} />
+      <GameList className="grow shrink-0" />
 
       <section
         onClick={() => {
           actions.selectCartridge();
         }}
       >
-        <OperationBar className={styles.operationBar} items={items} />
+        <OperationBar style={{ padding: "10px 0" }} items={items} />
       </section>
 
       <SnapshotsModal

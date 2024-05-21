@@ -1,8 +1,6 @@
 import { cn } from "gameboy/utils/cn";
 import type { HTMLAttributes } from "react";
 
-import * as styles from "./Button.css";
-
 export function Button(
   props: HTMLAttributes<HTMLButtonElement> & { type?: "primary" | "normal" },
 ) {
@@ -12,7 +10,8 @@ export function Button(
     <button
       {...restProps}
       className={cn(
-        type === "primary" ? styles.buttonPrimary : styles.button,
+        "py-2 px-4 font-medium text-sm rounded-md",
+        type === "primary" ? "bg-primary text-white" : "bg-white text-text",
         props.className,
       )}
     >
