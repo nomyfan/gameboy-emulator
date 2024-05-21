@@ -30,6 +30,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png"],
+      workbox: {
+        globPatterns: ["**/*.{html,js,css,wasm}"],
+      },
       manifest: {
         name: "GameBoy",
         short_name: "GameBoy",
