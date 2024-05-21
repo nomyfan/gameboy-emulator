@@ -70,9 +70,9 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
                 key={it.label}
                 className={cn(
                   "min-w-150px bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
-                  !it.alert && "data-[highlighted]:(bg-primary text-white)",
+                  !it.alert && "[&[data-highlighted]]:(bg-primary text-white)",
                   it.alert && "text-alert",
-                  it.alert && "data-[highlighted]:(bg-alert text-white)",
+                  it.alert && "[&[data-highlighted]]:(bg-alert text-white)",
                 )}
                 onClick={() => {
                   it.onClick(snapshot, context);

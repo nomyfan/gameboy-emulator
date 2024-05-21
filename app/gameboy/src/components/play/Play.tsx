@@ -9,7 +9,6 @@ import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
 import { storage } from "gameboy/storage/indexdb";
 import { store, actions, useAppStore } from "gameboy/store";
-import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, forwardRef } from "react";
 
@@ -90,6 +89,26 @@ export function Play(props: IPagePlayProps) {
 
   useKeyboardController({ gameboy });
   useGamepadController({ gameboy });
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        gameboy.state.status !== "uninstalled" &&
+        store.getState().settings.autoPause &&
+        document.hidden
+      ) {
+        gameboy.pause();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      return document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
+  }, []);
 
   return (
     <>

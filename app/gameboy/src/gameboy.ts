@@ -42,7 +42,7 @@ class GameBoyControl {
     });
   }
 
-  private get state() {
+  get state() {
     type ReadonlyState = Readonly<ReturnType<(typeof this.store_)["getState"]>>;
     return this.store_.getState() as ReadonlyState;
   }

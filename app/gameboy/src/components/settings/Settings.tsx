@@ -1,13 +1,13 @@
+import { Switch, SwitchThumb } from "@radix-ui/react-switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
+import { Button } from "gameboy/components/core/button";
 import { Slider } from "gameboy/components/core/slider";
 import { store, actions } from "gameboy/store";
 import { create } from "gameboy/store/utils";
 import { cloneDeep } from "gameboy/utils";
 import { cn } from "gameboy/utils/cn";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useStore } from "zustand";
-
-import { Button } from "../core/button";
 
 enum ETabs {
   Controller = "controller",
@@ -19,6 +19,7 @@ export function Settings() {
     return create(() => cloneDeep(store.getState().settings));
   });
   const settings = useStore(settingsStore);
+  const id = useId();
 
   const flush = () => {
     actions.writeSettings(cloneDeep(settingsStore.getState()));
@@ -37,7 +38,7 @@ export function Settings() {
             value={ETabs.Controller}
             className={cn(
               "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
-              "data-[state=active]:border-primary",
+              "[&[data-state=active]]:(border-primary font-medium)",
             )}
           >
             控制器
@@ -45,8 +46,8 @@ export function Settings() {
           <TabsTrigger
             value={ETabs.Mics}
             className={cn(
-              "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1",
-              "data-[state=active]:border-primary",
+              "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
+              "[&[data-state=active]]:(border-primary font-medium)",
             )}
           >
             其他
@@ -57,32 +58,60 @@ export function Settings() {
           value={ETabs.Controller}
           className={cn(
             "flex flex-col grow py-1.5 outline-0",
-            "data-[state=inactive]:hidden",
+            "[&[data-state=inactive]]:hidden",
           )}
         >
-          TBD
+          (Coming soon...)
         </TabsContent>
         <TabsContent
           value={ETabs.Mics}
           className={cn(
             "flex flex-col grow py-1.5 outline-0",
-            "data-[state=inactive]:hidden",
+            "[&[data-state=inactive]]:hidden",
           )}
         >
-          <div style={{ flexGrow: 1 }}>
-            <label className="font-semibold text-lg mb-2.5">
+          <form style={{ flexGrow: 1 }}>
+            <label
+              className="font-semibold text-lg mb-2.5"
+              htmlFor={id + "-volume"}
+            >
               游戏音量（{settings.volume}%）
             </label>
             <Slider
               style={{ width: "200px" }}
               value={[settings.volume]}
               onValueChange={([volume]) => {
-                settingsStore.setState((state) => {
-                  state.volume = volume;
-                });
+                settingsStore.setState({ volume });
               }}
+              id={id + "-volume"}
             />
-          </div>
+
+            <label
+              className="font-semibold text-lg mb-2.5"
+              htmlFor={id + "autoPause"}
+            >
+              自动暂停
+              <span className="text-xs">（当离开当前页面时自动暂停游戏）</span>
+            </label>
+            <Switch
+              id={id + "autoPause"}
+              className={cn(
+                "w-11 h-6 rounded-full relative block bg-primary/70",
+                "[&[data-state=checked]]:bg-primary",
+              )}
+              checked={settings.autoPause}
+              onCheckedChange={(checked) => {
+                settingsStore.setState({ autoPause: checked });
+              }}
+            >
+              <SwitchThumb
+                className={cn(
+                  "block h-5 w-5 bg-white rounded-full transform-translate-x-0.5 transition-transform transition-duration-200",
+                  "[&[data-state=checked]]:transform-translate-x-5.5",
+                )}
+              />
+            </Switch>
+          </form>
 
           <div className="flex flex-row-reverse gap-2.5 m-2.5">
             <Button type="primary" onClick={flush}>
