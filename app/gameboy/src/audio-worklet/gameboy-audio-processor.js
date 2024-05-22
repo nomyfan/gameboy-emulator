@@ -2,13 +2,18 @@
 class GameBoyAudioProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super(options);
+    /**
+     * @type {{ offset: 0; chunk: Float32Array }[]}
+     */
     this.audioBuffer = [];
     this.streamActive = true;
+    this.length = 0;
 
     // eslint-disable-next-line no-undef
     const writableStream = new WritableStream({
       write: (chunk) => {
-        this.audioBuffer.push(...chunk);
+        this.audioBuffer.push({ offset: 0, chunk });
+        this.length += chunk.length;
       },
       close: () => {
         this.streamActive = false;
@@ -29,16 +34,21 @@ class GameBoyAudioProcessor extends AudioWorkletProcessor {
     const channels = outputs[0];
     const channelSamplesCount = channels[0].length;
 
-    if (audioBuffer.length < channelSamplesCount * 2) {
+    if (this.length < channelSamplesCount * 2) {
       return this.streamActive;
     }
 
-    const samplesCount = Math.min(audioBuffer.length, channelSamplesCount * 2);
-    const samples = audioBuffer.splice(0, samplesCount);
+    for (let i = 0; i < channelSamplesCount; i++) {
+      if (audioBuffer[0].offset >= audioBuffer[0].chunk.length) {
+        audioBuffer.shift();
+      }
 
-    for (let i = 0, index = 0; i < samplesCount; i += 2, index += 1) {
-      channels[0][index] = samples[i];
-      channels[1][index] = samples[i + 1];
+      const buffer = audioBuffer[0];
+      channels[0][i] = buffer.chunk[buffer.offset];
+      channels[1][i] = buffer.chunk[buffer.offset + 1];
+
+      buffer.offset += 2;
+      this.length -= 2;
     }
 
     return this.streamActive;
