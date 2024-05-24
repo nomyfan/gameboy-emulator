@@ -96,21 +96,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gb-wasm"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "console_error_panic_hook",
- "gb",
- "gb_console_log",
- "gb_shared",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "web-sys",
-]
-
-[[package]]
 name = "gb_apu"
 version = "0.1.0"
 dependencies = [
@@ -170,6 +155,21 @@ name = "gb_shared"
 version = "0.1.0"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "gb_wasm"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "console_error_panic_hook",
+ "gb",
+ "gb_console_log",
+ "gb_shared",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test",
+ "web-sys",
 ]
 
 [[package]]

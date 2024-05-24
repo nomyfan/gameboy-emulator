@@ -1,6 +1,6 @@
 import { store } from "gameboy/store";
 import { create } from "gameboy/store/utils";
-import { GameBoy as GameBoyHandle, JoypadKey } from "gb-wasm";
+import { GameBoy as GameBoyHandle, JoypadKey } from "gb_wasm";
 
 function noop() {}
 

@@ -4,7 +4,7 @@ import { zip, IZipDataEntry, unzip } from "gameboy/fs/zip";
 import type { IGame, IGameBoyStorage, ISnapshot } from "gameboy/model";
 import type { RequiredSome } from "gameboy/types";
 import * as utils from "gameboy/utils";
-import { obtainMetadata } from "gb-wasm";
+import { obtainMetadata } from "gb_wasm";
 
 type IZipManifest = {
   name: string;

@@ -1,5 +1,5 @@
 import type { GameBoyControl } from "gameboy/gameboy";
-import { JoypadKey } from "gb-wasm";
+import { JoypadKey } from "gb_wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
 

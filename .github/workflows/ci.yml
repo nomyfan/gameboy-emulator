@@ -96,13 +96,13 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Run tests
-        run: cargo test --workspace --exclude gb-wasm --target x86_64-unknown-linux-gnu
+        run: cargo test --workspace --exclude gb_wasm --target x86_64-unknown-linux-gnu
 
       - name: Lint
         run: cargo clippy --target wasm32-unknown-unknown
 
       - name: Build WASM
-        working-directory: ./crates/gb-wasm
+        working-directory: ./crates/gb_wasm
         run: "./x.mjs build"
 
       - name: Install dependencies for web app

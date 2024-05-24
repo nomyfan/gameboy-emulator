@@ -56,9 +56,9 @@ importers:
       dexie:
         specifier: ^4.0.4
         version: 4.0.7
-      gb-wasm:
-        specifier: link:../../crates/gb-wasm/npm
-        version: link:../../crates/gb-wasm/npm
+      gb_wasm:
+        specifier: link:../../crates/gb_wasm/npm
+        version: link:../../crates/gb_wasm/npm
       immer:
         specifier: ^10.1.1
         version: 10.1.1

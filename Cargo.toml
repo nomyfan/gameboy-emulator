@@ -6,7 +6,7 @@ members = [
   "crates/shared",
   "crates/ppu",
   "crates/apu",
-  "crates/gb-wasm",
+  "crates/gb_wasm",
   "crates/gb_console_log",
 ]
 resolver = "2"

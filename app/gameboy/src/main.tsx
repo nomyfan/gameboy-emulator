@@ -1,4 +1,4 @@
-import init, { init_panic_hook, init_log } from "gb-wasm";
+import init, { init_panic_hook, init_log } from "gb_wasm";
 import React from "react";
 import ReactDOM from "react-dom/client";
 

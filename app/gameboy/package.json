@@ -26,7 +26,7 @@
     "crc-32": "^1.2.2",
     "dayjs": "^1.11.11",
     "dexie": "^4.0.4",
-    "gb-wasm": "link:../../crates/gb-wasm/npm",
+    "gb_wasm": "link:../../crates/gb_wasm/npm",
     "immer": "^10.1.1",
     "js-xxhash": "^3.0.1",
     "lodash.clonedeep": "^4.5.0",
