@@ -1,3 +1,4 @@
+import type { ISnapshot } from "gameboy/model";
 import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
 
@@ -145,6 +146,23 @@ export async function exportSelectedGame() {
   }
 
   return await storage.exportGame(id);
+}
+
+export async function exportSnapshot(id: number, snapshot?: ISnapshot) {
+  if (!snapshot) {
+    snapshot = await storage.snapshotStore.queryById(id);
+    if (!snapshot) {
+      throw new Error("Snapshot not found");
+    }
+  }
+
+  const gameName = store
+    .getState()
+    .games?.find((g) => g.id === snapshot.gameId)?.name;
+
+  const { pack, filename } = await storage.exportSnapshot(snapshot);
+
+  return { pack, filename: gameName ? `${gameName}-${filename}` : filename };
 }
 
 export function writeSettings(settings: IStore["settings"]) {

@@ -106,8 +106,8 @@ export function Home() {
             for (const file of cartFiles) {
               await storage.installGame(file);
             }
-            for (const packFile of packFiles) {
-              await storage.importGame(packFile);
+            for (const pack of packFiles) {
+              await storage.importPack(pack);
             }
             removeToast();
             addToast("导入成功");
@@ -177,6 +177,22 @@ export function Home() {
                 if (action === "snapshot") {
                   await refresh();
                 }
+              },
+            },
+            {
+              label: "导出",
+              onClick: async (snapshot, _context) => {
+                const removeToast = addToast("正在导出存档，请稍候...");
+                const { pack, filename } = await actions.exportSnapshot(
+                  snapshot.id,
+                  snapshot,
+                );
+                const url = URL.createObjectURL(pack);
+                const timestamp = dayjs().format("YYYYMMDDHHmmss");
+                fs.downloadFile(url, `${filename}-${timestamp}.gbpack`);
+                URL.revokeObjectURL(url);
+                removeToast();
+                addToast("导出成功");
               },
             },
             {
