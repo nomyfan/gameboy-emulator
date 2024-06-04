@@ -15,20 +15,18 @@ type IPlayModalCallback = NonNullable<IStore["dialog"]["play"]["callback"]>;
 type IPlayModalCallbackAction = Parameters<IPlayModalCallback>[0];
 export function openPlayModal(snapshot?: IStore["dialog"]["play"]["snapshot"]) {
   return new Promise<IPlayModalCallbackAction>((resolve) => {
-    const onClose: IPlayModalCallback = (action) => {
-      store.setState((st) => {
-        st.dialog.play.open = false;
-        st.dialog.play.callback = undefined;
-        st.dialog.play.snapshot = undefined;
-      });
-
-      resolve(action);
-    };
-
     store.setState((st) => {
-      st.dialog.play.open = true;
-      st.dialog.play.callback = onClose;
-      st.dialog.play.snapshot = snapshot;
+      st.dialog.play = {
+        open: true,
+        callback: (action) => {
+          store.setState((st) => {
+            st.dialog.play = { open: false };
+          });
+
+          resolve(action);
+        },
+        snapshot,
+      };
     });
   });
 }
@@ -77,13 +75,15 @@ export function closeConfirmModal(ok: boolean) {
 export async function openSettingsModal() {
   return new Promise<void>((resolve) => {
     store.setState((st) => {
-      st.dialog.settings.open = true;
-      st.dialog.settings.callback = () => {
-        store.setState((st) => {
-          st.dialog.settings = { open: false };
-        });
+      st.dialog.settings = {
+        open: true,
+        callback: () => {
+          store.setState((st) => {
+            st.dialog.settings = { open: false };
+          });
 
-        resolve();
+          resolve();
+        },
       };
     });
   });
