@@ -1,13 +1,11 @@
 mod alu;
-mod cpu16;
 mod interrupt;
 mod proc;
 
-use cpu16::{Cpu16, Register16, Register8};
 use gb_shared::{is_bit_set, set_bits, unset_bits, MachineModel, Snapshot};
 use interrupt::INTERRUPTS;
 
-impl<BUS> Cpu16 for Cpu<BUS>
+impl<BUS> Cpu<BUS>
 where
     BUS: gb_shared::Bus,
 {
@@ -54,11 +52,23 @@ where
         self.bus_write(self.sp, value);
     }
 
+    fn stack_push2(&mut self, value: u16) {
+        self.stack_push((value >> 8) as u8);
+        self.stack_push(value as u8);
+    }
+
     fn stack_pop(&mut self) -> u8 {
         let value = self.bus_read(self.sp);
         self.sp = self.sp.wrapping_add(1);
 
         value
+    }
+
+    fn stack_pop2(&mut self) -> u16 {
+        let lo = self.stack_pop();
+        let hi = self.stack_pop();
+
+        ((hi as u16) << 8) | (lo as u16)
     }
 
     fn stack_push_pc(&mut self) {
@@ -77,59 +87,11 @@ where
         self.ime = enabled;
     }
 
-    fn set_halt(&mut self, halted: bool) {
-        self.halted = halted;
-    }
-
     fn stop(&mut self) {
         self.stopped = true;
     }
 
-    fn read_r8(&self, reg: Register8) -> u8 {
-        match reg {
-            Register8::A => self.reg_a,
-            Register8::B => self.reg_b,
-            Register8::C => self.reg_c,
-            Register8::D => self.reg_d,
-            Register8::E => self.reg_e,
-            Register8::H => self.reg_h,
-            Register8::L => self.reg_l,
-        }
-    }
-
-    fn write_r8(&mut self, reg: Register8, value: u8) {
-        match reg {
-            Register8::A => self.reg_a = value,
-            Register8::B => self.reg_b = value,
-            Register8::C => self.reg_c = value,
-            Register8::D => self.reg_d = value,
-            Register8::E => self.reg_e = value,
-            Register8::H => self.reg_h = value,
-            Register8::L => self.reg_l = value,
-        }
-    }
-
-    fn read_r16(&self, reg: Register16) -> u16 {
-        match reg {
-            Register16::AF => self.af(),
-            Register16::BC => self.bc(),
-            Register16::DE => self.de(),
-            Register16::HL => self.hl(),
-            Register16::SP => self.sp,
-        }
-    }
-
-    fn write_r16(&mut self, reg: Register16, value: u16) {
-        match reg {
-            Register16::AF => self.set_af(value),
-            Register16::BC => self.set_bc(value),
-            Register16::DE => self.set_de(value),
-            Register16::HL => self.set_hl(value),
-            Register16::SP => self.sp = value,
-        }
-    }
-
-    fn read_pc(&mut self) -> u8 {
+    pub(crate) fn read_pc(&mut self) -> u8 {
         let value = self.bus_read(self.pc);
         self.pc = self.pc.wrapping_add(1);
 
@@ -142,32 +104,32 @@ where
     BUS: gb_shared::Bus,
 {
     /// Accumulator register
-    pub reg_a: u8,
+    pub(crate) reg_a: u8,
     /// Flags register
     /// Bit 7: z(Zero flag)
     /// Bit 6: n(Subtraction flag(BCD))
     /// Bit 5: h(Half Carry flag(BFD))
     /// Bit c: Carry flag
-    pub reg_f: u8,
+    pub(crate) reg_f: u8,
 
-    pub reg_b: u8,
-    pub reg_c: u8,
+    pub(crate) reg_b: u8,
+    pub(crate) reg_c: u8,
 
-    pub reg_d: u8,
-    pub reg_e: u8,
+    pub(crate) reg_d: u8,
+    pub(crate) reg_e: u8,
 
-    pub reg_h: u8,
-    pub reg_l: u8,
+    pub(crate) reg_h: u8,
+    pub(crate) reg_l: u8,
 
     /// Stack pointer
-    pub sp: u16,
+    sp: u16,
     /// Program counter
-    pub pc: u16,
+    pc: u16,
 
     /// Interrupt master enable.
     /// Set by instructions(EI, RETI, DI).
-    pub ime: bool,
-    pub enabling_ime: bool,
+    ime: bool,
+    enabling_ime: bool,
     /// Set by instruction HALT
     ///
     /// HALT mode is exited when a flag in register IF is set and
@@ -177,11 +139,11 @@ where
     /// while IME='0' will only make the CPU continue executing
     /// instructions, but the jump won't be performed(and the IF flag
     /// won't be cleared).
-    pub halted: bool,
+    halted: bool,
     /// Set by instruction STOP
-    pub stopped: bool,
+    stopped: bool,
 
-    pub clocks: u8,
+    pub(crate) clocks: u8,
 
     bus: BUS,
     /// [Fetch and stuff](https://gist.github.com/SonoSooS/c0055300670d678b5ae8433e20bea595#fetch-and-stuff)
