@@ -98,12 +98,11 @@ export async function loadGames(beforeSetState?: () => Promise<void>) {
 
   const games: NonNullable<IStore["games"]> = [];
   for (const manifest of manifests) {
-    const coverURL = URL.createObjectURL(manifest.cover);
     games.push({
       id: manifest.id,
       name: manifest.name,
-      coverURL,
       time: manifest.createTime,
+      cover: manifest.cover,
       lastPlayTime: manifest.lastPlayTime,
     });
   }
@@ -125,7 +124,6 @@ export async function deleteGame(id: string) {
 
   store.setState((st) => {
     st.games = games?.filter((c) => c.id !== target.id);
-    URL.revokeObjectURL(target.coverURL);
   });
 }
 

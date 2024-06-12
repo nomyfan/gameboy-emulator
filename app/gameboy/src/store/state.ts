@@ -31,7 +31,7 @@ export interface IStore {
     id: string;
     name: string;
     time: number;
-    coverURL: string;
+    cover: Blob;
     lastPlayTime?: number;
   }>;
   selectedGameId?: string;

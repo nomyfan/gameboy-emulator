@@ -1,12 +1,12 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
 import { FlexBox } from "gameboy/components/core/flex-box";
+import { useMountState } from "gameboy/hooks/useMountState";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
 import { createContext, ReactNode, useContext, useMemo } from "react";
-import { useEffect, useState } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 
@@ -31,16 +31,10 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
   const cover = snapshot.cover;
   const context = useContext(SnapshotsContext);
 
-  const [coverURL, setCoverURL] = useState<string>();
-
-  useEffect(() => {
-    const url = URL.createObjectURL(cover);
-    setCoverURL(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [cover]);
+  const [coverURL, node] = useMountState(
+    () => URL.createObjectURL(cover),
+    (url) => URL.revokeObjectURL(url),
+  );
 
   return (
     <ContextMenu.Root>
@@ -63,6 +57,7 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
         </div>
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
+        {node}
         <ContextMenu.Content className="bg-white rounded text-xs text-text p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)]">
           {props.menuItems.map((it) => {
             return (

@@ -10,7 +10,7 @@ import { Switch } from "gameboy/components/core/switch/Switch";
 import { IconCheck } from "gameboy/components/icons";
 import { useToast } from "gameboy/components/toast/useToast";
 import * as fs from "gameboy/fs";
-import { useMount } from "gameboy/hooks/useMount";
+import { useMountState } from "gameboy/hooks/useMountState";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { after } from "gameboy/utils";
@@ -28,15 +28,11 @@ function SnapshotCard(props: {
   onSelect: (id: ISnapshot["id"], selected: boolean) => void;
 }) {
   const data = props.data;
-  const [cover] = useState(() => {
-    return URL.createObjectURL(data.cover);
-  });
 
-  const node = useMount(() => {
-    return () => {
-      URL.revokeObjectURL(cover);
-    };
-  });
+  const [cover, node] = useMountState(
+    () => URL.createObjectURL(data.cover),
+    (url) => URL.revokeObjectURL(url),
+  );
 
   return (
     <div
