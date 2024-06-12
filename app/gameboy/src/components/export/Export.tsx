@@ -10,7 +10,7 @@ import { Switch } from "gameboy/components/core/switch/Switch";
 import { IconCheck } from "gameboy/components/icons";
 import { useToast } from "gameboy/components/toast/useToast";
 import * as fs from "gameboy/fs";
-import { useMountState } from "gameboy/hooks/useMountState";
+import { useRefCallback } from "gameboy/hooks/useRefCallback";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { after } from "gameboy/utils";
@@ -29,21 +29,26 @@ function SnapshotCard(props: {
 }) {
   const data = props.data;
 
-  const [cover, node] = useMountState(
-    () => URL.createObjectURL(data.cover),
-    (url) => URL.revokeObjectURL(url),
+  const refCallback = useRefCallback(
+    (element: HTMLDivElement) => {
+      const url = URL.createObjectURL(data.cover);
+      element.style.backgroundImage = `url(${url})`;
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    },
+    [data.cover],
   );
 
   return (
     <div
+      ref={refCallback}
       className="h-35 bg-primary relative rounded-2"
       style={{
-        backgroundImage: `url(${cover})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      {node}
       <div className="absolute left-0 right-0 top-0 bottom-0 flex flex-col justify-between">
         <div className="flex bg-bg/40 backdrop-blur-sm p-0.5 text-white rounded-t-2">
           <IconCheck

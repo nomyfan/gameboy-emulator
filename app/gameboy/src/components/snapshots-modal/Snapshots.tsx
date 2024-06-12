@@ -1,12 +1,13 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
 import { FlexBox } from "gameboy/components/core/flex-box";
-import { useMountState } from "gameboy/hooks/useMountState";
+import { useRefCallback } from "gameboy/hooks/useRefCallback";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store";
 import { cn } from "gameboy/utils/cn";
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useMemo } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 
@@ -31,9 +32,15 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
   const cover = snapshot.cover;
   const context = useContext(SnapshotsContext);
 
-  const [coverURL, node] = useMountState(
-    () => URL.createObjectURL(cover),
-    (url) => URL.revokeObjectURL(url),
+  const refCallback = useRefCallback(
+    (element: HTMLImageElement) => {
+      const url = URL.createObjectURL(cover);
+      element.src = url;
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    },
+    [cover],
   );
 
   return (
@@ -41,8 +48,8 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
       <ContextMenu.Trigger asChild>
         <div className="flex bg-primary w-full my-2 rounded">
           <img
+            ref={refCallback}
             alt={snapshot.name}
-            src={coverURL}
             style={{ width: 160 * 0.6, height: 144 * 0.6 }}
             className="grow-0 shrink-0 rounded-l"
           />
@@ -58,7 +65,6 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Content className="bg-white rounded text-xs text-text p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)]">
-          {node}
           {props.menuItems.map((it) => {
             return (
               <ContextMenu.Item

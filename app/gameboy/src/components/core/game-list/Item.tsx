@@ -1,6 +1,6 @@
-import { useMountState } from "gameboy/hooks/useMountState";
+import { useRefCallback } from "gameboy/hooks/useRefCallback";
 import { cn } from "gameboy/utils/cn";
-import { CSSProperties, PropsWithChildren } from "react";
+import type { CSSProperties, PropsWithChildren } from "react";
 
 export type IListItemProps = PropsWithChildren<{
   cover?: Blob;
@@ -12,14 +12,22 @@ export type IListItemProps = PropsWithChildren<{
 }>;
 
 export function Item(props: IListItemProps) {
-  const [coverURL, node] = useMountState(
-    () => (props.cover ? URL.createObjectURL(props.cover) : ""),
-    (url) => url && URL.revokeObjectURL(url),
+  const refCallback = useRefCallback(
+    (element: HTMLImageElement) => {
+      if (props.cover) {
+        const url = URL.createObjectURL(props.cover);
+        element.src = url;
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      }
+    },
+    [props.cover],
   );
 
   const children = props.children ?? (
     <figure className="h-full w-full">
-      <img className="w-full object-cover" alt={props.name} src={coverURL} />
+      <img className="w-full object-cover" alt={props.name} ref={refCallback} />
       <figcaption className="text-sm font-medium bg-primary text-white p-1 overflow-hidden whitespace-nowrap text-ellipsis">
         {props.name}
       </figcaption>
@@ -43,7 +51,6 @@ export function Item(props: IListItemProps) {
         }
       }}
     >
-      {node}
       {children}
     </div>
   );
