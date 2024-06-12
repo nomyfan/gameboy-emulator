@@ -57,8 +57,8 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
         </div>
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        {node}
         <ContextMenu.Content className="bg-white rounded text-xs text-text p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)]">
+          {node}
           {props.menuItems.map((it) => {
             return (
               <ContextMenu.Item
