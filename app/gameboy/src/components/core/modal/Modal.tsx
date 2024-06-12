@@ -18,6 +18,7 @@ export function Modal(props: {
   okText?: string;
   onCancel?: () => void;
   cancelText?: string;
+  fullscreen?: boolean;
 }) {
   const renderFooter = () => {
     if (props.footer) {
@@ -39,20 +40,31 @@ export function Modal(props: {
   return (
     <Dialog.Root open={props.open} defaultOpen={props.defaultOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay
+        {!props.fullscreen && (
+          <Dialog.Overlay
+            className={cn(
+              " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
+              styles.overlay,
+            )}
+            onClick={() => props.onClose?.()}
+          />
+        )}
+        <Dialog.Content
           className={cn(
-            " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
-            styles.overlay,
+            "fixed top-0 left-0 w-screen h-screen",
+            props.fullscreen && styles.overlay,
           )}
-          onClick={() => props.onClose?.()}
-        />
-        <Dialog.Content className="fixed top-0 left-0 w-screen h-screen">
-          <div className="max-w-lg min-w-xs absolute-center bg-bg py-5 px-6 rounded">
-            <h1 className="mb-6 mt-0 text-6 font-bold">{props.title}</h1>
-            <div className="my-6 text-sm font-medium">{props.children}</div>
+        >
+          {props.fullscreen ? (
+            props.children
+          ) : (
+            <div className="max-w-lg min-w-xs absolute-center bg-bg py-5 px-6 rounded">
+              <h1 className="mb-6 mt-0 text-6 font-bold">{props.title}</h1>
+              <div className="my-6 text-sm font-medium">{props.children}</div>
 
-            <div className="mt-6">{renderFooter()}</div>
-          </div>
+              <div className="mt-6">{renderFooter()}</div>
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

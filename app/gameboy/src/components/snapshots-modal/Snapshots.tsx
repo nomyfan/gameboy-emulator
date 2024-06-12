@@ -139,7 +139,7 @@ export function Snapshots(props: ISnapshotsProps) {
 
   return (
     <div className="pt-2 px-2 flex flex-col h-full">
-      <h1 className="text-lg font-bold">存档</h1>
+      <h1 className="text-lg font-bold">快照存档</h1>
 
       <div className="grow shrink-0 basis-0 of-y-auto">
         <SnapshotsContext.Provider value={contextValue}>

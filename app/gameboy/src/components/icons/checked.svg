@@ -1,0 +1,22 @@
+<svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+>
+    <mask id="mask" x="0" y="0" width="24" height="24">
+        <circle cx="12" cy="12" r="10" fill="white" />
+        <path
+                d="M16.24 7.76l-5.24 5.24-2.24-2.24-1.42 1.42 3.66 3.66 6.66-6.66-1.42-1.42Z"
+                fill="black"
+        />
+    </mask>
+    <circle
+            cx="12"
+            cy="12"
+            r="10"
+            fill="currentColor"
+            mask="url(#mask)"
+    />
+</svg>

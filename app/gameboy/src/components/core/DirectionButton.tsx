@@ -25,10 +25,10 @@ function DirectionButton(props: {
   onUp?: (button: IDirectionButton) => void;
 }) {
   return (
-    <div className="grid grid-rows-[44px_40px_44px] grid-cols-[44px_40px_44px]">
+    <div className="grid rows-[44px_40px_44px] cols-[44px_40px_44px]">
       <Button
         key="top"
-        className="grid-col-start-2 shadow-[-4px_-4px_4px] shadow-white/25"
+        className="col-start-2 shadow-[-4px_-4px_4px] shadow-white/25"
         style={{
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
@@ -38,7 +38,7 @@ function DirectionButton(props: {
       />
       <Button
         key="left"
-        className="grid-row-start-2 shadow-[0_4px_4px_rgba(0,0,0,0.25),-4px_-4px_4px_rgba(255,255,255,0.25)]"
+        className="row-start-2 shadow-[0_4px_4px_rgba(0,0,0,0.25),-4px_-4px_4px_rgba(255,255,255,0.25)]"
         style={{
           borderTopRightRadius: 0,
           borderBottomRightRadius: 0,
@@ -48,7 +48,7 @@ function DirectionButton(props: {
       />
       <div
         key="center"
-        className="flex-center bg-black grid-row-start-2 grid-col-start-2"
+        className="flex-center bg-black row-start-2 col-start-2"
       >
         <div
           key="circle"
@@ -57,7 +57,7 @@ function DirectionButton(props: {
       </div>
       <Button
         key="right"
-        className="grid-row-start-2 grid-col-start-3 shadow-[4px_0_4px_rgba(0,0,0,0.25),0_4px_4px_rgba(0,0,0,0.25),4px_-4px_4px_rgba(255,255,255,0.25)]"
+        className="row-start-2 col-start-3 shadow-[4px_0_4px_rgba(0,0,0,0.25),0_4px_4px_rgba(0,0,0,0.25),4px_-4px_4px_rgba(255,255,255,0.25)]"
         style={{
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
@@ -67,7 +67,7 @@ function DirectionButton(props: {
       />
       <Button
         key="bottom"
-        className="grid-row-start-3 grid-col-start-2 shadow-[0_4px_4px_rgba(0,0,0,0.25),-4px_4px_4px_rgba(255,255,255,0.25)]"
+        className="row-start-3 col-start-2 shadow-[0_4px_4px_rgba(0,0,0,0.25),-4px_4px_4px_rgba(255,255,255,0.25)]"
         style={{
           borderTopLeftRadius: 0,
           borderTopRightRadius: 0,

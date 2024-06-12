@@ -27,7 +27,7 @@ export function Settings() {
   };
 
   return (
-    <div className="w-screen h-screen bg-bg/75 backdrop-blur-lg">
+    <div className="w-screen h-screen bg-bg">
       <Tabs
         orientation="vertical"
         defaultValue={ETabs.Mics}

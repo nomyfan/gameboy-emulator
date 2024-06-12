@@ -145,7 +145,7 @@ export async function exportSelectedGame() {
     throw new Error();
   }
 
-  return await storage.exportGame(id);
+  return await storage.exportGame(id, { sav: true, rom: true });
 }
 
 export async function exportSnapshot(id: number, snapshot?: ISnapshot) {
@@ -160,7 +160,9 @@ export async function exportSnapshot(id: number, snapshot?: ISnapshot) {
     .getState()
     .games?.find((g) => g.id === snapshot.gameId)?.name;
 
-  const { pack, filename } = await storage.exportSnapshot(snapshot);
+  const { pack, filename } = await storage.exportGame(snapshot.gameId, {
+    snapshots: [snapshot.id],
+  });
 
   return { pack, filename: gameName ? `${gameName}-${filename}` : filename };
 }

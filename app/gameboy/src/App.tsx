@@ -21,7 +21,6 @@ if (process.env.NODE_ENV !== "development") {
 
 function PlayModal() {
   const open = useAppStore((st) => st.dialog.play.open);
-
   return open !== undefined ? (
     <Suspense>
       <LazyPlayModel />

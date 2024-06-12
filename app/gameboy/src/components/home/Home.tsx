@@ -3,6 +3,8 @@ import { Avatar } from "gameboy/components/core/avatar";
 import { GameList } from "gameboy/components/core/game-list";
 import type { IBarItem } from "gameboy/components/core/operation-bar";
 import { OperationBar } from "gameboy/components/core/operation-bar";
+import type { IExportModalRef } from "gameboy/components/export/ExportModal";
+import { ExportModal } from "gameboy/components/export/ExportModal";
 import {
   IconAdd,
   IconDelete,
@@ -26,6 +28,7 @@ export function Home() {
   const { addToast } = useToast();
 
   const snapshotsModalRef = useRef<ISnapshotsModalRef>(null);
+  const exportModalRef = useRef<IExportModalRef>(null);
 
   const selected = useAppStore((st) => st.selectedGameId !== undefined);
 
@@ -65,14 +68,7 @@ export function Home() {
           id: "export-backup",
           icon: <IconFileDownload />,
           onClick: async () => {
-            const removeToast = addToast("正在导出游戏，请稍候...");
-            const { pack, filename } = await actions.exportSelectedGame();
-            const url = URL.createObjectURL(pack);
-            const timestamp = dayjs().format("YYYYMMDDHHmmss");
-            fs.downloadFile(url, `${filename}-${timestamp}.gbpack`);
-            URL.revokeObjectURL(url);
-            removeToast();
-            addToast("导出成功");
+            await exportModalRef.current?.open();
           },
         },
       ]);
@@ -96,7 +92,7 @@ export function Home() {
             return;
           }
           if (files && files.length) {
-            const removeToast = addToast("正在导入游戏，请稍候...");
+            const removeToast = addToast("正在导入，请稍候...");
             const packFiles = files.filter((file) =>
               file.name.endsWith(".gbpack"),
             );
@@ -211,6 +207,8 @@ export function Home() {
           ],
         }}
       />
+
+      <ExportModal ref={exportModalRef} />
     </main>
   );
 }

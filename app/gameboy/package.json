@@ -15,6 +15,7 @@
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-context-menu": "^2.1.5",
     "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-popover": "^1.0.7",
     "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-slider": "^1.1.2",
     "@radix-ui/react-slot": "^1.0.2",
@@ -38,10 +39,12 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@iconify-json/ic": "^1.1.17",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/node": "^20.12.10",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
+    "@unocss/preset-icons": "^0.60.4",
     "@unocss/preset-uno": "^0.60.2",
     "@unocss/transformer-variant-group": "^0.60.2",
     "@vitejs/plugin-react": "^4.2.1",

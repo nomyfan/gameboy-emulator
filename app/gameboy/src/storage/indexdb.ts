@@ -1,35 +1,44 @@
 import type { Table } from "dexie";
 import { Dexie } from "dexie";
-import type { IZipDataEntry, ZipKvReader } from "gameboy/fs/zip";
+import type { IZipDataEntry } from "gameboy/fs/zip";
 import { zip, unzip } from "gameboy/fs/zip";
 import type { IGame, IGameBoyStorage, ISnapshot } from "gameboy/model";
 import type { RequiredSome } from "gameboy/types";
-import * as utils from "gameboy/utils";
+import { crc32, flowAsync, myUsing, hash } from "gameboy/utils";
 import { obtainMetadata } from "gb_wasm";
 
-type IGamePackManifest = {
-  type: "game";
-  name: string;
-  id: string;
-  snapshots: { name: string; time: number; hash: string }[];
-};
-
-type ISnapshotPackManifest = {
-  type: "snapshot";
+type IPackManifest = {
   gameId: string;
-  name: string;
-  time: number;
-  hash: string;
+  game: {
+    /**
+     * Files:
+     * - game/rom
+     */
+    rom?: boolean;
+    /**
+     * Files:
+     * - game/sav
+     */
+    sav?: boolean;
+  };
+  /**
+   * Files:
+   * - snapshots/[hash].ss
+   * - snapshots/[hash].jpg: cover
+   */
+  snapshots: Array<{
+    name: string;
+    time: number;
+    hash: string;
+  }>;
 };
-
-type IPackManifest = IGamePackManifest | ISnapshotPackManifest;
 
 async function pack(entries: IZipDataEntry[]) {
   const data = await zip(entries, {
     mimeType: "application/zip",
     level: 9,
   });
-  const checksum = await utils.crc32(data);
+  const checksum = await crc32(data);
   return await zip(
     [
       { path: "data", data: data },
@@ -46,7 +55,7 @@ async function unpack(pack: Blob) {
   const packReader = await unzip(pack);
   const data = await packReader.getBlob("data");
   const checksum = await packReader.getText("checksum");
-  if (!data || !checksum || checksum !== (await utils.crc32(data))) {
+  if (!data || !checksum || checksum !== (await crc32(data))) {
     throw new Error("Broken pack");
   }
 
@@ -73,7 +82,7 @@ class DB extends Dexie {
           .table("snapshots")
           .toCollection()
           .modify((snapshot) => {
-            snapshot.hash = utils.hash(snapshot.data);
+            snapshot.hash = hash(snapshot.data);
           });
       });
   }
@@ -157,7 +166,7 @@ class GameBoyStorage implements IGameBoyStorage {
       .arrayBuffer()
       .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90));
 
-    const id = await utils.hash(rom);
+    const id = await hash(rom);
 
     await this.gameStore.insert({
       id,
@@ -197,48 +206,57 @@ class GameBoyStorage implements IGameBoyStorage {
     );
   }
 
-  async exportGame(id: string) {
-    const game = (await this.gameStore.queryById(id))!;
-    const snapshots = await this.snapshotStore.queryByGameId(id);
+  async exportGame(
+    gameId: string,
+    options: {
+      rom?: boolean;
+      sav?: boolean;
+      // If omitted, then export all snapshots.
+      snapshots?: number[];
+    },
+  ) {
+    const manifest: IPackManifest = { gameId, game: {}, snapshots: [] };
+    const entries: IZipDataEntry[] = [];
 
-    const packManifest: IGamePackManifest = {
-      type: "game",
-      name: game.name,
-      id: game.id,
-      snapshots: [],
-    };
-
-    const entries: IZipDataEntry[] = [
-      {
-        path: game.name,
-        data: game.rom,
-      },
-    ];
-
-    if (game.sav) {
-      entries.push({
-        path: `${game.name}.sav`,
-        data: game.sav,
-      });
+    const game = await this.gameStore.queryById(gameId);
+    if (!game) {
+      throw new Error("Game not found");
     }
 
-    for (const snapshot of snapshots) {
-      entries.push({
-        path: `snapshots/${snapshot.hash}.ss`,
-        data: snapshot.data,
-      });
-      entries.push({
-        path: `snapshots/${snapshot.hash}.jpg`,
-        data: snapshot.cover,
-      });
-      packManifest.snapshots.push({
-        name: snapshot.name,
-        time: snapshot.time,
-        hash: snapshot.hash,
-      });
+    if (options.rom || options.sav) {
+      if (options.rom) {
+        manifest.game.rom = true;
+        entries.push({ path: "game/rom", data: game.rom });
+      }
+      if (options.sav && game.sav) {
+        manifest.game.sav = true;
+        entries.push({ path: "game/sav", data: game.sav });
+      }
     }
 
-    entries.push({ path: "manifest.json", data: packManifest });
+    if (options.snapshots?.length !== 0) {
+      const snapshotIds = options.snapshots;
+      const snapshots = (await this.snapshotStore.queryByGameId(gameId)).filter(
+        (s) => (snapshotIds === undefined ? true : snapshotIds.includes(s.id)),
+      );
+      for (const snapshot of snapshots) {
+        entries.push({
+          path: `snapshots/${snapshot.hash}.ss`,
+          data: snapshot.data,
+        });
+        entries.push({
+          path: `snapshots/${snapshot.hash}.jpg`,
+          data: snapshot.cover,
+        });
+        manifest.snapshots.push({
+          name: snapshot.name,
+          time: snapshot.time,
+          hash: snapshot.hash,
+        });
+      }
+    }
+
+    entries.push({ path: "manifest.json", data: manifest });
 
     return { pack: await pack(entries), filename: game.name };
   }
@@ -246,110 +264,79 @@ class GameBoyStorage implements IGameBoyStorage {
   async importPack(pack: Blob) {
     const reader = await unpack(pack);
     const manifest = (await reader.getObject<IPackManifest>("manifest.json"))!;
-    if (manifest.type === "snapshot") {
-      return await this.importSnapshot(reader);
-    } else {
-      return await this.importGame(reader);
-    }
-  }
 
-  private async importGame(reader: ZipKvReader) {
-    const manifest =
-      (await reader.getObject<IGamePackManifest>("manifest.json"))!;
-    const rom = (await reader.getBlob(manifest.name))!;
-    const metadata = await rom
-      .arrayBuffer()
-      .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90));
-    const sav = await reader.getUint8Array(`${manifest.name}.sav`);
+    const game = await this.gameStore.queryById(manifest.gameId);
 
-    const snapshots: Omit<ISnapshot, "id">[] = [];
-    const hashSet = await this.snapshotStore
-      .queryByGameId(manifest.id)
-      .then((snapshots) => new Set(snapshots.map((s) => s.hash)));
+    let txAction = async () => {};
 
-    await Promise.all(
-      manifest.snapshots.map(async (snapshot) => {
-        if (!hashSet.has(snapshot.hash)) {
-          const ss = (await reader.getUint8Array(
-            `snapshots/${snapshot.hash}.ss`,
-          ))!;
-          const cover = (await reader.getBlob(
-            `snapshots/${snapshot.hash}.jpg`,
-          ))!;
-          snapshots.push({
-            data: ss,
-            gameId: manifest.id,
-            time: snapshot.time,
-            name: snapshot.name,
-            cover,
-            hash: snapshot.hash,
-          });
-        }
-      }),
-    );
+    if (manifest.game.rom) {
+      const rom = (await reader.getBlob("game/rom"))!;
+      const metadata = await rom
+        .arrayBuffer()
+        .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90));
 
-    await this.db
-      .transaction("rw", [this.db.games, this.db.snapshots], async () => {
-        if (!(await this.gameStore.queryById(manifest.id))) {
-          await this.gameStore.insert({
-            id: manifest.id,
-            cover: metadata.cover,
-            createTime: Date.now(),
-            lastPlayTime: 0,
-            name: metadata.name,
-            rom,
-          });
-        }
-        if (sav) {
-          await this.gameStore.update({ id: manifest.id, sav });
-        }
-
-        await this.snapshotStore.insertBulk(snapshots);
-      })
-      .finally(() => {
-        metadata.free();
+      const sav = await reader.getUint8Array("game/sav");
+      txAction = async () => {
+        await myUsing(metadata, async (metadata) => {
+          if (!game) {
+            await this.gameStore.insert({
+              id: manifest.gameId,
+              cover: metadata.cover,
+              createTime: Date.now(),
+              lastPlayTime: 0,
+              name: metadata.name,
+              rom,
+              sav,
+            });
+          } else if (sav) {
+            await this.gameStore.update({ id: manifest.gameId, sav });
+          }
+        });
+      };
+    } else if (manifest.game.sav && game) {
+      const sav = await reader.getUint8Array("game/sav");
+      txAction = flowAsync(txAction, async () => {
+        await this.gameStore.update({ id: manifest.gameId, sav });
       });
-  }
-
-  async exportSnapshot(snapshot: ISnapshot) {
-    const packManifest: ISnapshotPackManifest = {
-      type: "snapshot",
-      gameId: snapshot.gameId,
-      name: snapshot.name,
-      time: snapshot.time,
-      hash: snapshot.hash,
-    };
-
-    const entries: IZipDataEntry[] = [
-      { path: "manifest.json", data: packManifest },
-      { path: "cover.jpg", data: snapshot.cover },
-      { path: "snapshot.ss", data: snapshot.data },
-    ];
-
-    return { pack: await pack(entries), filename: snapshot.name };
-  }
-
-  private async importSnapshot(reader: ZipKvReader) {
-    const manifest =
-      (await reader.getObject<ISnapshotPackManifest>("manifest.json"))!;
-
-    const hashSet = await this.snapshotStore
-      .queryByGameId(manifest.gameId)
-      .then((snapshots) => new Set(snapshots.map((s) => s.hash)));
-    if (hashSet.has(manifest.hash)) {
-      return;
+    } else if (!game) {
+      throw new Error("Game not found");
     }
 
-    const cover = (await reader.getBlob("cover.jpg"))!;
-    const data = (await reader.getUint8Array("snapshot.ss"))!;
-    await this.snapshotStore.insert({
-      name: manifest.name,
-      time: manifest.time,
-      data,
-      cover,
-      gameId: manifest.gameId,
-      hash: manifest.hash,
-    });
+    if (manifest.snapshots.length) {
+      const snapshots: Omit<ISnapshot, "id">[] = [];
+      const hashSet = await this.snapshotStore
+        .queryByGameId(manifest.gameId)
+        .then((snapshots) => new Set(snapshots.map((s) => s.hash)));
+      await Promise.all(
+        manifest.snapshots.map(async (snapshot) => {
+          if (!hashSet.has(snapshot.hash)) {
+            const ss = (await reader.getUint8Array(
+              `snapshots/${snapshot.hash}.ss`,
+            ))!;
+            const cover = (await reader.getBlob(
+              `snapshots/${snapshot.hash}.jpg`,
+            ))!;
+            snapshots.push({
+              data: ss,
+              gameId: manifest.gameId,
+              time: snapshot.time,
+              name: snapshot.name,
+              cover,
+              hash: snapshot.hash,
+            });
+          }
+        }),
+      );
+      txAction = flowAsync(txAction, async () => {
+        await this.snapshotStore.insertBulk(snapshots);
+      });
+    }
+
+    await this.db.transaction(
+      "rw",
+      [this.db.games, this.db.snapshots],
+      txAction,
+    );
   }
 }
 
