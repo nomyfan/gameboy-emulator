@@ -122,7 +122,7 @@ impl GameBoyHandle {
         sav: Option<Vec<u8>>,
         sample_rate: Option<u32>,
         audio_stream: Option<WritableStream>,
-        dbg_canvas: Option<HtmlCanvasElement>,
+        #[allow(unused_variables)] dbg_canvas: Option<HtmlCanvasElement>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
         let cart = Cartridge::try_from(rom).unwrap();
