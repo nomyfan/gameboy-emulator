@@ -1,8 +1,7 @@
 mod mbc;
 
-use anyhow::Result;
 use gb_shared::{MachineModel, Snapshot};
-use std::{borrow::Cow, fmt::Display, path::Path};
+use std::{borrow::Cow, fmt::Display};
 
 const CARRIAGE_TYPE: [(u8, &str); 28] = [
     (0x00, "ROM ONLY"),
@@ -410,15 +409,6 @@ impl TryFrom<Vec<u8>> for Cartridge {
         };
 
         Ok(Cartridge { header, rom, mbc })
-    }
-}
-
-impl Cartridge {
-    pub fn try_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let rom = std::fs::read(path.as_ref())?;
-        let cart = Self::try_from(rom)?;
-
-        Ok(cart)
     }
 }
 
