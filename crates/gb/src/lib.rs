@@ -10,10 +10,10 @@ mod wram;
 
 use bus::{Bus, BusSnapshot};
 pub use gb_apu::buffer_size_from_sample_rate;
-use gb_apu::AudioOutHandle;
+pub use gb_apu::AudioHandle;
 pub use gb_cartridge::Cartridge;
 use gb_cpu_sm83::{Cpu, CpuSnapshot};
-pub use gb_ppu::FrameOutHandle;
+pub use gb_ppu::FrameHandle;
 use gb_shared::{command::Command, MachineModel, Snapshot};
 
 pub struct Manifest {
@@ -45,13 +45,22 @@ impl GameBoy {
         Self { cpu, bus, clocks: 0, cart_checksum: cart_global_checksum }
     }
 
-    pub fn set_handles(
+    pub fn replace_frame_handle(
         &mut self,
-        frame_out_handle: Option<Box<FrameOutHandle>>,
-        audio_out_handle: Option<Box<AudioOutHandle>>,
-    ) {
-        self.bus.ppu.set_frame_out_handle(frame_out_handle);
-        self.bus.apu.set_audio_out_handle(audio_out_handle);
+        handle: Option<Box<FrameHandle>>,
+    ) -> Option<Box<FrameHandle>> {
+        let prev = self.bus.ppu.frame_handle.take();
+        self.bus.ppu.frame_handle = handle;
+        prev
+    }
+
+    pub fn replace_audio_handle(
+        &mut self,
+        handle: Option<Box<AudioHandle>>,
+    ) -> Option<Box<AudioHandle>> {
+        let prev = self.bus.apu.audio_handle.take();
+        self.bus.apu.audio_handle = handle;
+        prev
     }
 
     #[inline]

@@ -1,7 +1,5 @@
-use std::{cell::RefCell, rc::Rc};
-
-use gb::GameBoySnapshot;
 use gb::{buffer_size_from_sample_rate, Cartridge, GameBoy, Manifest};
+use gb::{AudioHandle, GameBoySnapshot};
 use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadCommand, JoypadKey};
 use gb_shared::Snapshot;
@@ -15,7 +13,8 @@ use web_sys::{
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
     gb: GameBoy,
-    muted: Rc<RefCell<bool>>,
+    muted: bool,
+    audio_handle: Option<Box<AudioHandle>>,
 }
 
 struct Frame {
@@ -194,38 +193,31 @@ impl GameBoyHandle {
             },
         );
 
-        let muted = Rc::new(RefCell::new(false));
         match (audio_stream, sample_rate) {
             (Some(stream), Some(sample_rate)) => {
                 let stream_writer = stream.get_writer().unwrap();
                 let sample_count = buffer_size_from_sample_rate(sample_rate);
                 let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
-                let muted = muted.clone();
 
-                gb.set_handles(
-                    Some(frame_handle),
-                    Some(Box::new(move |data| {
-                        if *muted.borrow() {
-                            return;
-                        }
-                        let len = data.len().min(sample_count as usize);
-                        for (i, (left, right)) in data.iter().take(len).enumerate() {
-                            audio_buffer.set_index(i as u32 * 2, *left);
-                            audio_buffer.set_index(i as u32 * 2 + 1, *right);
-                        }
+                gb.replace_frame_handle(Some(frame_handle));
+                gb.replace_audio_handle(Some(Box::new(move |data| {
+                    let len = data.len().min(sample_count as usize);
+                    for (i, (left, right)) in data.iter().take(len).enumerate() {
+                        audio_buffer.set_index(i as u32 * 2, *left);
+                        audio_buffer.set_index(i as u32 * 2 + 1, *right);
+                    }
 
-                        let slice = audio_buffer.slice(0, (len * 2) as u32);
+                    let slice = audio_buffer.slice(0, (len * 2) as u32);
 
-                        let _ = stream_writer.write_with_chunk(&slice.into());
-                    })),
-                )
+                    let _ = stream_writer.write_with_chunk(&slice.into());
+                })));
             }
             _ => {
-                gb.set_handles(Some(frame_handle), None);
+                gb.replace_frame_handle(Some(frame_handle));
             }
         }
 
-        GameBoyHandle { gb, muted }
+        GameBoyHandle { gb, audio_handle: None, muted: false }
     }
 
     #[wasm_bindgen(js_name = continue)]
@@ -268,7 +260,10 @@ impl GameBoyHandle {
 
     #[wasm_bindgen]
     pub fn mute(&mut self, muted: bool) {
-        *self.muted.borrow_mut() = muted;
+        if self.muted != muted {
+            self.audio_handle = self.gb.replace_audio_handle(self.audio_handle.take());
+            self.muted = muted;
+        }
     }
 }
 
@@ -314,12 +309,9 @@ pub async fn obtain_metadata(rom: Uint8ClampedArray, frame_at: Option<u32>) -> G
         .unwrap();
     canvas_context.set_image_smoothing_enabled(false);
     let mut frame = Frame::new(160, 144);
-    gb.set_handles(
-        Some(Box::new(move |data, #[cfg(feature = "debug_frame")] _| {
-            frame.render_offscreen_canvas_with_rgb(data.as_ref(), &canvas_context, SCALE as f64);
-        })),
-        None,
-    );
+    gb.replace_frame_handle(Some(Box::new(move |data, #[cfg(feature = "debug_frame")] _| {
+        frame.render_offscreen_canvas_with_rgb(data.as_ref(), &canvas_context, SCALE as f64);
+    })));
 
     // Play n frames
     gb.continue_clocks(70224 * frame_at.unwrap_or(60));

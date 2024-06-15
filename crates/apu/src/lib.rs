@@ -10,7 +10,7 @@ use channel::{
 use clock::Clock;
 use gb_shared::{is_bit_set, Memory, Snapshot, CPU_FREQ};
 
-pub type AudioOutHandle = dyn FnMut(&[(f32, f32)]);
+pub type AudioHandle = dyn FnMut(&[(f32, f32)]);
 
 pub struct Apu {
     ch1: Channel1,
@@ -42,7 +42,7 @@ pub struct Apu {
     /// Bit 1 - CH2 ON flag (Read Only)
     /// Bit 0 - CH1 ON flag (Read Only)
     nr52: u8,
-    audio_out_handle: Option<Box<AudioOutHandle>>,
+    pub audio_handle: Option<Box<AudioHandle>>,
     samples_buffer: Vec<i16>,
     mixed_samples_buffer: Vec<(f32, f32)>,
     fs: FrameSequencer,
@@ -72,7 +72,7 @@ impl Apu {
             nr50: 0x00,
             nr51: 0x00,
             nr52: 0x00,
-            audio_out_handle: None,
+            audio_handle: None,
             samples_buffer: vec![0; buffer_size],
             mixed_samples_buffer: vec![(0.0, 0.0); buffer_size],
             fs,
@@ -81,10 +81,6 @@ impl Apu {
         log::debug!("APU is created: {:?}", instance);
 
         instance
-    }
-
-    pub fn set_audio_out_handle(&mut self, audio_out_handle: Option<Box<AudioOutHandle>>) {
-        self.audio_out_handle = audio_out_handle;
     }
 
     fn power_off(&mut self) {
@@ -169,7 +165,7 @@ impl Apu {
 
             mix(is_bit_set!(self.nr51, 7), is_bit_set!(self.nr51, 3), &mut self.samples_buffer);
 
-            if let Some(handle) = self.audio_out_handle.as_mut() {
+            if let Some(handle) = self.audio_handle.as_mut() {
                 handle(&self.mixed_samples_buffer[..ch1_samples]);
             }
         }

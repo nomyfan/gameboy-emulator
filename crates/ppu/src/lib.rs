@@ -19,9 +19,9 @@ use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
 
 #[cfg(feature = "debug_frame")]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame, &[u8]);
+pub type FrameHandle = dyn FnMut(&VideoFrame, &[u8]);
 #[cfg(not(feature = "debug_frame"))]
-pub type FrameOutHandle = dyn FnMut(&VideoFrame);
+pub type FrameHandle = dyn FnMut(&VideoFrame);
 
 #[derive(Debug, Default)]
 pub(crate) struct PpuWorkState {
@@ -67,7 +67,7 @@ pub struct Ppu {
 
     irq: Interrupt,
     machine_model: MachineModel,
-    frame_out_handle: Option<Box<FrameOutHandle>>,
+    pub frame_handle: Option<Box<FrameHandle>>,
 }
 
 impl Default for Ppu {
@@ -85,7 +85,7 @@ impl Default for Ppu {
             video_buffer,
             irq: Default::default(),
             machine_model,
-            frame_out_handle: None,
+            frame_handle: None,
             palette: Palette::new(machine_model, 0),
             #[cfg(feature = "debug_frame")]
             dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
@@ -106,10 +106,6 @@ impl Ppu {
             machine_model,
             ..Self::default()
         }
-    }
-
-    pub fn set_frame_out_handle(&mut self, handle: Option<Box<FrameOutHandle>>) {
-        self.frame_out_handle = handle;
     }
 
     pub fn take_irq(&mut self) -> u8 {
@@ -220,7 +216,7 @@ impl Ppu {
             }
         }
 
-        if let Some(handle) = self.frame_out_handle.as_mut() {
+        if let Some(handle) = self.frame_handle.as_mut() {
             handle(
                 &self.video_buffer,
                 #[cfg(feature = "debug_frame")]
