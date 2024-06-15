@@ -1,12 +1,6 @@
 import type { DependencyList } from "react";
 import { useCallback, useRef } from "react";
 
-type FirstParameterNonNull<T> = T extends (value: infer V) => infer R
-  ? [V] extends [Exclude<V, null>]
-    ? (value: V) => R
-    : never
-  : never;
-
 /**
  * TODO: we can remove this hook when it's GA.
  * @see https://react.dev/reference/react-dom/components/common#returns
@@ -14,7 +8,9 @@ type FirstParameterNonNull<T> = T extends (value: infer V) => infer R
  * @param deps
  */
 export function useRefCallback<T>(
-  callback: FirstParameterNonNull<(value: T) => void | (() => void)>,
+  callback: [T] extends [Exclude<T, null>]
+    ? (value: T) => void | (() => void)
+    : never,
   deps?: DependencyList,
 ) {
   const dispose = useRef<() => void>();
