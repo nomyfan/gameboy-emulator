@@ -1,4 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useAppStore } from "gameboy/store";
 
 import { Play } from "./Play";
@@ -10,6 +11,12 @@ export function PlayModal() {
     <Dialog.Root open={open}>
       <Dialog.Portal>
         <Dialog.Content>
+          <Dialog.Title>
+            <VisuallyHidden asChild />
+          </Dialog.Title>
+          <Dialog.Description>
+            <VisuallyHidden asChild />
+          </Dialog.Description>
           <Play
             style={{
               position: "fixed",

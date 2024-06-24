@@ -1,4 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 
@@ -55,6 +56,12 @@ export function Modal(props: {
             props.fullscreen && styles.overlay,
           )}
         >
+          <Dialog.Title>
+            <VisuallyHidden asChild />
+          </Dialog.Title>
+          <Dialog.Description>
+            <VisuallyHidden asChild />
+          </Dialog.Description>
           {props.fullscreen ? (
             props.children
           ) : (

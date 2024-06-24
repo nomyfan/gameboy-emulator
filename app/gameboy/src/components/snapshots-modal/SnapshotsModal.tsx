@@ -1,4 +1,11 @@
-import { Dialog, DialogPortal, DialogContent } from "@radix-ui/react-dialog";
+import {
+  Dialog,
+  DialogPortal,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ModalOpenedError } from "gameboy/model/error";
 import { cn } from "gameboy/utils/cn";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
@@ -44,6 +51,12 @@ export const SnapshotsModal = forwardRef<
     <Dialog open={open}>
       <DialogPortal>
         <DialogContent>
+          <DialogTitle>
+            <VisuallyHidden asChild />
+          </DialogTitle>
+          <DialogDescription>
+            <VisuallyHidden asChild />
+          </DialogDescription>
           <div
             onClick={() => {
               onClose.current?.();
