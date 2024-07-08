@@ -12,13 +12,8 @@ pub(crate) struct LengthCounter<const MAX: u16> {
 }
 
 impl<const MAX: u16> LengthCounter<MAX> {
-    pub(crate) fn new(init_value: u8) -> Self {
-        let len = MAX.min(init_value as u16);
-        Self { frame: Default::default(), len, enabled: false }
-    }
-
     pub(crate) fn new_expired() -> Self {
-        Self::new(MAX as u8)
+        Self { frame: Default::default(), len: MAX, enabled: false }
     }
 }
 

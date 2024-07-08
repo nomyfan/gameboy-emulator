@@ -273,7 +273,7 @@ where
     nrx1: u8,
     nrx2: u8,
     channel_clock: Clock,
-    lenght_counter: LengthCounter,
+    length_counter: LengthCounter,
     duty_cycle: DutyCycle,
     envelope: Envelope,
     sweep: SWEEP,
@@ -292,7 +292,7 @@ where
             nrx1: self.nrx1,
             nrx2: self.nrx2,
             channel_clock: self.channel_clock.0.clone(),
-            lenght_counter: self.length_counter.clone(),
+            length_counter: self.length_counter.clone(),
             duty_cycle: self.duty_cycle,
             envelope: self.envelope.clone(),
             sweep: self.sweep.clone(),
@@ -305,7 +305,7 @@ where
         self.nrx1 = snapshot.nrx1;
         self.nrx2 = snapshot.nrx2;
         self.channel_clock.0 = snapshot.channel_clock;
-        self.length_counter = snapshot.lenght_counter;
+        self.length_counter = snapshot.length_counter;
         self.duty_cycle = snapshot.duty_cycle;
         self.envelope = snapshot.envelope;
         self.sweep = snapshot.sweep;
