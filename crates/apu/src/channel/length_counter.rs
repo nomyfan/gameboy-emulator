@@ -33,6 +33,7 @@ impl<const MAX: u16> LengthCounter<MAX> {
         self.len == MAX
     }
 
+    #[inline]
     pub(crate) fn set_len(&mut self, len: u8) {
         self.len = len as u16;
     }
@@ -87,3 +88,14 @@ pub(crate) type LengthCounter256 = LengthCounter<256>;
 pub(crate) type PulseChannelLengthCounter = LengthCounter64;
 pub(crate) type WaveChannelLengthCounter = LengthCounter256;
 pub(crate) type NoiseChannelLengthCounter = LengthCounter64;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_expired_length_counter() {
+        let length_counter = LengthCounter64::new_expired();
+        assert!(length_counter.expired());
+    }
+}
