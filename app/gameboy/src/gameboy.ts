@@ -21,17 +21,14 @@ class GameBoyControl {
   private playCallbackId_?: number;
 
   private keyState = 0;
-  private readonly audioContext_: AudioContext;
+  private audioContext_?: AudioContext;
   private audioWorkletModuleAdded_ = false;
-  private disconnectAudio_: () => void = noop;
+  private disposeAudio_: () => void = noop;
   private changeAudioVolume_: (volume: number) => void = noop;
   private nextTickTime_ = 0;
 
   constructor() {
     this.store_ = createGameBoyStore();
-    // TODO: defer audioContext creation until needed
-    this.audioContext_ = new AudioContext();
-
     this.store_.setState({ volume: store.getState().settings.volume });
     // Subscribe to global store volume changes
     store.subscribe((state) => {
@@ -51,19 +48,8 @@ class GameBoyControl {
     return this.store_;
   }
 
-  // TODO: improve typing to help the caller known this.instance_ is not undefined
-  private ensureInstalled() {
-    if (!this.instance_) {
-      throw new Error("GameBoy is not installed");
-    }
-  }
-
-  async install(
-    rom: Uint8ClampedArray,
-    canvas: HTMLCanvasElement,
-    sav?: Uint8Array,
-    dbgCanvas?: HTMLCanvasElement,
-  ) {
+  private async setupAudio() {
+    this.audioContext_ = this.audioContext_ ?? new AudioContext();
     if (!this.audioWorkletModuleAdded_) {
       await this.audioContext_.audioWorklet.addModule(
         new URL("./audio-worklet/gameboy-audio-processor.js", import.meta.url),
@@ -99,17 +85,34 @@ class GameBoyControl {
     gainNode.gain.value = this.state.volume / 100;
     workletNode.connect(gainNode);
     gainNode.connect(this.audioContext_.destination);
-    this.disconnectAudio_ = () => {
+    this.disposeAudio_ = () => {
       workletNode.disconnect();
       gainNode.disconnect();
 
-      this.disconnectAudio_ = noop;
+      this.disposeAudio_ = noop;
       this.changeAudioVolume_ = noop;
     };
     this.changeAudioVolume_ = (volume: number) => {
       gainNode.gain.value = volume / 100;
     };
 
+    return { stream, sampleRate };
+  }
+
+  // TODO: improve typing to help the caller known this.instance_ is not undefined
+  private ensureInstalled() {
+    if (!this.instance_) {
+      throw new Error("GameBoy is not installed");
+    }
+  }
+
+  async install(
+    rom: Uint8ClampedArray,
+    canvas: HTMLCanvasElement,
+    sav?: Uint8Array,
+    dbgCanvas?: HTMLCanvasElement,
+  ) {
+    const { stream, sampleRate } = await this.setupAudio();
     const instance = GameBoyHandle.create(
       rom,
       canvas,
@@ -128,7 +131,7 @@ class GameBoyControl {
       this.pause();
     }
 
-    this.disconnectAudio_();
+    this.disposeAudio_();
 
     if (this.instance_) {
       this.instance_.free();
