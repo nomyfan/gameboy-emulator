@@ -86,7 +86,7 @@ impl Default for Ppu {
             irq: Default::default(),
             machine_model,
             frame_handle: None,
-            palette: Palette::new(machine_model, 0),
+            palette: Palette::new(machine_model.into(), 0),
             #[cfg(feature = "debug_frame")]
             dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
         }
@@ -96,7 +96,7 @@ impl Default for Ppu {
 impl Ppu {
     pub fn new(machine_model: MachineModel, compatibility_palette_id: u16) -> Self {
         Self {
-            palette: Palette::new(machine_model, compatibility_palette_id),
+            palette: Palette::new(machine_model.into(), compatibility_palette_id),
             #[cfg(feature = "debug_frame")]
             dbg_video_buffer: match machine_model {
                 MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
@@ -179,7 +179,7 @@ impl Ppu {
 
     fn push_frame(&mut self) {
         #[cfg(feature = "debug_frame")]
-        if self.frame_out_handle.is_some() {
+        if self.frame_handle.is_some() {
             for (i, vram_offset) in [0, 0x400].iter().enumerate() {
                 for y in 0..256 {
                     for x in 0..256 {

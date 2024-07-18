@@ -39,7 +39,6 @@ impl VideoRam {
 }
 
 impl VideoRam {
-    /// `nth` is in range of 0..=383.
     pub(crate) fn tile_data(&self, bank_num: u8, index: usize) -> &[u8; 16] {
         let offset = index * 16 + (bank_num as usize * 0x2000);
 

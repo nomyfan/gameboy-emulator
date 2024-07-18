@@ -6,8 +6,23 @@ use self::compatibility_palettes::find_palette;
 
 const FALLBACK_COLORS: &[u32; 4] = &[0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ColorSpace {
+    Monochrome,
+    Polychrome,
+}
+
+impl From<MachineModel> for ColorSpace {
+    fn from(value: MachineModel) -> Self {
+        match value {
+            MachineModel::DMG => ColorSpace::Monochrome,
+            MachineModel::CGB => ColorSpace::Polychrome,
+        }
+    }
+}
+
 pub(crate) struct Palette {
-    machine_model: MachineModel,
+    color_space: ColorSpace,
     bgp: u8,
     obp0: u8,
     obp1: u8,
@@ -38,9 +53,9 @@ fn read_color(data: &[u8; 64], palette_id: u8, color_id: u8) -> u32 {
 }
 
 impl Palette {
-    pub(crate) fn new(machine_model: MachineModel, palette_id: u16) -> Self {
+    pub(crate) fn new(color_space: ColorSpace, palette_id: u16) -> Self {
         let mut colors = [[0xFFFFFF; 4]; 16];
-        if machine_model == MachineModel::DMG {
+        if color_space == ColorSpace::Monochrome {
             match find_palette(palette_id) {
                 Some(p) => {
                     colors[0] = [p[0], p[1], p[2], p[3]];
@@ -56,7 +71,7 @@ impl Palette {
         }
 
         Self {
-            machine_model,
+            color_space,
             bcps: 0,
             bcpd: [0xFF; 64],
             ocps: 0,
@@ -71,27 +86,29 @@ impl Palette {
 
 impl Palette {
     pub(crate) fn background_color(&self, palette_id: u8, color_id: u8) -> u32 {
-        match self.machine_model {
-            MachineModel::DMG => self.colors[0][((self.bgp >> (color_id * 2)) & 0b11) as usize],
-            MachineModel::CGB => self.colors[palette_id as usize][color_id as usize],
+        match self.color_space {
+            ColorSpace::Monochrome => {
+                self.colors[0][((self.bgp >> (color_id * 2)) & 0b11) as usize]
+            }
+            ColorSpace::Polychrome => self.colors[palette_id as usize][color_id as usize],
         }
     }
 
     pub(crate) fn object_color(&self, palette_id: u8, color_id: u8) -> u32 {
-        match self.machine_model {
-            MachineModel::DMG => {
+        match self.color_space {
+            ColorSpace::Monochrome => {
                 let obp = if palette_id == 0 { self.obp0 } else { self.obp1 };
                 self.colors[palette_id as usize + 1][((obp >> (color_id * 2)) & 0b11) as usize]
             }
-            MachineModel::CGB => self.colors[palette_id as usize + 8][color_id as usize],
+            ColorSpace::Polychrome => self.colors[palette_id as usize + 8][color_id as usize],
         }
     }
 
     #[cfg(feature = "debug_frame")]
     pub(crate) fn colors(&self) -> &[[u32; 4]] {
-        match self.machine_model {
-            MachineModel::DMG => &self.colors[..3],
-            MachineModel::CGB => &self.colors,
+        match self.color_space {
+            ColorSpace::Monochrome => &self.colors[..3],
+            ColorSpace::Polychrome => &self.colors,
         }
     }
 
@@ -116,31 +133,31 @@ impl Palette {
 
 impl Memory for Palette {
     fn write(&mut self, addr: u16, value: u8) {
-        let is_cgb = self.machine_model == MachineModel::CGB;
+        let is_polychrome = self.color_space == ColorSpace::Polychrome;
 
         match addr {
             0xFF47 => self.bgp = value,
             0xFF48 => self.obp0 = value,
             0xFF49 => self.obp1 = value,
-            0xFF68 if is_cgb => self.bcps = value,
-            0xFF69 if is_cgb => self.bcps = self.update_color(true, self.bcps, value),
-            0xFF6A if is_cgb => self.ocps = value,
-            0xFF6B if is_cgb => self.ocps = self.update_color(false, self.ocps, value),
+            0xFF68 if is_polychrome => self.bcps = value,
+            0xFF69 if is_polychrome => self.bcps = self.update_color(true, self.bcps, value),
+            0xFF6A if is_polychrome => self.ocps = value,
+            0xFF6B if is_polychrome => self.ocps = self.update_color(false, self.ocps, value),
             _ => unreachable!("Invalid Palette write at {:#X} {:#X}", addr, value),
         }
     }
 
     fn read(&self, addr: u16) -> u8 {
-        let is_cgb = self.machine_model == MachineModel::CGB;
+        let is_polychrome = self.color_space == ColorSpace::Polychrome;
 
         match addr {
             0xFF47 => self.bgp,
             0xFF48 => self.obp0,
             0xFF49 => self.obp1,
-            0xFF68 if is_cgb => self.bcps,
-            0xFF69 if is_cgb => self.bcpd[(self.bcps & 0x3F) as usize],
-            0xFF6A if is_cgb => self.ocps,
-            0xFF6B if is_cgb => self.ocpd[(self.ocps & 0x3F) as usize],
+            0xFF68 if is_polychrome => self.bcps,
+            0xFF69 if is_polychrome => self.bcpd[(self.bcps & 0x3F) as usize],
+            0xFF6A if is_polychrome => self.ocps,
+            0xFF6B if is_polychrome => self.ocpd[(self.ocps & 0x3F) as usize],
             _ => unreachable!("Invalid Palette read at {:#X}", addr),
         }
     }
