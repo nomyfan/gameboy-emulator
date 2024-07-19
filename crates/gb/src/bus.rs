@@ -268,7 +268,7 @@ impl Bus {
         }
     }
 
-    fn set_irq(&mut self, irq: u8) {
+    fn request_interrupt(&mut self, irq: u8) {
         self.write(0xFF0F, self.read(0xFF0F) | irq);
     }
 
@@ -280,7 +280,7 @@ impl Bus {
         let Command::MutateJoypadButtons(keys) = command;
         self.joypad.mutate_buttons(keys);
         let irq = self.joypad.take_irq();
-        self.set_irq(irq);
+        self.request_interrupt(irq);
     }
 }
 
@@ -295,11 +295,11 @@ impl gb_shared::Bus for Bus {
             for _ in 0..4 {
                 self.ppu.step();
                 let irq = self.ppu.take_irq();
-                self.set_irq(irq);
+                self.request_interrupt(irq);
 
                 self.step_timer();
                 let irq = self.timer.take_irq();
-                self.set_irq(irq);
+                self.request_interrupt(irq);
 
                 self.apu.step();
             }
