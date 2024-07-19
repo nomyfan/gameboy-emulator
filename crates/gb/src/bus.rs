@@ -276,9 +276,9 @@ impl Bus {
         self.timer.step();
     }
 
-    pub(crate) fn handle_command(&mut self, command: Command) {
-        let Command::Joypad(joypad_command) = command;
-        self.joypad.handle_command(joypad_command);
+    pub(crate) fn exec_command(&mut self, command: Command) {
+        let Command::MutateJoypadButtons(keys) = command;
+        self.joypad.mutate_buttons(keys);
         let irq = self.joypad.take_irq();
         self.set_irq(irq);
     }

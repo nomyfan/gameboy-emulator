@@ -1,7 +1,7 @@
 use gb::{buffer_size_from_sample_rate, Cartridge, GameBoy, Manifest};
 use gb::{AudioHandle, GameBoySnapshot};
 use gb_shared::boxed::BoxedArray;
-use gb_shared::command::{Command, JoypadCommand, JoypadKey};
+use gb_shared::command::{Command, JoypadKey};
 use gb_shared::Snapshot;
 use js_sys::Uint8ClampedArray;
 use wasm_bindgen::{prelude::*, Clamped};
@@ -232,7 +232,7 @@ impl GameBoyHandle {
 
     #[wasm_bindgen(js_name = changeKeyState)]
     pub fn change_key_state(&mut self, state: u8) {
-        self.gb.exec_command(Command::Joypad(JoypadCommand::State(state)));
+        self.gb.exec_command(Command::MutateJoypadButtons(state));
     }
 
     #[wasm_bindgen(js_name = takeSnapshot)]

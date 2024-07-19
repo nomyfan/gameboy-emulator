@@ -1,7 +1,4 @@
-use gb_shared::{
-    command::{JoypadCommand, JoypadKey},
-    is_bit_set, Interrupt, InterruptRequest, Memory,
-};
+use gb_shared::{is_bit_set, Interrupt, InterruptRequest, Memory};
 
 /// The state is true when the value is zero.
 #[derive(Debug)]
@@ -47,32 +44,12 @@ impl Joypad {
         }
     }
 
-    pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
-        let mut mutate_key_state = |key: JoypadKey, pressed: bool| {
-            let new_value = (self.buttons & (!(key as u8))) | if pressed { key as u8 } else { 0 };
-            let itr_occurred = (new_value ^ self.buttons) & new_value != 0; // Some bits change from 0 to 1
-            self.buttons = new_value;
-
-            itr_occurred
-        };
-
-        match command {
-            JoypadCommand::PressKey(key) => {
-                if mutate_key_state(key, true) {
-                    // https://gbdev.io/pandocs/Interrupt_Sources.html#int-60--joypad-interrupt
-                    self.irq.request_joypad();
-                }
-            }
-            JoypadCommand::ReleaseKey(key) => {
-                mutate_key_state(key, false);
-            }
-            JoypadCommand::State(state) => {
-                let itr_occurred = (state ^ self.buttons) & state != 0; // Some bits change from 0 to 1
-                self.buttons = state;
-                if itr_occurred {
-                    self.irq.request_joypad();
-                }
-            }
+    pub(crate) fn mutate_buttons(&mut self, state: u8) {
+        let itr_occurred = (state ^ self.buttons) & state != 0; // Some bits change from 0 to 1
+        self.buttons = state;
+        if itr_occurred {
+            // https://gbdev.io/pandocs/Interrupt_Sources.html#int-60--joypad-interrupt
+            self.irq.request_joypad();
         }
     }
 
@@ -84,6 +61,7 @@ impl Joypad {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gb_shared::command::JoypadKey;
     use gb_shared::set_bits;
     use gb_shared::InterruptType;
 
@@ -107,7 +85,7 @@ mod tests {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 4));
 
-        joypad.buttons = 0b1010_0000;
+        joypad.mutate_buttons(JoypadKey::Start as u8 | JoypadKey::B as u8);
 
         let value = joypad.read(0xFF00);
         assert_eq!(0b1101_0101, value);
@@ -118,7 +96,7 @@ mod tests {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 5));
 
-        joypad.buttons = 0b0000_0101;
+        joypad.mutate_buttons(JoypadKey::Up as u8 | JoypadKey::Right as u8);
 
         let value = joypad.read(0xFF00);
         assert_eq!(0b1110_1010, value);
@@ -129,7 +107,7 @@ mod tests {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, 0b11_0000);
 
-        joypad.buttons = 0b0001_0100;
+        joypad.mutate_buttons(JoypadKey::A as u8 | JoypadKey::Up as u8);
 
         let value = joypad.read(0xFF00);
         assert_eq!(0xFF, value);
@@ -138,7 +116,7 @@ mod tests {
     #[test]
     fn req_interrupt_if_bit3210_change_from_high_to_low() {
         let mut joypad = Joypad::new();
-        joypad.handle_command(JoypadCommand::PressKey(JoypadKey::B));
+        joypad.mutate_buttons(JoypadKey::B as u8);
         assert_eq!(joypad.buttons, 0b0010_0000);
         assert_eq!(joypad.take_irq(), InterruptType::Joypad as u8);
     }

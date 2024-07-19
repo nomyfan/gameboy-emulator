@@ -3,14 +3,7 @@ use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
-    Joypad(JoypadCommand),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum JoypadCommand {
-    PressKey(JoypadKey),
-    ReleaseKey(JoypadKey),
-    State(u8),
+    MutateJoypadButtons(u8),
 }
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]

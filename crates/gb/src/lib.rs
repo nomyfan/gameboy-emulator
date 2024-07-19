@@ -68,8 +68,9 @@ impl GameBoy {
         self.cart_checksum
     }
 
+    #[inline]
     pub fn exec_command(&mut self, command: Command) {
-        self.bus.handle_command(command);
+        self.bus.exec_command(command);
     }
 
     pub fn continue_clocks(&mut self, clocks: u32) {
