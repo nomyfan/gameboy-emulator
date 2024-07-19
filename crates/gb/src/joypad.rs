@@ -49,7 +49,7 @@ impl Joypad {
 
     pub(crate) fn handle_command(&mut self, command: JoypadCommand) {
         let mut mutate_key_state = |key: JoypadKey, pressed: bool| {
-            let new_value = (self.buttons & (!(key as u8))) | if pressed { 0 } else { key as u8 };
+            let new_value = (self.buttons & (!(key as u8))) | if pressed { key as u8 } else { 0 };
             let itr_occurred = (new_value ^ self.buttons) & new_value != 0; // Some bits change from 0 to 1
             self.buttons = new_value;
 
@@ -58,7 +58,7 @@ impl Joypad {
 
         match command {
             JoypadCommand::PressKey(key) => {
-                if !mutate_key_state(key, true) {
+                if mutate_key_state(key, true) {
                     // https://gbdev.io/pandocs/Interrupt_Sources.html#int-60--joypad-interrupt
                     self.irq.request_joypad();
                 }
@@ -139,6 +139,7 @@ mod tests {
     fn req_interrupt_if_bit3210_change_from_high_to_low() {
         let mut joypad = Joypad::new();
         joypad.handle_command(JoypadCommand::PressKey(JoypadKey::B));
+        assert_eq!(joypad.buttons, 0b0010_0000);
         assert_eq!(joypad.take_irq(), InterruptType::Joypad as u8);
     }
 }

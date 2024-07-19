@@ -1,4 +1,3 @@
-use std::sync::mpsc::Receiver;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
 
@@ -26,5 +25,3 @@ pub enum JoypadKey {
     Left = 0x02,
     Right = 0x01,
 }
-
-pub type CommandReceiver = Receiver<Command>;
