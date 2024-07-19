@@ -1,6 +1,6 @@
 import { store } from "gameboy/store";
 import { create } from "gameboy/store/utils";
-import { GameBoy as GameBoyHandle, JoypadKey } from "gb_wasm";
+import { GameBoy as GameBoyHandle, JoypadButton } from "gb_wasm";
 
 function noop() {}
 
@@ -20,7 +20,7 @@ class GameBoyControl {
   private instance_?: GameBoyHandle;
   private playCallbackId_?: number;
 
-  private keyState = 0;
+  private buttonsState = 0;
   private audioContext_?: AudioContext;
   private audioWorkletModuleAdded_ = false;
   private disposeAudio_: () => void = noop;
@@ -177,23 +177,23 @@ class GameBoyControl {
     }
   }
 
-  changeKey(key: JoypadKey, pressed: boolean) {
+  changeButton(button: JoypadButton, pressed: boolean) {
     if (this.state.status === "playing") {
-      let newState = this.keyState;
+      let newState = this.buttonsState;
       if (pressed) {
-        newState |= key;
+        newState |= button;
       } else {
-        newState &= ~key;
+        newState &= ~button;
       }
-      this.keyState = newState;
-      this.instance_!.changeKeyState(newState);
+      this.buttonsState = newState;
+      this.instance_!.mutateButtons(newState);
     }
   }
 
-  changeKeyState(state: number) {
+  changeButtons(state: number) {
     if (this.state.status === "playing") {
-      this.keyState = state;
-      this.instance_!.changeKeyState(state);
+      this.buttonsState = state;
+      this.instance_!.mutateButtons(state);
     }
   }
 
@@ -219,4 +219,4 @@ class GameBoyControl {
   }
 }
 
-export { GameBoyControl, JoypadKey };
+export { GameBoyControl, JoypadButton };

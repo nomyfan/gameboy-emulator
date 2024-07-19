@@ -33,13 +33,13 @@ function FnButton(props: {
       <Button
         label="SELECT"
         style={{ marginRight: 20 }}
-        onDown={() => props.onDown?.("SELECT")}
-        onUp={() => props.onUp?.("SELECT")}
+        onDown={() => props.onDown?.("Select")}
+        onUp={() => props.onUp?.("Select")}
       />
       <Button
         label="START"
-        onDown={() => props.onDown?.("START")}
-        onUp={() => props.onUp?.("START")}
+        onDown={() => props.onDown?.("Start")}
+        onUp={() => props.onUp?.("Start")}
       />
     </div>
   );

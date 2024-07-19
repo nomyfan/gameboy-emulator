@@ -1,17 +1,17 @@
 import type { GameBoyControl } from "gameboy/gameboy";
-import { JoypadKey } from "gameboy/gameboy";
+import { JoypadButton } from "gameboy/gameboy";
 import { useEffect } from "react";
 import { fromEvent, map, merge, filter, distinctUntilChanged } from "rxjs";
 
-const keyMapping: Record<string, JoypadKey> = {
-  ArrowRight: JoypadKey.Right,
-  ArrowLeft: JoypadKey.Left,
-  ArrowUp: JoypadKey.Up,
-  ArrowDown: JoypadKey.Down,
-  a: JoypadKey.A,
-  s: JoypadKey.B,
-  Enter: JoypadKey.Start,
-  Shift: JoypadKey.Select,
+const keyMapping: Record<string, JoypadButton> = {
+  ArrowRight: JoypadButton.Right,
+  ArrowLeft: JoypadButton.Left,
+  ArrowUp: JoypadButton.Up,
+  ArrowDown: JoypadButton.Down,
+  a: JoypadButton.A,
+  s: JoypadButton.B,
+  Enter: JoypadButton.Start,
+  Shift: JoypadButton.Select,
 };
 
 export function useKeyboardController(props: {
@@ -49,7 +49,7 @@ export function useKeyboardController(props: {
         ),
       )
       .subscribe(({ key, pressed }) => {
-        gameboy.changeKey(keyMapping[key], pressed);
+        gameboy.changeButton(keyMapping[key], pressed);
       });
 
     return () => {

@@ -1,4 +1,4 @@
-import { GameBoyControl, JoypadKey } from "gameboy/gameboy";
+import { GameBoyControl, JoypadButton } from "gameboy/gameboy";
 import { storage } from "gameboy/storage/indexdb";
 import { actions } from "gameboy/store";
 import type { IGameBoyButton } from "gameboy/types";
@@ -6,46 +6,12 @@ import * as utils from "gameboy/utils";
 
 export const gameboy = new GameBoyControl();
 
-export function handleButtonChange(button: IGameBoyButton, pressed: boolean) {
-  let key: JoypadKey;
-  switch (button) {
-    case "B":
-      key = JoypadKey.B;
-      break;
-    case "A":
-      key = JoypadKey.A;
-      break;
-    case "LEFT":
-      key = JoypadKey.Left;
-      break;
-    case "RIGHT":
-      key = JoypadKey.Right;
-      break;
-    case "UP":
-      key = JoypadKey.Up;
-      break;
-    case "DOWN":
-      key = JoypadKey.Down;
-      break;
-    case "SELECT":
-      key = JoypadKey.Select;
-      break;
-    case "START":
-      key = JoypadKey.Start;
-      break;
-    default: {
-      throw new Error("Unknown button value " + button);
-    }
-  }
-  gameboy.changeKey(key, pressed);
-}
-
 export function handleButtonDown(button: IGameBoyButton) {
-  handleButtonChange(button, true);
+  gameboy.changeButton(JoypadButton[button], true);
 }
 
 export function handleButtonUp(button: IGameBoyButton) {
-  handleButtonChange(button, false);
+  gameboy.changeButton(JoypadButton[button], false);
 }
 
 export async function takeSnapshot(

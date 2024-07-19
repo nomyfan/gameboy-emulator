@@ -8,7 +8,7 @@ pub enum Command {
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
-pub enum JoypadKey {
+pub enum JoypadButton {
     Start = 0x80,
     Select = 0x40,
     B = 0x20,

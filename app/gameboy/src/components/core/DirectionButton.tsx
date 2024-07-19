@@ -33,8 +33,8 @@ function DirectionButton(props: {
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
         }}
-        onDown={() => props.onDown?.("UP")}
-        onUp={() => props.onUp?.("UP")}
+        onDown={() => props.onDown?.("Up")}
+        onUp={() => props.onUp?.("Up")}
       />
       <Button
         key="left"
@@ -43,8 +43,8 @@ function DirectionButton(props: {
           borderTopRightRadius: 0,
           borderBottomRightRadius: 0,
         }}
-        onDown={() => props.onDown?.("LEFT")}
-        onUp={() => props.onUp?.("LEFT")}
+        onDown={() => props.onDown?.("Left")}
+        onUp={() => props.onUp?.("Left")}
       />
       <div
         key="center"
@@ -62,8 +62,8 @@ function DirectionButton(props: {
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
         }}
-        onDown={() => props.onDown?.("RIGHT")}
-        onUp={() => props.onUp?.("RIGHT")}
+        onDown={() => props.onDown?.("Right")}
+        onUp={() => props.onUp?.("Right")}
       />
       <Button
         key="bottom"
@@ -72,8 +72,8 @@ function DirectionButton(props: {
           borderTopLeftRadius: 0,
           borderTopRightRadius: 0,
         }}
-        onDown={() => props.onDown?.("DOWN")}
-        onUp={() => props.onUp?.("DOWN")}
+        onDown={() => props.onDown?.("Down")}
+        onUp={() => props.onUp?.("Down")}
       />
     </div>
   );

@@ -61,7 +61,7 @@ impl Joypad {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gb_shared::command::JoypadKey;
+    use gb_shared::command::JoypadButton;
     use gb_shared::set_bits;
     use gb_shared::InterruptType;
 
@@ -85,7 +85,7 @@ mod tests {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 4));
 
-        joypad.mutate_buttons(JoypadKey::Start as u8 | JoypadKey::B as u8);
+        joypad.mutate_buttons(JoypadButton::Start as u8 | JoypadButton::B as u8);
 
         let value = joypad.read(0xFF00);
         assert_eq!(0b1101_0101, value);
@@ -96,7 +96,7 @@ mod tests {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, set_bits!(0, 5));
 
-        joypad.mutate_buttons(JoypadKey::Up as u8 | JoypadKey::Right as u8);
+        joypad.mutate_buttons(JoypadButton::Up as u8 | JoypadButton::Right as u8);
 
         let value = joypad.read(0xFF00);
         assert_eq!(0b1110_1010, value);
@@ -107,7 +107,7 @@ mod tests {
         let mut joypad = Joypad::new();
         joypad.write(0xFF00, 0b11_0000);
 
-        joypad.mutate_buttons(JoypadKey::A as u8 | JoypadKey::Up as u8);
+        joypad.mutate_buttons(JoypadButton::A as u8 | JoypadButton::Up as u8);
 
         let value = joypad.read(0xFF00);
         assert_eq!(0xFF, value);
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn req_interrupt_if_bit3210_change_from_high_to_low() {
         let mut joypad = Joypad::new();
-        joypad.mutate_buttons(JoypadKey::B as u8);
+        joypad.mutate_buttons(JoypadButton::B as u8);
         assert_eq!(joypad.buttons, 0b0010_0000);
         assert_eq!(joypad.take_irq(), InterruptType::Joypad as u8);
     }

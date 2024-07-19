@@ -1,5 +1,5 @@
 import type { GameBoyControl } from "gameboy/gameboy";
-import { JoypadKey } from "gb_wasm";
+import { JoypadButton } from "gb_wasm";
 import { useEffect } from "react";
 import { animationFrameScheduler } from "rxjs";
 
@@ -8,14 +8,14 @@ import { animationFrameScheduler } from "rxjs";
  * @see https://support.xbox.com/en-US/help/hardware-network/controller/get-to-know-your-xbox-series-x-s-controller
  */
 const xboxStandardMapping = [
-  [12, JoypadKey.Up],
-  [13, JoypadKey.Down],
-  [14, JoypadKey.Left],
-  [15, JoypadKey.Right],
-  [0, JoypadKey.A],
-  [1, JoypadKey.B],
-  [8, JoypadKey.Select],
-  [9, JoypadKey.Start],
+  [12, JoypadButton.Up],
+  [13, JoypadButton.Down],
+  [14, JoypadButton.Left],
+  [15, JoypadButton.Right],
+  [0, JoypadButton.A],
+  [1, JoypadButton.B],
+  [8, JoypadButton.Select],
+  [9, JoypadButton.Start],
 ];
 
 /**
@@ -54,7 +54,7 @@ function useGamepadController(props: { gameboy: GameBoyControl | undefined }) {
       }, 0);
 
       if (prevState !== newState) {
-        gameboy.changeKeyState(newState);
+        gameboy.changeButtons(newState);
         prevState = newState;
       }
 
