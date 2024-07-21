@@ -1,5 +1,4 @@
 import { Button } from "gameboy/components/core/button";
-import { FlexBox } from "gameboy/components/core/flex-box";
 import { Modal } from "gameboy/components/core/modal";
 import { ModalCanceledError, ModalOpenedError } from "gameboy/model/error";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
@@ -40,7 +39,7 @@ export const ExitGameModal = forwardRef<IExitGameModalRef, unknown>(
         open={open}
         title="结束游戏"
         footer={
-          <FlexBox justify="end">
+          <div className="flex justify-end">
             <Button
               style={{ marginRight: 10 }}
               onClick={() => {
@@ -66,7 +65,7 @@ export const ExitGameModal = forwardRef<IExitGameModalRef, unknown>(
             >
               创建
             </Button>
-          </FlexBox>
+          </div>
         }
       >
         需要创建存档吗？

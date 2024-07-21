@@ -4,7 +4,6 @@ import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 
 import { Button } from "../button";
-import { FlexBox } from "../flex-box";
 
 import styles from "./Modal.module.css";
 
@@ -27,14 +26,14 @@ export function Modal(props: {
     }
 
     return (
-      <FlexBox justify="end">
+      <div className="flex justify-end">
         <Button style={{ marginRight: 10 }} onClick={() => props.onCancel?.()}>
           {props.cancelText || "取消"}
         </Button>
         <Button type="primary" onClick={() => props.onOk?.()}>
           {props.okText || "确定"}
         </Button>
-      </FlexBox>
+      </div>
     );
   };
 

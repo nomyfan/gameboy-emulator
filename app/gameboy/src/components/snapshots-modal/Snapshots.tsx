@@ -1,6 +1,5 @@
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
-import { FlexBox } from "gameboy/components/core/flex-box";
 import { useRefCallback } from "gameboy/hooks/useRefCallback";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
@@ -113,9 +112,9 @@ export function Snapshots(props: ISnapshotsProps) {
   const renderItems = () => {
     if (!data || isLoading) {
       return (
-        <FlexBox justify="center" style={{ padding: 10 }}>
+        <div className="flex justify-center p-3">
           <ScaleLoader />
-        </FlexBox>
+        </div>
       );
     }
     return data.map((snapshot) => {

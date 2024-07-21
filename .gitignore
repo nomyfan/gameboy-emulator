@@ -9,6 +9,7 @@
 
 .idea
 .vscode
+.zed
 .DS_Store
 /roms/games
 # Log files
