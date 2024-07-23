@@ -49,7 +49,6 @@ pub(crate) struct BusInner {
     clocks: u8,
     pub(crate) ppu: Ppu,
     pub(crate) apu: Apu,
-    ref_count: usize,
 }
 
 impl Memory for BusInner {
@@ -219,20 +218,20 @@ impl Memory for BusInner {
 }
 
 pub(crate) struct Bus {
-    ptr: *mut BusInner,
+    inner: std::rc::Rc<std::cell::UnsafeCell<BusInner>>,
 }
 
 impl Deref for Bus {
     type Target = BusInner;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.ptr.as_ref().unwrap() }
+        unsafe { &*self.inner.get() }
     }
 }
 
 impl DerefMut for Bus {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.ptr.as_mut().unwrap() }
+        unsafe { &mut *self.inner.get() }
     }
 }
 
@@ -241,7 +240,7 @@ impl Bus {
         let machine_model = cart.machine_model();
         let compatibility_palette_id = cart.compatibility_palette_id().unwrap_or_default();
         Self {
-            ptr: Box::into_raw(Box::new(BusInner {
+            inner: std::rc::Rc::new(std::cell::UnsafeCell::new(BusInner {
                 cart,
                 wram: WorkRam::new(machine_model),
                 hram: HighRam::new(),
@@ -256,7 +255,6 @@ impl Bus {
                 vdma: Vdma::new(),
                 mram: MiscRam::new(machine_model),
                 clocks: 0,
-                ref_count: 1,
             })),
         }
     }
@@ -332,34 +330,19 @@ impl gb_shared::Bus for Bus {
 
 impl Clone for Bus {
     fn clone(&self) -> Self {
-        unsafe {
-            (*self.ptr).ref_count += 1;
-        }
-        Self { ptr: self.ptr }
-    }
-}
-
-impl Drop for Bus {
-    fn drop(&mut self) {
-        if let Some(inner) = unsafe { self.ptr.as_mut() } {
-            inner.ref_count -= 1;
-            if inner.ref_count == 0 {
-                unsafe {
-                    // Deallocate the inner struct.
-                    let _ = Box::from_raw(self.ptr);
-                }
-            }
-        }
+        Self { inner: self.inner.clone() }
     }
 }
 
 impl Memory for Bus {
+    #[inline]
     fn write(&mut self, addr: u16, value: u8) {
-        unsafe { (*(self.ptr)).write(addr, value) }
+        self.deref_mut().write(addr, value);
     }
 
+    #[inline]
     fn read(&self, addr: u16) -> u8 {
-        unsafe { (*self.ptr).read(addr) }
+        self.deref().read(addr)
     }
 }
 
