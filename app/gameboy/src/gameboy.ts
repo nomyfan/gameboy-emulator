@@ -17,7 +17,7 @@ type GameBoyStore = ReturnType<typeof createGameBoyStore>;
 class GameBoyControl {
   private readonly store_: GameBoyStore;
 
-  private instance_?: GameBoyHandle;
+  private handle_?: GameBoyHandle;
   private playCallbackId_?: number;
 
   private buttonsState = 0;
@@ -99,11 +99,11 @@ class GameBoyControl {
     return { stream, sampleRate };
   }
 
-  // TODO: improve typing to help the caller known this.instance_ is not undefined
   private ensureInstalled() {
-    if (!this.instance_) {
+    if (!this.handle_) {
       throw new Error("GameBoy is not installed");
     }
+    return this.handle_;
   }
 
   async install(
@@ -113,7 +113,7 @@ class GameBoyControl {
     dbgCanvas?: HTMLCanvasElement,
   ) {
     const { stream, sampleRate } = await this.setupAudio();
-    const instance = GameBoyHandle.create(
+    this.handle_ = GameBoyHandle.create(
       rom,
       canvas,
       sav,
@@ -121,21 +121,20 @@ class GameBoyControl {
       stream,
       dbgCanvas,
     );
-    this.instance_ = instance;
-    instance.mute(this.state.muted);
+    this.handle_.mute(this.state.muted);
     this.store_.setState({ status: "installed" });
   }
 
   uninstall() {
-    if (this.instance_) {
+    if (this.handle_) {
       this.pause();
     }
 
     this.disposeAudio_();
 
-    if (this.instance_) {
-      this.instance_.free();
-      this.instance_ = undefined;
+    if (this.handle_) {
+      this.handle_.free();
+      this.handle_ = undefined;
     }
     this.store_.setState({ status: "uninstalled" });
   }
@@ -149,13 +148,13 @@ class GameBoyControl {
     this.store_.setState({ status: "playing" });
 
     const playCallback = () => {
-      if (this.state.status !== "playing" || !this.instance_) {
+      if (this.state.status !== "playing" || !this.handle_) {
         return;
       }
 
       const start = performance.now();
       const delayed = this.nextTickTime_ === 0 ? 0 : start - this.nextTickTime_;
-      this.instance_!.continue();
+      this.handle_.continue();
       const nextTickTime = start + 17 - delayed;
       this.nextTickTime_ = nextTickTime;
 
@@ -186,36 +185,33 @@ class GameBoyControl {
         newState &= ~button;
       }
       this.buttonsState = newState;
-      this.instance_!.mutateButtons(newState);
+      this.handle_!.mutateButtons(newState);
     }
   }
 
   changeButtons(state: number) {
     if (this.state.status === "playing") {
       this.buttonsState = state;
-      this.instance_!.mutateButtons(state);
+      this.handle_!.mutateButtons(state);
     }
   }
 
   takeSnapshot() {
-    this.ensureInstalled();
-    return this.instance_!.takeSnapshot();
+    return this.ensureInstalled().takeSnapshot();
   }
 
   restoreSnapshot(snapshot: Uint8Array) {
-    this.ensureInstalled();
-    this.instance_!.restoreSnapshot(snapshot);
+    return this.ensureInstalled().restoreSnapshot(snapshot);
   }
 
   createSav() {
-    this.ensureInstalled();
-    return this.instance_!.suspendCartridge();
+    return this.ensureInstalled().suspendCartridge();
   }
 
   mute(muted?: boolean) {
     muted ??= !this.state.muted;
     this.store_.setState({ muted });
-    this.instance_?.mute(muted);
+    this.handle_?.mute(muted);
   }
 }
 
