@@ -1,4 +1,4 @@
-import { cn } from "gameboy/utils/cn";
+import { cn } from "@callcc/toolkit-js/cn";
 import type { ButtonHTMLAttributes } from "react";
 
 export function Button(

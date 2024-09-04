@@ -1,3 +1,4 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import { Switch, SwitchThumb } from "@radix-ui/react-switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
 import { Button } from "gameboy/components/core/button";
@@ -5,7 +6,6 @@ import { Slider } from "gameboy/components/core/slider";
 import { store, actions } from "gameboy/store";
 import { create } from "gameboy/store/utils";
 import { cloneDeep } from "gameboy/utils";
-import { cn } from "gameboy/utils/cn";
 import { useId, useState } from "react";
 import { useStore } from "zustand";
 

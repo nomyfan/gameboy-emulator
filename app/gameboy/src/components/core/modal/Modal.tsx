@@ -1,6 +1,6 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 
 import { Button } from "../button";

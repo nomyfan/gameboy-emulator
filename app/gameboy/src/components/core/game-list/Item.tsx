@@ -1,5 +1,5 @@
-import { useRefCallback } from "gameboy/hooks/useRefCallback";
-import { cn } from "gameboy/utils/cn";
+import { cn } from "@callcc/toolkit-js/cn";
+import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import type { CSSProperties, PropsWithChildren } from "react";
 
 export type IListItemProps = PropsWithChildren<{

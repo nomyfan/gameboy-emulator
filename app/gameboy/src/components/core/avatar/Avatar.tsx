@@ -1,5 +1,5 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import * as RadixAvatar from "@radix-ui/react-avatar";
-import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 
 export function Avatar(props: { src?: string; fallback?: ReactNode }) {

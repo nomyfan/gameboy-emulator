@@ -61,19 +61,6 @@ export function join<T>(
   return newArray;
 }
 
-export function isPlainObject(object: unknown) {
-  if (typeof object !== "object" || object === null) {
-    return false;
-  }
-
-  const prototype = Object.getPrototypeOf(object);
-  if (prototype === null || prototype === Object.prototype) {
-    return true;
-  }
-
-  return object.constructor === Object;
-}
-
 // TODO: TS introduce `using` keyword, but need some configuration
 export async function myUsing<T extends { free: () => void }>(
   resource: T,
@@ -84,15 +71,6 @@ export async function myUsing<T extends { free: () => void }>(
   } finally {
     resource.free();
   }
-}
-
-export function flow<Args extends unknown[], R, U>(
-  f: (...args: Args) => R,
-  g: (arg: R) => U,
-): (...args: Args) => U {
-  return (...args: Args) => {
-    return g(f(...args));
-  };
 }
 
 export function flowAsync<Args extends unknown[], R, U>(

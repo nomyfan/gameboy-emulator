@@ -1,3 +1,4 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import {
   Dialog,
   DialogPortal,
@@ -7,7 +8,6 @@ import {
 } from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ModalOpenedError } from "gameboy/model/error";
-import { cn } from "gameboy/utils/cn";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 // import * as styles from "./SnapshotModal.css";

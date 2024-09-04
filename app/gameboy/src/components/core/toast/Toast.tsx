@@ -1,6 +1,6 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import * as PrimitiveToast from "@radix-ui/react-toast";
 import { ToastViewport } from "@radix-ui/react-toast";
-import { cn } from "gameboy/utils/cn";
 
 import styles from "./Toast.module.css";
 

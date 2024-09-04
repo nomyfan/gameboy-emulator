@@ -1,6 +1,6 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import { Separator } from "@radix-ui/react-separator";
 import { join } from "gameboy/utils";
-import { cn } from "gameboy/utils/cn";
 import type { CSSProperties, ReactNode } from "react";
 
 export interface IBarItem {

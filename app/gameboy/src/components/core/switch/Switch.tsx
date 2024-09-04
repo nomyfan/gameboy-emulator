@@ -1,6 +1,6 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import type { SwitchProps } from "@radix-ui/react-switch";
 import { Switch as RadixSwitch, SwitchThumb } from "@radix-ui/react-switch";
-import { cn } from "gameboy/utils/cn";
 
 export function Switch(props: SwitchProps) {
   return (

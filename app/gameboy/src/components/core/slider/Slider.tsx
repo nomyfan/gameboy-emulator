@@ -1,3 +1,4 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import type { SliderProps } from "@radix-ui/react-slider";
 import {
   SliderRange,
@@ -5,7 +6,6 @@ import {
   SliderTrack,
   Slider as PrimitiveSlider,
 } from "@radix-ui/react-slider";
-import { cn } from "gameboy/utils/cn";
 
 export function Slider(props: SliderProps) {
   return (

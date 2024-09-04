@@ -1,5 +1,5 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import type { IDirectionButton } from "gameboy/types";
-import { cn } from "gameboy/utils/cn";
 import type { CSSProperties } from "react";
 
 function Button(props: {

@@ -1,4 +1,4 @@
-import { isPlainObject } from "gameboy/utils";
+import { isPlainObject } from "@callcc/toolkit-js/isPlainObject";
 import { useStore } from "zustand";
 
 import { create } from "./utils";

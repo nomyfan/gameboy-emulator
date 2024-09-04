@@ -1,10 +1,10 @@
+import { cn } from "@callcc/toolkit-js/cn";
+import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
-import { useRefCallback } from "gameboy/hooks/useRefCallback";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store";
-import { cn } from "gameboy/utils/cn";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
