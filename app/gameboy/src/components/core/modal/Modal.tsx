@@ -55,12 +55,12 @@ export function Modal(props: {
             props.fullscreen && styles.overlay,
           )}
         >
-          <Dialog.Title>
-            <VisuallyHidden asChild />
-          </Dialog.Title>
-          <Dialog.Description>
-            <VisuallyHidden asChild />
-          </Dialog.Description>
+          <VisuallyHidden>
+            <Dialog.Title />
+          </VisuallyHidden>
+          <VisuallyHidden>
+            <Dialog.Description />
+          </VisuallyHidden>
           {props.fullscreen ? (
             props.children
           ) : (

@@ -11,12 +11,12 @@ export function PlayModal() {
     <Dialog.Root open={open}>
       <Dialog.Portal>
         <Dialog.Content>
-          <Dialog.Title>
-            <VisuallyHidden asChild />
-          </Dialog.Title>
-          <Dialog.Description>
-            <VisuallyHidden asChild />
-          </Dialog.Description>
+          <VisuallyHidden>
+            <Dialog.Title />
+          </VisuallyHidden>
+          <VisuallyHidden>
+            <Dialog.Description />
+          </VisuallyHidden>
           <Play
             style={{
               position: "fixed",

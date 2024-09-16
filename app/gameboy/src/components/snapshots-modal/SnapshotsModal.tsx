@@ -51,12 +51,12 @@ export const SnapshotsModal = forwardRef<
     <Dialog open={open}>
       <DialogPortal>
         <DialogContent>
-          <DialogTitle>
-            <VisuallyHidden asChild />
-          </DialogTitle>
-          <DialogDescription>
-            <VisuallyHidden asChild />
-          </DialogDescription>
+          <VisuallyHidden>
+            <DialogTitle />
+          </VisuallyHidden>
+          <VisuallyHidden>
+            <DialogDescription />
+          </VisuallyHidden>
           <div
             onClick={() => {
               onClose.current?.();
