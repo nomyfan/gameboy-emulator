@@ -49,7 +49,7 @@ export const ExitGameModal = forwardRef<IExitGameModalRef, unknown>(
               取消
             </Button>
             <Button
-              type="primary"
+              variant="primary"
               style={{ marginRight: 10 }}
               onClick={() => {
                 onClose.current?.("no_snapshot");
@@ -58,7 +58,7 @@ export const ExitGameModal = forwardRef<IExitGameModalRef, unknown>(
               不创建
             </Button>
             <Button
-              type="primary"
+              variant="primary"
               onClick={() => {
                 onClose.current?.("snapshot");
               }}

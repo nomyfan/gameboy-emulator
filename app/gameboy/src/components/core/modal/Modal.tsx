@@ -1,6 +1,6 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
 import { Button } from "../button";
@@ -30,7 +30,7 @@ export function Modal(props: {
         <Button style={{ marginRight: 10 }} onClick={() => props.onCancel?.()}>
           {props.cancelText || "取消"}
         </Button>
-        <Button type="primary" onClick={() => props.onOk?.()}>
+        <Button variant="primary" onClick={() => props.onOk?.()}>
           {props.okText || "确定"}
         </Button>
       </div>
@@ -42,7 +42,7 @@ export function Modal(props: {
       <Dialog.Portal>
         {!props.fullscreen && (
           <Dialog.Overlay
-            className={cn(
+            className={clsx(
               " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
               styles.overlay,
             )}
@@ -50,7 +50,7 @@ export function Modal(props: {
           />
         )}
         <Dialog.Content
-          className={cn(
+          className={clsx(
             "fixed top-0 left-0 w-screen h-screen",
             props.fullscreen && styles.overlay,
           )}

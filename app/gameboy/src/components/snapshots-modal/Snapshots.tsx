@@ -1,7 +1,7 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
+import { cva } from "class-variance-authority";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store";
@@ -9,6 +9,21 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
+
+const actionItemVariants = cva(
+  "min-w-150px bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
+  {
+    variants: {
+      alert: {
+        false: "[&[data-highlighted]]:(bg-primary text-white)",
+        true: "text-alert [&[data-highlighted]]:(bg-alert text-white)",
+      },
+    },
+    defaultVariants: {
+      alert: false,
+    },
+  },
+);
 
 export interface IActionItem {
   icon?: ReactNode;
@@ -68,12 +83,9 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
             return (
               <ContextMenu.Item
                 key={it.label}
-                className={cn(
-                  "min-w-150px bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
-                  !it.alert && "[&[data-highlighted]]:(bg-primary text-white)",
-                  it.alert && "text-alert",
-                  it.alert && "[&[data-highlighted]]:(bg-alert text-white)",
-                )}
+                className={actionItemVariants({
+                  alert: it.alert,
+                })}
                 onClick={() => {
                   it.onClick(snapshot, context);
                 }}

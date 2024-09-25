@@ -1,4 +1,3 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import {
   Popover,
@@ -6,6 +5,7 @@ import {
   PopoverPortal,
   PopoverTrigger,
 } from "@radix-ui/react-popover";
+import { clsx } from "clsx";
 import dayjs from "dayjs";
 import { Button } from "gameboy/components/core/button";
 import { Switch } from "gameboy/components/core/switch/Switch";
@@ -71,7 +71,7 @@ function SnapshotCard(props: {
 
             <PopoverPortal>
               <PopoverContent
-                className={cn(
+                className={clsx(
                   styles.PopoverContent,
                   "bg-white shadow-lg rounded-md p-3 text-sm grid cols-[max-content_auto] gap-x-3",
                 )}
@@ -238,7 +238,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
 
         <div className="row-start-4 row-end-5 col-span-2 flex flex-row-reverse gap-2">
           <Button
-            type="primary"
+            variant="primary"
             loading={isMutating}
             onClick={async () => {
               await exportGame({

@@ -1,5 +1,5 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
+import { clsx } from "clsx";
 import type { CSSProperties, PropsWithChildren } from "react";
 
 export type IListItemProps = PropsWithChildren<{
@@ -36,7 +36,7 @@ export function Item(props: IListItemProps) {
 
   return (
     <div
-      className={cn(
+      className={clsx(
         "flex-grow-0 flex-shrink-0 rounded-[1px] border-solid",
         props.placeholder
           ? "flex items-center justify-center w-fit text-primary"

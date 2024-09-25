@@ -18,3 +18,5 @@ export type IDirectionButton = Extract<
 export type IAbButton = Extract<IGameBoyButton, "A" | "B">;
 
 export type IFnButton = Extract<IGameBoyButton, "Start" | "Select">;
+
+export type ExcludeNullValue<T> = { [K in keyof T]: Exclude<T[K], null> };

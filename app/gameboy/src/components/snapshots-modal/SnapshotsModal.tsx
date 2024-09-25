@@ -1,12 +1,12 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import {
   Dialog,
-  DialogPortal,
   DialogContent,
-  DialogTitle,
   DialogDescription,
+  DialogPortal,
+  DialogTitle,
 } from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { clsx } from "clsx";
 import { ModalOpenedError } from "gameboy/model/error";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
@@ -62,13 +62,13 @@ export const SnapshotsModal = forwardRef<
               onClose.current?.();
               onClose.current = undefined;
             }}
-            className={cn(
+            className={clsx(
               "fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
               styles.overlay,
             )}
           >
             <div
-              className={cn(
+              className={clsx(
                 "fixed top-0 right-0 h-screen w-sm bg-bg",
                 styles.drawer,
               )}

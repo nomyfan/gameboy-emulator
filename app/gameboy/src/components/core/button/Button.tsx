@@ -1,33 +1,36 @@
-import { cn } from "@callcc/toolkit-js/cn";
+import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
+import type { ExcludeNullValue } from "gameboy/types";
 import type { ButtonHTMLAttributes } from "react";
 
-export function Button(
-  props: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {
-    type?: "primary" | "normal";
-    loading?: boolean;
+const buttonVariants = cva(
+  "py-2 px-4 font-medium text-sm rounded-md flex items-center gap-1 disabled:op-50 disabled:pointer-events-none",
+  {
+    variants: {
+      variant: {
+        primary: "text-white bg-primary",
+        default: "text-text bg-white",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
   },
+);
+
+export function Button(
+  props: ButtonHTMLAttributes<HTMLButtonElement> & {
+    loading?: boolean;
+  } & ExcludeNullValue<VariantProps<typeof buttonVariants>>,
 ) {
-  const { type, disabled, loading, children, ...restProps } = props;
+  const { variant, disabled, loading, children, ...restProps } = props;
 
   const loadingOrDisabled = loading || disabled;
 
   return (
     <button
       {...restProps}
-      className={cn(
-        "py-2 px-4 font-medium text-sm rounded-md flex items-center gap-1",
-        type === "primary"
-          ? "text-white"
-          : loadingOrDisabled
-            ? "text-text/80"
-            : "text-text",
-        type === "primary"
-          ? loadingOrDisabled
-            ? "bg-primary/80"
-            : "bg-primary"
-          : "bg-white",
-        props.className,
-      )}
+      className={buttonVariants({ variant, className: props.className })}
       disabled={loadingOrDisabled}
     >
       {loading && (

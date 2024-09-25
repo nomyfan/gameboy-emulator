@@ -1,4 +1,4 @@
-import { cn } from "@callcc/toolkit-js/cn";
+import { clsx } from "clsx";
 import { actions, useAppStore } from "gameboy/store";
 import { useEffect } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
@@ -56,7 +56,7 @@ export function GameList(props: IListProps) {
 
   return (
     <div
-      className={cn(
+      className={clsx(
         "flex items-center gap-2.5 px-2.5 overflow-x-auto",
         (!games || games.length === 0) && "justify-center",
         props.className,
