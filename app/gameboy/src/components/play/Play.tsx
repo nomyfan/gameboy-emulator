@@ -2,7 +2,6 @@ import { AbButton } from "gameboy/components/core/AbButton";
 import { DirectionButton } from "gameboy/components/core/DirectionButton";
 import { FnButton } from "gameboy/components/core/FnButton";
 import { Screen } from "gameboy/components/core/Screen";
-import { IconDelete } from "gameboy/components/icons";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { SnapshotsModal } from "gameboy/components/snapshots-modal";
 import { useGamepadController } from "gameboy/hooks/useGamepadController";
@@ -159,7 +158,7 @@ export function Play(props: IPagePlayProps) {
               },
             },
             {
-              icon: <IconDelete />,
+              icon: <i className="i-ic:baseline-delete-forever" />,
               label: "删除",
               alert: true,
               onClick: async (snapshot, { refresh }) => {

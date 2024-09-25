@@ -13,6 +13,7 @@ export interface IBarItem {
 export interface IOperationBarProps {
   style?: CSSProperties;
   items: IBarItem[][];
+  className?: string;
 }
 
 export function OperationBar(props: IOperationBarProps) {
@@ -50,7 +51,7 @@ export function OperationBar(props: IOperationBarProps) {
     ));
   };
   return (
-    <ul className={clsx("flex-center")} style={props.style}>
+    <ul className={clsx("flex-center", props.className)} style={props.style}>
       {renderItems()}
     </ul>
   );

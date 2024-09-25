@@ -1,15 +1,4 @@
 import { OperationBar } from "gameboy/components/core/operation-bar";
-import {
-  IconExitToApp,
-  IconExpandDown,
-  IconHistory,
-  IconPause,
-  IconPlay,
-  IconSave,
-  IconSettings,
-  IconVolumeOff,
-  IconVolumeOn,
-} from "gameboy/components/icons";
 import type { IExitGameModalRef } from "gameboy/components/play/exit-game-modal";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { useToast } from "gameboy/components/toast/useToast";
@@ -41,14 +30,18 @@ export function PlayOperationBar(props: {
       [
         {
           id: "mute-unmute",
-          icon: muted ? <IconVolumeOn /> : <IconVolumeOff />,
+          icon: muted ? (
+            <i className="i-ic:outline-volume-up" />
+          ) : (
+            <i className="i-ic:outline-volume-off" />
+          ),
           onClick: () => {
             gameboy.mute();
           },
         },
         {
           id: "take-snapshot",
-          icon: <IconSave />,
+          icon: <i className="i-ic:outline-save" />,
           onClick: async () => {
             await takeSnapshot(canvasRef.current, gameId);
             addToast("已创建存档");
@@ -56,14 +49,18 @@ export function PlayOperationBar(props: {
         },
         {
           id: "snapshots",
-          icon: <IconHistory />,
+          icon: <i className="i-ic:baseline-manage-history" />,
           onClick: () => {
             snapshotsModalRef.current?.open();
           },
         },
         {
           id: "play-pause",
-          icon: playing ? <IconPause /> : <IconPlay />,
+          icon: playing ? (
+            <i className="i-ic:outline-pause" />
+          ) : (
+            <i className="i-ic:outline-play-arrow" />
+          ),
           onClick: () => {
             if (playing) {
               gameboy.pause();
@@ -74,7 +71,7 @@ export function PlayOperationBar(props: {
         },
         {
           id: "exit",
-          icon: <IconExitToApp style={{ transform: "rotate(180deg)" }} />,
+          icon: <i className="i-ic:outline-exit-to-app rotate-180" />,
           alert: true,
           onClick: async () => {
             gameboy.pause();
@@ -112,7 +109,7 @@ export function PlayOperationBar(props: {
         },
         {
           id: "settings",
-          icon: <IconSettings />,
+          icon: <i className="i-ic:outline-settings" />,
           onClick: async () => {
             gameboy.pause();
             await actions.openSettingsModal();
@@ -141,9 +138,9 @@ export function PlayOperationBar(props: {
         }}
       >
         <div className="bg-white/30 backdrop-blur-md py-2 pr-30px pl-3 rounded-10px relative">
-          <OperationBar items={items} />
-          <IconExpandDown
-            className="absolute top-50% right-6px transform-translate-y--50%"
+          <OperationBar items={items} className="text-6" />
+          <i
+            className="i-ic:outline-expand-more absolute top-50% right-6px -transform-translate-y-50% text-6"
             onClick={() => {
               setExpanded(false);
             }}
@@ -151,8 +148,8 @@ export function PlayOperationBar(props: {
         </div>
       </div>
 
-      <IconExpandDown
-        className="fixed bottom-0 left-0 right-0 m-auto transform-rotate-180"
+      <i
+        className="i-ic:outline-expand-more fixed bottom-0 left-0 right-0 m-auto transform-rotate-180 text-6"
         style={{
           visibility: expanded ? "hidden" : "visible",
         }}

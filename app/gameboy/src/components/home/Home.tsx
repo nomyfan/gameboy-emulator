@@ -5,16 +5,6 @@ import type { IBarItem } from "gameboy/components/core/operation-bar";
 import { OperationBar } from "gameboy/components/core/operation-bar";
 import type { IExportModalRef } from "gameboy/components/export/ExportModal";
 import { ExportModal } from "gameboy/components/export/ExportModal";
-import {
-  IconAdd,
-  IconDelete,
-  IconFileDownload,
-  IconFullscreen,
-  IconFullscreenExit,
-  IconHistory,
-  IconPlay,
-  IconSettings,
-} from "gameboy/components/icons";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { SnapshotsModal } from "gameboy/components/snapshots-modal";
 import { useToast } from "gameboy/components/toast/useToast";
@@ -40,21 +30,21 @@ export function Home() {
       items.push([
         {
           id: "play",
-          icon: <IconPlay />,
+          icon: <i className="i-ic:outline-play-arrow" />,
           onClick: () => {
             actions.openPlayModal();
           },
         },
         {
           id: "snapshots",
-          icon: <IconHistory />,
+          icon: <i className="i-ic:baseline-manage-history" />,
           onClick: () => {
             snapshotsModalRef.current?.open();
           },
         },
         {
           id: "delete",
-          icon: <IconDelete />,
+          icon: <i className="i-ic:baseline-delete-forever" />,
           alert: true,
           onClick: async () => {
             await actions.openConfirmModal({
@@ -66,7 +56,7 @@ export function Home() {
         },
         {
           id: "export-backup",
-          icon: <IconFileDownload />,
+          icon: <i className="i-ic:outline-file-download" />,
           onClick: async () => {
             await exportModalRef.current?.open();
           },
@@ -77,7 +67,7 @@ export function Home() {
     items.push([
       {
         id: "add",
-        icon: <IconAdd />,
+        icon: <i className="i-ic:baseline-playlist-add" />,
         onClick: async () => {
           let files: File[] | null = null;
           try {
@@ -114,21 +104,21 @@ export function Home() {
       isFullscreen
         ? {
             id: "exit-fullscreen",
-            icon: <IconFullscreenExit />,
+            icon: <i className="i-ic:baseline-fullscreen-exit" />,
             onClick: async () => {
               await document.exitFullscreen();
             },
           }
         : {
             id: "fullscreen",
-            icon: <IconFullscreen />,
+            icon: <i className="i-ic:baseline-fullscreen" />,
             onClick: async () => {
               await document.body.requestFullscreen();
             },
           },
       {
         id: "settings",
-        icon: <IconSettings />,
+        icon: <i className="i-ic:outline-settings" />,
         onClick: () => {
           actions.openSettingsModal();
         },
@@ -156,7 +146,7 @@ export function Home() {
           actions.selectCartridge();
         }}
       >
-        <OperationBar style={{ padding: "10px 0" }} items={items} />
+        <OperationBar className="text-6 py-3" items={items} />
       </section>
 
       <SnapshotsModal
@@ -192,7 +182,7 @@ export function Home() {
               },
             },
             {
-              icon: <IconDelete />,
+              icon: <i className="i-ic:baseline-delete-forever" />,
               label: "删除",
               alert: true,
               onClick: async (snapshot, { refresh }) => {
