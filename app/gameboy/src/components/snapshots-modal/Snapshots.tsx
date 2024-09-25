@@ -2,12 +2,12 @@ import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import { ScaleLoader } from "gameboy/components/core/Spin";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 
 const actionItemVariants = cva(

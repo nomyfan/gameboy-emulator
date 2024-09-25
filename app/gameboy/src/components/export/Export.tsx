@@ -7,6 +7,7 @@ import {
 } from "@radix-ui/react-popover";
 import { clsx } from "clsx";
 import dayjs from "dayjs";
+import { ScaleLoader } from "gameboy/components/core/Spin";
 import { Button } from "gameboy/components/core/button";
 import { Switch } from "gameboy/components/core/switch/Switch";
 import { IconCheck } from "gameboy/components/icons";
@@ -16,10 +17,8 @@ import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { after } from "gameboy/utils";
 import { useId, useState } from "react";
-import ScaleLoader from "react-spinners/ScaleLoader";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
-
 import styles from "./Popover.module.css";
 
 function SnapshotCard(props: {

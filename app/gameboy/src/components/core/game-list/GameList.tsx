@@ -1,8 +1,7 @@
 import { clsx } from "clsx";
+import { ScaleLoader } from "gameboy/components/core/Spin";
 import { actions, useAppStore } from "gameboy/store";
 import { useEffect } from "react";
-import ScaleLoader from "react-spinners/ScaleLoader";
-
 import { Item } from "./Item";
 
 export interface IListProps {
