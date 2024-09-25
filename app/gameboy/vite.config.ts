@@ -9,7 +9,6 @@ import svgr from "vite-plugin-svgr";
 const __dirname = import.meta.dirname;
 
 // https://vitejs.dev/config/
-// eslint-disable-next-line import/no-default-export
 export default defineConfig(({ mode }) => ({
   server: {
     fs: {

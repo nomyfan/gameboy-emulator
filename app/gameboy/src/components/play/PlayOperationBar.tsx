@@ -15,7 +15,7 @@ import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { useToast } from "gameboy/components/toast/useToast";
 import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
-import { useAppStore, actions } from "gameboy/store";
+import { actions, useAppStore } from "gameboy/store";
 import type { RefObject } from "react";
 import { useMemo, useState } from "react";
 import { useStore } from "zustand";
@@ -78,8 +78,8 @@ export function PlayOperationBar(props: {
           alert: true,
           onClick: async () => {
             gameboy.pause();
-            exitGameModalRef
-              .current!.open()
+            exitGameModalRef.current
+              ?.open()
               .then(async (action) => {
                 const canvas = canvasRef.current;
                 if (!gameId || !canvas) {

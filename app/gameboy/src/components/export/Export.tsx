@@ -56,7 +56,7 @@ function SnapshotCard(props: {
             onClick={() => {
               props.onSelect(data.id, !props.selected);
             }}
-          ></IconCheck>
+          />
         </div>
 
         <div className="text-xs font-medium bg-bg/40 backdrop-blur-sm p-1 flex items-end rounded-b-2">
@@ -114,7 +114,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
   );
 
   const { trigger: exportGame, isMutating } = useSWRMutation(
-    id + "/export",
+    `${id}/export`,
     async (
       _,
       {
@@ -174,24 +174,24 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
       <div className="grid cols-[max-content_1fr] rows-[auto_auto_1fr_auto] gap-2 h-full">
         <label
           className="font-semibold text-lg md-2.5 mr-2"
-          htmlFor={id + "ROM"}
+          htmlFor={`${id}ROM`}
         >
           ROM
         </label>
         <Switch
-          id={id + "ROM"}
+          id={`${id}ROM`}
           checked={rom}
           onCheckedChange={(checked) => setRom(checked)}
         />
 
         <label
           className="font-semibold text-lg md-2.5 mr-2 row-start-2"
-          htmlFor={id + "SAV"}
+          htmlFor={`${id}SAV`}
         >
           游戏存档
         </label>
         <Switch
-          id={id + "SAV"}
+          id={`${id}SAV`}
           className="row-start-2"
           checked={sav}
           onCheckedChange={(checked) => setSav(checked)}
@@ -225,9 +225,8 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
                       setSelectedSnapshotsIds((ids) => {
                         if (selected) {
                           return [...ids, id];
-                        } else {
-                          return ids.filter((x) => x !== id);
                         }
+                        return ids.filter((x) => x !== id);
                       });
                     }}
                   />

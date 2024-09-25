@@ -1,9 +1,9 @@
 import { cn } from "@callcc/toolkit-js/cn";
 import { Switch, SwitchThumb } from "@radix-ui/react-switch";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { Button } from "gameboy/components/core/button";
 import { Slider } from "gameboy/components/core/slider";
-import { store, actions } from "gameboy/store";
+import { actions, store } from "gameboy/store";
 import { create } from "gameboy/store/utils";
 import { cloneDeep } from "gameboy/utils";
 import { useId, useState } from "react";
@@ -73,7 +73,7 @@ export function Settings() {
           <form style={{ flexGrow: 1 }}>
             <label
               className="font-semibold text-lg mb-2.5"
-              htmlFor={id + "-volume"}
+              htmlFor={`${id}-volume`}
             >
               游戏音量（{settings.volume}%）
             </label>
@@ -83,18 +83,18 @@ export function Settings() {
               onValueChange={([volume]) => {
                 settingsStore.setState({ volume });
               }}
-              id={id + "-volume"}
+              id={`${id}-volume`}
             />
 
             <label
               className="font-semibold text-lg mb-2.5"
-              htmlFor={id + "autoPause"}
+              htmlFor={`${id}autoPause`}
             >
               自动暂停
               <span className="text-xs">（当离开当前页面时自动暂停游戏）</span>
             </label>
             <Switch
-              id={id + "autoPause"}
+              id={`${id}autoPause`}
               className={cn(
                 "w-11 h-6 rounded-full relative block bg-primary/70",
                 "[&[data-state=checked]]:bg-primary",

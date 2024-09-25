@@ -185,14 +185,14 @@ class GameBoyControl {
         newState &= ~button;
       }
       this.buttonsState = newState;
-      this.handle_!.mutateButtons(newState);
+      this.handle_?.mutateButtons(newState);
     }
   }
 
   changeButtons(state: number) {
     if (this.state.status === "playing") {
       this.buttonsState = state;
-      this.handle_!.mutateButtons(state);
+      this.handle_?.mutateButtons(state);
     }
   }
 

@@ -43,7 +43,7 @@ export function OperationBar(props: IOperationBarProps) {
 
     return join(items, (_, item) => (
       <Separator
-        key={item.key + "-separator"}
+        key={`${item.key}-separator`}
         orientation="vertical"
         className="w-2px h-18px bg-white mx-5px"
       />

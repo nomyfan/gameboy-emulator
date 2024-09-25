@@ -27,9 +27,9 @@ export function IconCheck(
   const { checked, ...restProps } = props;
   if (checked === "indeterminate") {
     return <IconIndeterminate {...restProps} />;
-  } else if (checked) {
-    return <IconChecked {...restProps} />;
-  } else {
-    return <IconUnchecked {...restProps} />;
   }
+  if (checked) {
+    return <IconChecked {...restProps} />;
+  }
+  return <IconUnchecked {...restProps} />;
 }

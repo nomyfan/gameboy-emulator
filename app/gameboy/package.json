@@ -3,13 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "packageManager": "pnpm@9.4.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "precommit": "npx lint-staged",
-    "lint": "eslint ./src --ext .ts,.tsx"
+    "fmt": "biome format src",
+    "lint": "biome lint src"
   },
   "dependencies": {
     "@callcc/toolkit-js": "^0.1.2",
@@ -62,8 +62,6 @@
     "workbox-window": "^7.1.0"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": [
-      "eslint --fix"
-    ]
+    "src/**/*.{ts,tsx}": ["biome check --fix"]
   }
 }

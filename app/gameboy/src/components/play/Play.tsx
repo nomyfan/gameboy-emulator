@@ -8,20 +8,20 @@ import { SnapshotsModal } from "gameboy/components/snapshots-modal";
 import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
 import { storage } from "gameboy/storage/indexdb";
-import { store, actions, useAppStore } from "gameboy/store";
+import { actions, store, useAppStore } from "gameboy/store";
 import type { CSSProperties } from "react";
-import { useEffect, useRef, forwardRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 
+import { PlayOperationBar } from "./PlayOperationBar";
 import {
+  deleteSnapshot,
+  gameboy,
   handleButtonDown,
   handleButtonUp,
-  gameboy,
   switchSnapshot,
-  deleteSnapshot,
 } from "./actions";
 import type { IExitGameModalRef } from "./exit-game-modal";
 import { ExitGameModal } from "./exit-game-modal";
-import { PlayOperationBar } from "./PlayOperationBar";
 
 export interface IPagePlayProps {
   style?: CSSProperties;
@@ -61,8 +61,9 @@ export function Play(props: IPagePlayProps) {
     let canceled = false;
     (async () => {
       const game = await storage.gameStore.queryById(gameId);
-      const sav = game!.sav;
-      const rom = await game!.rom
+      if (!game) return;
+      const sav = game.sav;
+      const rom = await game.rom
         .arrayBuffer()
         .then((buf) => new Uint8ClampedArray(buf));
       if (!canceled) {

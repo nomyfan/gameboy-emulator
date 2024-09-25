@@ -1,7 +1,7 @@
 import {
   BlobReader,
   BlobWriter,
-  Entry,
+  type Entry,
   TextReader,
   TextWriter,
   Uint8ArrayReader,
@@ -46,7 +46,7 @@ export async function zip(
       const data = JSON.stringify(entry.data, null, 2);
       await writer.add(entry.path, new TextReader(data));
     } else {
-      throw new Error("Unsupported data type " + typeof entry.data);
+      throw new Error(`Unsupported data type ${typeof entry.data}`);
     }
   }
 

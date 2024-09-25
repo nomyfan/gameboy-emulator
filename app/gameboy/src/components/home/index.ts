@@ -1,4 +1,4 @@
 export * from "./Home";
 
-// eslint-disable-next-line import/no-default-export
+// biome-ignore lint/style/noDefaultExport: <explanation>
 export { Home as default } from "./Home";

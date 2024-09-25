@@ -47,10 +47,7 @@ function useGamepadController(props: { gameboy: GameBoyControl | undefined }) {
       }
 
       const newState = xboxStandardMapping.reduce((state, [index, key]) => {
-        if (gamepad.buttons[index].pressed) {
-          state |= key;
-        }
-        return state;
+        return gamepad.buttons[index].pressed ? state | key : state;
       }, 0);
 
       if (prevState !== newState) {

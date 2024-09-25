@@ -26,8 +26,8 @@ export async function takeSnapshot(
   const time = Date.now();
   const offscreenCanvas = new OffscreenCanvas(320, 288);
   offscreenCanvas
-    .getContext("2d")!
-    .drawImage(
+    .getContext("2d")
+    ?.drawImage(
       canvas,
       0,
       0,
@@ -40,7 +40,7 @@ export async function takeSnapshot(
     );
   const cover = await utils.canvasToBlob(offscreenCanvas, "image/jpeg", 0.7);
   const hash = utils.hash(snapshot);
-  storage.snapshotStore.insert({
+  await storage.snapshotStore.insert({
     data: snapshot,
     gameId,
     time,

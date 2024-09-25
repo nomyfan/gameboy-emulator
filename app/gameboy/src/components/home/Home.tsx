@@ -8,11 +8,11 @@ import { ExportModal } from "gameboy/components/export/ExportModal";
 import {
   IconAdd,
   IconDelete,
-  IconHistory,
-  IconPlay,
+  IconFileDownload,
   IconFullscreen,
   IconFullscreenExit,
-  IconFileDownload,
+  IconHistory,
+  IconPlay,
   IconSettings,
 } from "gameboy/components/icons";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
@@ -91,7 +91,7 @@ export function Home() {
             // Cancelled
             return;
           }
-          if (files && files.length) {
+          if (files?.length) {
             const removeToast = addToast("正在导入，请稍候...");
             const packFiles = files.filter((file) =>
               file.name.endsWith(".gbpack"),
