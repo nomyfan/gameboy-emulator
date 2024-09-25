@@ -1,6 +1,5 @@
-import presetUno from "@unocss/preset-uno";
 import transformerVariantGroup from "@unocss/transformer-variant-group";
-import { defineConfig, presetIcons } from "unocss";
+import { defineConfig, presetIcons, presetUno } from "unocss";
 
 // eslint-disable-next-line import/no-default-export
 export default defineConfig({
