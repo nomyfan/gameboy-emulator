@@ -10,7 +10,6 @@ import { clsx } from "clsx";
 import { ModalOpenedError } from "gameboy/model/error";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
-// import * as styles from "./SnapshotModal.css";
 import styles from "./SnapshotModal.module.css";
 import type { ISnapshotsProps } from "./Snapshots";
 import { Snapshots } from "./Snapshots";
@@ -63,8 +62,7 @@ export const SnapshotsModal = forwardRef<
               onClose.current = undefined;
             }}
             className={clsx(
-              "fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
-              styles.overlay,
+              "fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg animate-[fade-in_300ms_cubic-bezier(0.16,1,0.3,1)]",
             )}
           >
             <div

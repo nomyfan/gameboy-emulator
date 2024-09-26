@@ -5,8 +5,6 @@ import type { ReactNode } from "react";
 
 import { Button } from "../button";
 
-import styles from "./Modal.module.css";
-
 export function Modal(props: {
   open?: boolean;
   defaultOpen?: boolean;
@@ -43,8 +41,7 @@ export function Modal(props: {
         {!props.fullscreen && (
           <Dialog.Overlay
             className={clsx(
-              " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg",
-              styles.overlay,
+              " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg animate-[fade-in_300ms_cubic-bezier(0.16,1,0.3,1)]",
             )}
             onClick={() => props.onClose?.()}
           />
@@ -52,7 +49,8 @@ export function Modal(props: {
         <Dialog.Content
           className={clsx(
             "fixed top-0 left-0 w-screen h-screen",
-            props.fullscreen && styles.overlay,
+            props.fullscreen &&
+              "animate-[fade-in_300ms_cubic-bezier(0.16,1,0.3,1)]",
           )}
         >
           <VisuallyHidden>
