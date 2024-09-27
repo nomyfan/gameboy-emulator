@@ -1,6 +1,6 @@
 import { GameBoyControl, JoypadButton } from "gameboy/gameboy";
 import { storage } from "gameboy/storage/indexdb";
-import { actions } from "gameboy/store";
+import { openConfirmModal } from "gameboy/store/app";
 import type { IGameBoyButton } from "gameboy/types";
 import * as utils from "gameboy/utils";
 
@@ -51,7 +51,7 @@ export async function takeSnapshot(
 }
 
 export async function switchSnapshot(snapshot: Uint8Array) {
-  await actions.openConfirmModal({
+  await openConfirmModal({
     title: "替换进度",
     content: "确定要加载该存档吗？请确保当前进度已保存。",
   });
@@ -60,7 +60,7 @@ export async function switchSnapshot(snapshot: Uint8Array) {
 }
 
 export async function deleteSnapshot(id: number) {
-  await actions.openConfirmModal({
+  await openConfirmModal({
     title: "删除",
     content: "确认要删除该存档吗？",
   });

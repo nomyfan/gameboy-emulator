@@ -1,13 +1,14 @@
 import { Modal } from "gameboy/components/core/modal";
-import { useAppStore, actions } from "gameboy/store";
+import { useAppStore } from "gameboy/store/app";
+import { closeConfirmModal } from "gameboy/store/app";
 
 export function ConfirmModal() {
   const { open, title, content, okText, cancelText } = useAppStore(
     (st) => st.dialog.confirm,
   );
 
-  const handleCancel = () => actions.closeConfirmModal(false);
-  const handleOk = () => actions.closeConfirmModal(true);
+  const handleCancel = () => closeConfirmModal(false);
+  const handleOk = () => closeConfirmModal(true);
 
   return (
     <Modal

@@ -5,7 +5,7 @@ import { cva } from "class-variance-authority";
 import { ScaleLoader } from "gameboy/components/core/Spin";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
-import { useAppStore } from "gameboy/store";
+import { useAppStore } from "gameboy/store/app";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import useSWR from "swr";

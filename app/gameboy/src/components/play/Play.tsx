@@ -7,10 +7,11 @@ import { SnapshotsModal } from "gameboy/components/snapshots-modal";
 import { useGamepadController } from "gameboy/hooks/useGamepadController";
 import { useKeyboardController } from "gameboy/hooks/useKeyboardController";
 import { storage } from "gameboy/storage/indexdb";
-import { actions, store, useAppStore } from "gameboy/store";
+import { appStore, useAppStore } from "gameboy/store/app";
+import { loadGames } from "gameboy/store/game";
+import { settingsStore } from "gameboy/store/settings";
 import type { CSSProperties } from "react";
 import { forwardRef, useEffect, useRef } from "react";
-
 import { PlayOperationBar } from "./PlayOperationBar";
 import {
   deleteSnapshot,
@@ -68,7 +69,7 @@ export function Play(props: IPagePlayProps) {
       if (!canceled) {
         gameboy.uninstall();
         await gameboy.install(rom, canvas, sav, dbgCanvas || undefined);
-        const snapshot = store.getState().dialog.play.snapshot;
+        const snapshot = appStore.getState().dialog.play.snapshot;
         if (snapshot && snapshot.gameId === gameId) {
           gameboy.restoreSnapshot(snapshot.data);
         }
@@ -83,7 +84,7 @@ export function Play(props: IPagePlayProps) {
     return () => {
       canceled = true;
       gameboy.uninstall();
-      actions.loadGames();
+      loadGames();
     };
   }, [gameId]);
 
@@ -94,7 +95,7 @@ export function Play(props: IPagePlayProps) {
     const handleVisibilityChange = () => {
       if (
         gameboy.state.status !== "uninstalled" &&
-        store.getState().settings.autoPause &&
+        settingsStore.getState().autoPause &&
         document.hidden
       ) {
         gameboy.pause();

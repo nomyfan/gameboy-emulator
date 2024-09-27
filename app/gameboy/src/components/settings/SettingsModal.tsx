@@ -1,6 +1,6 @@
 import { Modal } from "gameboy/components/core/modal";
 import { Settings } from "gameboy/components/settings/Settings";
-import { useAppStore } from "gameboy/store";
+import { useAppStore } from "gameboy/store/app";
 
 export function SettingsModal() {
   const open = useAppStore((st) => st.dialog.settings.open);

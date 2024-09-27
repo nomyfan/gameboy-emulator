@@ -1,7 +1,9 @@
 import { clsx } from "clsx";
 import { ScaleLoader } from "gameboy/components/core/Spin";
-import { actions, useAppStore } from "gameboy/store";
+import { selectCartridge, useAppStore } from "gameboy/store/app";
+import { gameStore, loadGames } from "gameboy/store/game";
 import { useEffect } from "react";
+import { useStore } from "zustand";
 import { Item } from "./Item";
 
 export interface IListProps {
@@ -10,11 +12,11 @@ export interface IListProps {
 
 export function GameList(props: IListProps) {
   const selectedId = useAppStore((st) => st.selectedGameId);
-  const games = useAppStore((st) => st.games);
+  const games = useStore(gameStore, (st) => st.games);
 
   useEffect(() => {
     const start = Date.now();
-    actions.loadGames(async () => {
+    loadGames(async () => {
       // Avoid flickering
       await new Promise((resolve) =>
         setTimeout(resolve, Math.max(0, 500 - (Date.now() - start))),
@@ -47,7 +49,7 @@ export function GameList(props: IListProps) {
           cover={cover}
           name={name}
           selected={selectedId === id}
-          onSelected={() => actions.selectCartridge(id)}
+          onSelected={() => selectCartridge(id)}
         />
       );
     });
@@ -61,7 +63,7 @@ export function GameList(props: IListProps) {
         props.className,
       )}
       onClick={() => {
-        actions.selectCartridge();
+        selectCartridge();
       }}
     >
       {renderItems()}

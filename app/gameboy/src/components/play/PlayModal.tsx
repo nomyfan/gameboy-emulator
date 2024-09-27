@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { useAppStore } from "gameboy/store";
+import { useAppStore } from "gameboy/store/app";
 
 import { Play } from "./Play";
 

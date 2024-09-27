@@ -1,12 +1,14 @@
+import { useImmutableRef } from "@callcc/toolkit-js/react/useImmutableRef";
 import { Switch, SwitchThumb } from "@radix-ui/react-switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { clsx } from "clsx";
 import { Button } from "gameboy/components/core/button";
 import { Slider } from "gameboy/components/core/slider";
-import { actions, store } from "gameboy/store";
+import { closeSettingsModal } from "gameboy/store/app";
+import { settingsStore, writeSettings } from "gameboy/store/settings";
 import { create } from "gameboy/store/utils";
 import { cloneDeep } from "gameboy/utils";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { useStore } from "zustand";
 
 enum ETabs {
@@ -15,15 +17,15 @@ enum ETabs {
 }
 
 export function Settings() {
-  const [settingsStore] = useState(() => {
-    return create(() => cloneDeep(store.getState().settings));
-  });
-  const settings = useStore(settingsStore);
+  const store = useImmutableRef(() =>
+    create(() => cloneDeep(settingsStore.getState())),
+  );
+  const settings = useStore(store);
   const id = useId();
 
   const flush = () => {
-    actions.writeSettings(cloneDeep(settingsStore.getState()));
-    actions.closeSettingsModal();
+    writeSettings(cloneDeep(settings));
+    closeSettingsModal();
   };
 
   return (
@@ -81,7 +83,7 @@ export function Settings() {
               style={{ width: "200px" }}
               value={[settings.volume]}
               onValueChange={([volume]) => {
-                settingsStore.setState({ volume });
+                store.setState({ volume });
               }}
               id={`${id}-volume`}
             />
@@ -101,7 +103,7 @@ export function Settings() {
               )}
               checked={settings.autoPause}
               onCheckedChange={(checked) => {
-                settingsStore.setState({ autoPause: checked });
+                store.setState({ autoPause: checked });
               }}
             >
               <SwitchThumb
@@ -119,7 +121,7 @@ export function Settings() {
             </Button>
             <Button
               onClick={() => {
-                actions.closeSettingsModal();
+                closeSettingsModal();
               }}
             >
               返回

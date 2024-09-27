@@ -1,6 +1,6 @@
 import { Modal } from "gameboy/components/core/modal";
 import { ModalOpenedError } from "gameboy/model/error";
-import { useAppStore } from "gameboy/store";
+import { useAppStore } from "gameboy/store/app";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 import { Export } from "./Export";

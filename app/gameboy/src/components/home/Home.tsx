@@ -1,17 +1,25 @@
 import dayjs from "dayjs";
 import { Avatar } from "gameboy/components/core/avatar";
-import { GameList } from "gameboy/components/core/game-list";
 import type { IBarItem } from "gameboy/components/core/operation-bar";
 import { OperationBar } from "gameboy/components/core/operation-bar";
 import type { IExportModalRef } from "gameboy/components/export/ExportModal";
 import { ExportModal } from "gameboy/components/export/ExportModal";
+import { GameList } from "gameboy/components/game-list";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { SnapshotsModal } from "gameboy/components/snapshots-modal";
 import { useToast } from "gameboy/components/toast/useToast";
 import * as fs from "gameboy/fs";
 import { useFullscreen } from "gameboy/hooks/useFullscreen";
 import { storage } from "gameboy/storage/indexdb";
-import { actions, useAppStore } from "gameboy/store";
+import {
+  deleteSelectedGame,
+  openConfirmModal,
+  openPlayModal,
+  openSettingsModal,
+  selectCartridge,
+  useAppStore,
+} from "gameboy/store/app";
+import { exportSnapshot, loadGames } from "gameboy/store/game";
 import { useMemo, useRef } from "react";
 
 export function Home() {
@@ -31,8 +39,8 @@ export function Home() {
         {
           id: "play",
           icon: <i className="i-ic:outline-play-arrow" />,
-          onClick: () => {
-            actions.openPlayModal();
+          onClick: async () => {
+            await openPlayModal();
           },
         },
         {
@@ -47,11 +55,11 @@ export function Home() {
           icon: <i className="i-ic:baseline-delete-forever" />,
           alert: true,
           onClick: async () => {
-            await actions.openConfirmModal({
+            await openConfirmModal({
               title: "删除",
               content: "确认要删除该游戏及其所有存档吗？",
             });
-            await actions.deleteSelectedGame();
+            await deleteSelectedGame();
           },
         },
         {
@@ -97,7 +105,7 @@ export function Home() {
             }
             removeToast();
             addToast("导入成功");
-            await actions.loadGames();
+            await loadGames();
           }
         },
       },
@@ -119,8 +127,8 @@ export function Home() {
       {
         id: "settings",
         icon: <i className="i-ic:outline-settings" />,
-        onClick: () => {
-          actions.openSettingsModal();
+        onClick: async () => {
+          await openSettingsModal();
         },
       },
     ]);
@@ -133,7 +141,7 @@ export function Home() {
       <section
         className="p-2"
         onClick={() => {
-          actions.selectCartridge();
+          selectCartridge();
         }}
       >
         <Avatar fallback="O" />
@@ -143,7 +151,7 @@ export function Home() {
 
       <section
         onClick={() => {
-          actions.selectCartridge();
+          selectCartridge();
         }}
       >
         <OperationBar className="text-6 py-3" items={items} />
@@ -156,7 +164,7 @@ export function Home() {
             {
               label: "进入游戏",
               onClick: async (snapshot, { refresh }) => {
-                const action = await actions.openPlayModal({
+                const action = await openPlayModal({
                   gameId: snapshot.gameId,
                   data: snapshot.data,
                 });
@@ -169,7 +177,7 @@ export function Home() {
               label: "导出",
               onClick: async (snapshot, _context) => {
                 const removeToast = addToast("正在导出存档，请稍候...");
-                const { pack, filename } = await actions.exportSnapshot(
+                const { pack, filename } = await exportSnapshot(
                   snapshot.id,
                   snapshot,
                 );
@@ -186,7 +194,7 @@ export function Home() {
               label: "删除",
               alert: true,
               onClick: async (snapshot, { refresh }) => {
-                await actions.openConfirmModal({
+                await openConfirmModal({
                   title: "删除",
                   content: "确认要删除该存档吗？",
                 });

@@ -1,8 +1,7 @@
-import { ToastProvider } from "gameboy/components/toast/ToastProvider";
-import { lazy, Suspense } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
-
-import { useAppStore, actions } from "./store";
+import { ToastProvider } from "gameboy/components/toast/ToastProvider";
+import { openConfirmModal, useAppStore } from "gameboy/store/app";
+import { Suspense, lazy } from "react";
 
 const LazyHome = lazy(() => import("./components/home"));
 const LazyPlayModel = lazy(() => import("./components/play/PlayModal"));
@@ -52,7 +51,7 @@ export function App() {
   const { updateServiceWorker } = useRegisterSW({
     onNeedRefresh() {
       (async () => {
-        await actions.openConfirmModal({
+        await openConfirmModal({
           title: "有新版本可用！",
           content: "更新将导致当前操作进度丢失，是否立即更新？",
           okText: "立即更新",

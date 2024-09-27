@@ -1,4 +1,4 @@
-import { store } from "gameboy/store";
+import { settingsStore } from "gameboy/store/settings";
 import { create } from "gameboy/store/utils";
 import { GameBoy as GameBoyHandle, JoypadButton } from "gb_wasm";
 
@@ -29,14 +29,15 @@ class GameBoyControl {
 
   constructor() {
     this.store_ = createGameBoyStore();
-    this.store_.setState({ volume: store.getState().settings.volume });
+    this.store_.setState({ volume: settingsStore.getState().volume });
     // Subscribe to global store volume changes
-    store.subscribe((state) => {
-      if (state.settings.volume !== this.state.volume) {
-        this.store_.setState({ volume: state.settings.volume });
-        this.changeAudioVolume_(state.settings.volume);
-      }
-    });
+    settingsStore.subscribe(
+      (settings) => settings.volume,
+      (volume) => {
+        this.store_.setState({ volume });
+        this.changeAudioVolume_(volume);
+      },
+    );
   }
 
   get state() {

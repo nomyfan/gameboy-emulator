@@ -1,9 +1,50 @@
-import type { ISnapshot } from "gameboy/model";
 import { ModalCanceledError } from "gameboy/model/error";
-import { storage } from "gameboy/storage/indexdb";
+import { useStore } from "zustand";
+import { deleteGame } from "./game";
+import { create } from "./utils";
 
-import type { IStore } from "./state";
-import { store } from "./state";
+export type IStore = {
+  dialog: {
+    play: {
+      open?: boolean;
+      callback?: (action: "snapshot" | "no_snapshot") => void;
+      snapshot?: {
+        gameId: string;
+        data: Uint8Array;
+      };
+    };
+    // General confirm modal
+    confirm: {
+      open?: boolean;
+      title?: string;
+      content?: string;
+      okText?: string;
+      cancelText?: string;
+      callback?: (ok: boolean) => void;
+    };
+    settings: {
+      open?: boolean;
+      callback?: () => void;
+    };
+  };
+  selectedGameId?: string;
+};
+
+const store = create<IStore>(() => {
+  return {
+    dialog: {
+      play: {},
+      confirm: {},
+      settings: {},
+    },
+  };
+});
+
+export { store as appStore };
+
+export function useAppStore<T>(selector: (state: Readonly<IStore>) => T) {
+  return useStore(store, selector);
+}
 
 export function selectCartridge(id?: string) {
   store.setState((state) => {
@@ -93,40 +134,6 @@ export function closeSettingsModal() {
   store.getState().dialog.settings.callback?.();
 }
 
-export async function loadGames(beforeSetState?: () => Promise<void>) {
-  const manifests = await storage.loadAllGames();
-
-  const games: NonNullable<IStore["games"]> = [];
-  for (const manifest of manifests) {
-    games.push({
-      id: manifest.id,
-      name: manifest.name,
-      time: manifest.createTime,
-      cover: manifest.cover,
-      lastPlayTime: manifest.lastPlayTime,
-    });
-  }
-
-  await beforeSetState?.();
-  store.setState((st) => {
-    st.games = games;
-  });
-}
-
-export async function deleteGame(id: string) {
-  const games = store.getState().games;
-  const target = games?.find((c) => c.id === id);
-  if (!target) {
-    return;
-  }
-
-  await storage.uninstallGame(target.id);
-
-  store.setState((st) => {
-    st.games = games?.filter((c) => c.id !== target.id);
-  });
-}
-
 export async function deleteSelectedGame() {
   const id = store.getState().selectedGameId;
   if (!id) {
@@ -135,40 +142,4 @@ export async function deleteSelectedGame() {
 
   await deleteGame(id);
   selectCartridge();
-}
-
-export async function exportSelectedGame() {
-  const id = store.getState().selectedGameId;
-  if (!id) {
-    throw new Error();
-  }
-
-  return await storage.exportGame(id, { sav: true, rom: true });
-}
-
-export async function exportSnapshot(id: number, snapshot?: ISnapshot) {
-  if (!snapshot) {
-    // biome-ignore lint/style/noParameterAssign: await expressions cannot be used in a parameter initializer.
-    snapshot = await storage.snapshotStore.queryById(id);
-    if (!snapshot) {
-      throw new Error("Snapshot not found");
-    }
-  }
-
-  const gameName = store
-    .getState()
-    .games?.find((g) => g.id === snapshot.gameId)?.name;
-
-  const { pack, filename } = await storage.exportGame(snapshot.gameId, {
-    snapshots: [snapshot.id],
-  });
-
-  return { pack, filename: gameName ? `${gameName}-${filename}` : filename };
-}
-
-export function writeSettings(settings: IStore["settings"]) {
-  store.setState((st) => {
-    st.settings = settings;
-  });
-  localStorage.setItem("gbos-settings", JSON.stringify(settings));
 }

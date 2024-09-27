@@ -4,7 +4,11 @@ import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
 import { useToast } from "gameboy/components/toast/useToast";
 import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
-import { actions, useAppStore } from "gameboy/store";
+import {
+  closePlayModal,
+  openSettingsModal,
+  useAppStore,
+} from "gameboy/store/app";
 import type { RefObject } from "react";
 import { useMemo, useState } from "react";
 import { useStore } from "zustand";
@@ -92,9 +96,9 @@ export function PlayOperationBar(props: {
 
                 if (action === "snapshot") {
                   await takeSnapshot(canvasRef.current, gameId);
-                  actions.closePlayModal("snapshot");
+                  closePlayModal("snapshot");
                 } else if (action === "no_snapshot") {
-                  actions.closePlayModal("no_snapshot");
+                  closePlayModal("no_snapshot");
                 }
               })
               .catch((err) => {
@@ -112,7 +116,7 @@ export function PlayOperationBar(props: {
           icon: <i className="i-ic:outline-settings" />,
           onClick: async () => {
             gameboy.pause();
-            await actions.openSettingsModal();
+            await openSettingsModal();
             gameboy.play();
           },
         },

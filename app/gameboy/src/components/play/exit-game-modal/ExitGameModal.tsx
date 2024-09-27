@@ -10,7 +10,7 @@ export interface IExitGameModalRef {
 }
 
 export const ExitGameModal = forwardRef<IExitGameModalRef, unknown>(
-  function ExitGameModal(props, ref) {
+  function ExitGameModal(_props, ref) {
     const [open, setOpen] = useState(false);
     const onClose = useRef<(action: IAction) => void>();
 

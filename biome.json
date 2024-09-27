@@ -26,6 +26,10 @@
         "noDefaultExport": "error",
         "noParameterAssign": "warn"
       },
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "error"
+      },
       "a11y": {
         "all": false
       }
