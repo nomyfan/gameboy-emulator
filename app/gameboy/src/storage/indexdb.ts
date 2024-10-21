@@ -4,7 +4,7 @@ import type { IZipDataEntry } from "gameboy/fs/zip";
 import { unzip, zip } from "gameboy/fs/zip";
 import type { IGame, IGameBoyStorage, ISnapshot } from "gameboy/model";
 import type { RequiredSome } from "gameboy/types";
-import { crc32, flowAsync, hash, myUsing } from "gameboy/utils";
+import { crc32, flowAsync, freeableToDisposable, hash } from "gameboy/utils";
 import { obtainMetadata } from "gb_wasm";
 
 type IPackManifest = {
@@ -162,9 +162,10 @@ class GameBoyStorage implements IGameBoyStorage {
   }
 
   async installGame(rom: Blob): Promise<boolean> {
-    const metadata = await rom
+    using metadata = await rom
       .arrayBuffer()
-      .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90));
+      .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90))
+      .then((o) => freeableToDisposable(o));
 
     const id = await hash(rom);
 
@@ -177,7 +178,6 @@ class GameBoyStorage implements IGameBoyStorage {
       rom,
     });
 
-    metadata.free();
     return true;
   }
 
@@ -273,27 +273,26 @@ class GameBoyStorage implements IGameBoyStorage {
     if (manifest.game.rom) {
       // biome-ignore lint/style/noNonNullAssertion: It must exist in the pack if it's exported by us.
       const rom = (await reader.getBlob("game/rom"))!;
-      const metadata = await rom
+      using metadata = await rom
         .arrayBuffer()
-        .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90));
+        .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90))
+        .then((o) => freeableToDisposable(o));
 
       const sav = await reader.getUint8Array("game/sav");
       txAction = async () => {
-        await myUsing(metadata, async (metadata) => {
-          if (!game) {
-            await this.gameStore.insert({
-              id: manifest.gameId,
-              cover: metadata.cover,
-              createTime: Date.now(),
-              lastPlayTime: 0,
-              name: metadata.name,
-              rom,
-              sav,
-            });
-          } else if (sav) {
-            await this.gameStore.update({ id: manifest.gameId, sav });
-          }
-        });
+        if (!game) {
+          await this.gameStore.insert({
+            id: manifest.gameId,
+            cover: metadata.cover,
+            createTime: Date.now(),
+            lastPlayTime: 0,
+            name: metadata.name,
+            rom,
+            sav,
+          });
+        } else if (sav) {
+          await this.gameStore.update({ id: manifest.gameId, sav });
+        }
       };
     } else if (manifest.game.sav && game) {
       const sav = await reader.getUint8Array("game/sav");

@@ -61,16 +61,16 @@ export function join<T>(
   return newArray;
 }
 
-// TODO: TS introduce `using` keyword, but need some configuration
-export async function myUsing<T extends { free: () => void }>(
-  resource: T,
-  callback: (resource: T) => Promise<void>,
-) {
-  try {
-    return await callback(resource);
-  } finally {
-    resource.free();
-  }
+export function freeableToDisposable<T extends { free: () => void }>(
+  obj: T,
+): Omit<T, "free"> & Disposable {
+  return Object.create(obj, {
+    [Symbol.dispose]: {
+      value: () => {
+        obj.free();
+      },
+    },
+  });
 }
 
 export function flowAsync<Args extends unknown[], R, U>(

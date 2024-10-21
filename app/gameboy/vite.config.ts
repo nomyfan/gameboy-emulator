@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => ({
       allow: ["../.."],
     },
   },
+  esbuild: {
+    target: "es2017",
+  },
   resolve: {
     alias: {
       gameboy: path.resolve(__dirname, "src"),
@@ -73,10 +76,6 @@ export default defineConfig(({ mode }) => ({
             {
               reg: /\/(react-dom)|(react)\//,
               name: "react",
-            },
-            {
-              reg: /\/react-spinners\//,
-              name: "spinners",
             },
             {
               reg: /\/(zustand)|(immer)\//,
