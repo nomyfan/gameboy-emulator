@@ -218,7 +218,9 @@ class GameBoyControl {
   }
 
   restoreSnapshot(snapshot: Uint8Array) {
-    return this.ensureInstalled().restoreSnapshot(snapshot);
+    const handle = this.ensureInstalled();
+    handle.restoreSnapshot(snapshot);
+    handle.coerceBwColorsOnDMG(settingsStore.getState().coerceBwColors, true);
   }
 
   createSav() {
