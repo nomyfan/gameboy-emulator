@@ -53,38 +53,42 @@ fn read_color(data: &[u8; 64], palette_id: u8, color_id: u8) -> u32 {
 }
 
 impl Palette {
-    pub(crate) fn new(color_space: ColorSpace, palette_id: u16) -> Self {
-        let mut colors = [[0xFFFFFF; 4]; 16];
-        if color_space == ColorSpace::Monochrome {
-            match find_palette(palette_id) {
-                Some(p) => {
-                    colors[0] = [p[0], p[1], p[2], p[3]];
-                    colors[1] = [p[4], p[5], p[6], p[7]];
-                    colors[2] = [p[8], p[9], p[10], p[11]];
-                }
-                None => {
-                    colors[0] = *FALLBACK_COLORS;
-                    colors[1] = *FALLBACK_COLORS;
-                    colors[2] = *FALLBACK_COLORS;
-                }
-            }
-        }
-
-        Self {
+    pub(crate) fn new(color_space: ColorSpace, palette_id: Option<u16>) -> Self {
+        let mut instance = Self {
             color_space,
             bcps: 0,
             bcpd: [0xFF; 64],
             ocps: 0,
             ocpd: [0xFF; 64],
-            colors,
+            colors: [[0xFFFFFF; 4]; 16],
             bgp: 0xFC,
             obp0: 0,
             obp1: 0,
-        }
+        };
+        instance.set_monochrome_colors(palette_id);
+
+        instance
     }
 }
 
 impl Palette {
+    pub(crate) fn set_monochrome_colors(&mut self, palette_id: Option<u16>) {
+        if self.color_space == ColorSpace::Monochrome {
+            match palette_id.map_or(None, |id| find_palette(id)) {
+                Some(p) => {
+                    self.colors[0] = [p[0], p[1], p[2], p[3]];
+                    self.colors[1] = [p[4], p[5], p[6], p[7]];
+                    self.colors[2] = [p[8], p[9], p[10], p[11]];
+                }
+                None => {
+                    self.colors[0] = *FALLBACK_COLORS;
+                    self.colors[1] = *FALLBACK_COLORS;
+                    self.colors[2] = *FALLBACK_COLORS;
+                }
+            }
+        }
+    }
+
     pub(crate) fn background_color(&self, palette_id: u8, color_id: u8) -> u32 {
         match self.color_space {
             ColorSpace::Monochrome => {

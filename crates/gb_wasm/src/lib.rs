@@ -265,6 +265,11 @@ impl GameBoyHandle {
             self.muted = muted;
         }
     }
+
+    #[wasm_bindgen(js_name = coerceBwColorsOnDMG)]
+    pub fn coerce_bw_colors_on_dmg(&mut self, coerce: bool, immediate: bool) {
+        self.gb.coerce_bw_colors_on_dmg(coerce, immediate);
+    }
 }
 
 #[wasm_bindgen]

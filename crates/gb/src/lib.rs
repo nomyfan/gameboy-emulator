@@ -69,6 +69,11 @@ impl GameBoy {
     }
 
     #[inline]
+    pub fn coerce_bw_colors_on_dmg(&mut self, coerce: bool, immediate: bool) {
+        self.bus.ppu.coerce_bw_colors_on_dmg(coerce, immediate)
+    }
+
+    #[inline]
     pub fn exec_command(&mut self, command: Command) {
         self.bus.exec_command(command);
     }
