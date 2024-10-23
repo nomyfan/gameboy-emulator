@@ -1,9 +1,9 @@
 import { useImmutableRef } from "@callcc/toolkit-js/react/useImmutableRef";
-import { Switch, SwitchThumb } from "@radix-ui/react-switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { clsx } from "clsx";
 import { Button } from "gameboy/components/core/button";
 import { Slider } from "gameboy/components/core/slider";
+import { Switch } from "gameboy/components/core/switch";
 import { closeSettingsModal } from "gameboy/store/app";
 import { settingsStore, writeSettings } from "gameboy/store/settings";
 import { create } from "gameboy/store/utils";
@@ -73,13 +73,11 @@ export function Settings() {
           )}
         >
           <form style={{ flexGrow: 1 }}>
-            <label
-              className="font-semibold text-lg mb-2.5"
-              htmlFor={`${id}-volume`}
-            >
+            <label className="font-semibold text-lg" htmlFor={`${id}-volume`}>
               游戏音量（{settings.volume}%）
             </label>
             <Slider
+              className="mb-2"
               style={{ width: "200px" }}
               value={[settings.volume]}
               onValueChange={([volume]) => {
@@ -88,31 +86,29 @@ export function Settings() {
               id={`${id}-volume`}
             />
 
-            <label
-              className="font-semibold text-lg mb-2.5"
-              htmlFor={`${id}autoPause`}
-            >
+            <label className="font-semibold text-lg" htmlFor={`${id}autoPause`}>
               自动暂停
               <span className="text-xs">（当离开当前页面时自动暂停游戏）</span>
             </label>
             <Switch
               id={`${id}autoPause`}
-              className={clsx(
-                "w-11 h-6 rounded-full relative block bg-primary/70",
-                "[&[data-state=checked]]:bg-primary",
-              )}
+              className="mb-2"
               checked={settings.autoPause}
               onCheckedChange={(checked) => {
                 store.setState({ autoPause: checked });
               }}
-            >
-              <SwitchThumb
-                className={clsx(
-                  "block h-5 w-5 bg-white rounded-full transform-translate-x-0.5 transition-transform transition-duration-200",
-                  "[&[data-state=checked]]:transform-translate-x-5.5",
-                )}
-              />
-            </Switch>
+            />
+
+            <label className="font-semibold text-lg" htmlFor={`${id}coerceBW`}>
+              开启 DMG 色彩兼容模式
+            </label>
+            <Switch
+              id={`${id}coerceBW`}
+              checked={!settings.coerceBwColors}
+              onCheckedChange={(checked) => {
+                store.setState({ coerceBwColors: !checked });
+              }}
+            />
           </form>
 
           <div className="flex flex-row-reverse gap-2.5 m-2.5">

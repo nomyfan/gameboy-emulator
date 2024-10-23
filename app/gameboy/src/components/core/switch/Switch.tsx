@@ -8,7 +8,7 @@ export function Switch(props: SwitchProps) {
       {...props}
       className={clsx(
         props.className,
-        "w-11 h-6 rounded-full relative block bg-primary/70",
+        "w-11 h-6 rounded-full relative block bg-primary/30",
         "[&[data-state=checked]]:bg-primary",
       )}
     >

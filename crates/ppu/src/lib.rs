@@ -68,6 +68,8 @@ pub struct Ppu {
     irq: Interrupt,
     machine_model: MachineModel,
     pub frame_handle: Option<Box<FrameHandle>>,
+    coerce_bw: Option<bool>,
+    monochrome_palette_id: Option<u16>,
 }
 
 impl Default for Ppu {
@@ -86,7 +88,9 @@ impl Default for Ppu {
             irq: Default::default(),
             machine_model,
             frame_handle: None,
-            palette: Palette::new(machine_model.into(), 0),
+            palette: Palette::new(machine_model.into(), None),
+            coerce_bw: None,
+            monochrome_palette_id: None,
             #[cfg(feature = "debug_frame")]
             dbg_video_buffer: vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
         }
@@ -94,9 +98,9 @@ impl Default for Ppu {
 }
 
 impl Ppu {
-    pub fn new(machine_model: MachineModel, compatibility_palette_id: u16) -> Self {
+    pub fn new(machine_model: MachineModel, monochrome_palette_id: Option<u16>) -> Self {
         Self {
-            palette: Palette::new(machine_model.into(), compatibility_palette_id),
+            palette: Palette::new(machine_model.into(), monochrome_palette_id),
             #[cfg(feature = "debug_frame")]
             dbg_video_buffer: match machine_model {
                 MachineModel::DMG => vec![0xFF; (256 * 256 * 3 * 2) + (3 * 12)],
@@ -104,6 +108,7 @@ impl Ppu {
             },
             vram: VideoRam::new(machine_model),
             machine_model,
+            monochrome_palette_id,
             ..Self::default()
         }
     }
@@ -235,6 +240,21 @@ impl Ppu {
             self.set_lcd_mode(LCDMode::HBlank);
             self.video_buffer.fill(0xFF);
             self.push_frame();
+        }
+    }
+
+    /// If `immediate` is true, the change will take effect immediately.
+    /// Otherwise, it will take effect at the beginning of next frame.
+    /// Recommend to set it true only when it's not started.
+    pub fn coerce_bw_colors_on_dmg(&mut self, coerce: bool, immediate: bool) {
+        if immediate {
+            self.palette.set_monochrome_colors(if coerce {
+                None
+            } else {
+                self.monochrome_palette_id
+            });
+        } else {
+            self.coerce_bw = Some(coerce);
         }
     }
 
@@ -481,6 +501,14 @@ impl Ppu {
                 // (456 * 154) * (1/(2**22)) * 1000 = 16.74ms
                 // Notify that a frame is rendered.
                 self.push_frame();
+
+                if let Some(coerce) = self.coerce_bw.take() {
+                    self.palette.set_monochrome_colors(if coerce {
+                        None
+                    } else {
+                        self.monochrome_palette_id
+                    });
+                }
             }
         }
     }

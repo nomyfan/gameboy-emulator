@@ -238,7 +238,7 @@ impl DerefMut for Bus {
 impl Bus {
     pub(crate) fn new(cart: Cartridge, sample_rate: Option<u32>) -> Self {
         let machine_model = cart.machine_model();
-        let compatibility_palette_id = cart.compatibility_palette_id().unwrap_or_default();
+        let compatibility_palette_id = cart.compatibility_palette_id();
         Self {
             inner: std::rc::Rc::new(std::cell::UnsafeCell::new(BusInner {
                 cart,

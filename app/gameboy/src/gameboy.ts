@@ -9,7 +9,11 @@ function createGameBoyStore() {
     status: "playing" | "paused" | "installed" | "uninstalled";
     muted: boolean;
     volume: number;
-  }>(() => ({ status: "uninstalled", muted: false, volume: 1 }));
+  }>(() => ({
+    status: "uninstalled",
+    muted: false,
+    volume: 1,
+  }));
 }
 
 type GameBoyStore = ReturnType<typeof createGameBoyStore>;
@@ -29,13 +33,21 @@ class GameBoyControl {
 
   constructor() {
     this.store_ = createGameBoyStore();
-    this.store_.setState({ volume: settingsStore.getState().volume });
-    // Subscribe to global store volume changes
+    this.store_.setState({
+      volume: settingsStore.getState().volume,
+    });
+    // Subscribe to settings store changes
     settingsStore.subscribe(
       (settings) => settings.volume,
       (volume) => {
         this.store_.setState({ volume });
         this.changeAudioVolume_(volume);
+      },
+    );
+    settingsStore.subscribe(
+      (settings) => settings.coerceBwColors,
+      (coerce) => {
+        this.handle_?.coerceBwColorsOnDMG(coerce, false);
       },
     );
   }
@@ -123,6 +135,10 @@ class GameBoyControl {
       dbgCanvas,
     );
     this.handle_.mute(this.state.muted);
+    this.handle_.coerceBwColorsOnDMG(
+      settingsStore.getState().coerceBwColors,
+      true,
+    );
     this.store_.setState({ status: "installed" });
   }
 
@@ -202,7 +218,9 @@ class GameBoyControl {
   }
 
   restoreSnapshot(snapshot: Uint8Array) {
-    return this.ensureInstalled().restoreSnapshot(snapshot);
+    const handle = this.ensureInstalled();
+    handle.restoreSnapshot(snapshot);
+    handle.coerceBwColorsOnDMG(settingsStore.getState().coerceBwColors, true);
   }
 
   createSav() {

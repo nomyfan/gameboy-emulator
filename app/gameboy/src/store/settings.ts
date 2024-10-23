@@ -7,6 +7,10 @@ export type ISettings = {
    * Pause games automatically when the tab is not active.
    */
   autoPause: boolean;
+  /**
+   * Ignore the compatibility colors for DMG games.
+   */
+  coerceBwColors: boolean;
 };
 
 function createStore() {
@@ -37,7 +41,7 @@ function createStore() {
   return create(() => {
     const settingsStr = localStorage.getItem("gbos-settings");
     return patch<ISettings>(
-      { volume: 100, autoPause: false },
+      { volume: 100, autoPause: true, coerceBwColors: false },
       settingsStr ? JSON.parse(settingsStr) : null,
     );
   });
