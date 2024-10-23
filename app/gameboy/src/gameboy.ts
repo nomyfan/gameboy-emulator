@@ -82,16 +82,10 @@ class GameBoyControl {
       console.error("processorerror", evt);
     });
 
-    // Wait until audio worklet processor prepared
-    const stream = await new Promise<WritableStream>((resolve) => {
-      const handler = (evt: MessageEvent) => {
-        if (evt.data.type === "stream-prepared") {
-          workletNode.port.removeEventListener("message", handler);
-          resolve(evt.data.payload as WritableStream);
-        }
-      };
-      workletNode.port.addEventListener("message", handler);
-      workletNode.port.start();
+    const stream = new WritableStream({
+      write(chunk) {
+        workletNode.port.postMessage({ type: "chunk", chunk });
+      },
     });
 
     const gainNode = this.audioContext_.createGain();
