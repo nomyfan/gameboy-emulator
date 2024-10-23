@@ -9,7 +9,7 @@ import { clsx } from "clsx";
 import dayjs from "dayjs";
 import { ScaleLoader } from "gameboy/components/core/Spin";
 import { Button } from "gameboy/components/core/button";
-import { Switch } from "gameboy/components/core/switch/Switch";
+import { Switch } from "gameboy/components/core/switch";
 import { IconCheck } from "gameboy/components/icons";
 import { useToast } from "gameboy/components/toast/useToast";
 import * as fs from "gameboy/fs";
