@@ -74,7 +74,7 @@ impl Palette {
 impl Palette {
     pub(crate) fn set_monochrome_colors(&mut self, palette_id: Option<u16>) {
         if self.color_space == ColorSpace::Monochrome {
-            match palette_id.map_or(None, |id| find_palette(id)) {
+            match palette_id.and_then(find_palette) {
                 Some(p) => {
                     self.colors[0] = [p[0], p[1], p[2], p[3]];
                     self.colors[1] = [p[4], p[5], p[6], p[7]];

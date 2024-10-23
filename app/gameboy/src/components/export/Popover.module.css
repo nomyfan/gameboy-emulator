@@ -48,15 +48,15 @@
   will-change: transform, opacity;
 }
 
-.PopoverContent[data-state='open'][data-side='top'] {
+.PopoverContent[data-state="open"][data-side="top"] {
   animation-name: slideDownAndFade;
 }
-.PopoverContent[data-state='open'][data-side='right'] {
+.PopoverContent[data-state="open"][data-side="right"] {
   animation-name: slideLeftAndFade;
 }
-.PopoverContent[data-state='open'][data-side='bottom'] {
+.PopoverContent[data-state="open"][data-side="bottom"] {
   animation-name: slideUpAndFade;
 }
-.PopoverContent[data-state='open'][data-side='left'] {
+.PopoverContent[data-state="open"][data-side="left"] {
   animation-name: slideRightAndFade;
 }

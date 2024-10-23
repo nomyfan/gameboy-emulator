@@ -31,8 +31,6 @@ web-sys = { workspace = true, features = [
   "OffscreenCanvasRenderingContext2d",
   "ImageEncodeOptions",
   "Blob",
-  "WritableStream",
-  "WritableStreamDefaultWriter",
 ] }
 anyhow = { workspace = true }
 wasm-bindgen-futures = "0.4.42"

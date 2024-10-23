@@ -10,6 +10,9 @@
   </head>
   <body class="color-text">
     <div id="root"></div>
+    <script>
+      if(typeof Symbol.dispose !== 'symbol') Symbol.dispose = Symbol.for('Symbol.dispose');
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

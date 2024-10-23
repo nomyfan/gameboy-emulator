@@ -82,17 +82,9 @@ class GameBoyControl {
       console.error("processorerror", evt);
     });
 
-    // Wait until audio worklet processor prepared
-    const stream = await new Promise<WritableStream>((resolve) => {
-      const handler = (evt: MessageEvent) => {
-        if (evt.data.type === "stream-prepared") {
-          workletNode.port.removeEventListener("message", handler);
-          resolve(evt.data.payload as WritableStream);
-        }
-      };
-      workletNode.port.addEventListener("message", handler);
-      workletNode.port.start();
-    });
+    const onAudioData = (data: Float32Array) => {
+      workletNode.port.postMessage({ type: "chunk", chunk: data });
+    };
 
     const gainNode = this.audioContext_.createGain();
     gainNode.gain.value = this.state.volume / 100;
@@ -109,7 +101,7 @@ class GameBoyControl {
       gainNode.gain.value = volume / 100;
     };
 
-    return { stream, sampleRate };
+    return { onAudioData, sampleRate };
   }
 
   private ensureInstalled() {
@@ -125,13 +117,13 @@ class GameBoyControl {
     sav?: Uint8Array,
     dbgCanvas?: HTMLCanvasElement,
   ) {
-    const { stream, sampleRate } = await this.setupAudio();
+    const { onAudioData, sampleRate } = await this.setupAudio();
     this.handle_ = GameBoyHandle.create(
       rom,
       canvas,
       sav,
       sampleRate,
-      stream,
+      onAudioData,
       dbgCanvas,
     );
     this.handle_.mute(this.state.muted);
@@ -228,6 +220,7 @@ class GameBoyControl {
   }
 
   mute(muted?: boolean) {
+    // biome-ignore lint/style/noParameterAssign: <explanation>
     muted ??= !this.state.muted;
     this.store_.setState({ muted });
     this.handle_?.mute(muted);
