@@ -82,11 +82,9 @@ class GameBoyControl {
       console.error("processorerror", evt);
     });
 
-    const stream = new WritableStream({
-      write(chunk) {
-        workletNode.port.postMessage({ type: "chunk", chunk });
-      },
-    });
+    const onAudioData = (data: Float32Array) => {
+      workletNode.port.postMessage({ type: "chunk", chunk: data });
+    };
 
     const gainNode = this.audioContext_.createGain();
     gainNode.gain.value = this.state.volume / 100;
@@ -103,7 +101,7 @@ class GameBoyControl {
       gainNode.gain.value = volume / 100;
     };
 
-    return { stream, sampleRate };
+    return { onAudioData, sampleRate };
   }
 
   private ensureInstalled() {
@@ -119,13 +117,13 @@ class GameBoyControl {
     sav?: Uint8Array,
     dbgCanvas?: HTMLCanvasElement,
   ) {
-    const { stream, sampleRate } = await this.setupAudio();
+    const { onAudioData, sampleRate } = await this.setupAudio();
     this.handle_ = GameBoyHandle.create(
       rom,
       canvas,
       sav,
       sampleRate,
-      stream,
+      onAudioData,
       dbgCanvas,
     );
     this.handle_.mute(this.state.muted);

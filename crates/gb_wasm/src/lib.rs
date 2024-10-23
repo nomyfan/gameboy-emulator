@@ -7,8 +7,20 @@ use js_sys::Uint8ClampedArray;
 use wasm_bindgen::{prelude::*, Clamped};
 use web_sys::{
     js_sys, Blob, CanvasRenderingContext2d, HtmlCanvasElement, ImageData, ImageEncodeOptions,
-    OffscreenCanvas, OffscreenCanvasRenderingContext2d, WritableStream,
+    OffscreenCanvas, OffscreenCanvasRenderingContext2d,
 };
+
+// Define custom TypeScript types
+#[wasm_bindgen(typescript_custom_section)]
+const TS_APPEND_CONTENT: &'static str = r#"
+export type AudioCallback = (data: Float32Array) => void;
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "AudioCallback")]
+    pub type AudioCallback;
+}
 
 #[wasm_bindgen(js_name = GameBoy)]
 pub struct GameBoyHandle {
@@ -120,7 +132,7 @@ impl GameBoyHandle {
         canvas: HtmlCanvasElement,
         sav: Option<Vec<u8>>,
         sample_rate: Option<u32>,
-        audio_stream: Option<WritableStream>,
+        audio_callback: Option<AudioCallback>,
         #[allow(unused_variables)] dbg_canvas: Option<HtmlCanvasElement>,
     ) -> GameBoyHandle {
         let rom = rom.to_vec();
@@ -193,9 +205,10 @@ impl GameBoyHandle {
             },
         );
 
-        match (audio_stream, sample_rate) {
-            (Some(stream), Some(sample_rate)) => {
-                let stream_writer = stream.get_writer().unwrap();
+        match (audio_callback, sample_rate) {
+            (Some(audio_callback), Some(sample_rate)) => {
+                let audio_callback: js_sys::Function =
+                    js_sys::Function::from(Into::<JsValue>::into(audio_callback));
                 let sample_count = buffer_size_from_sample_rate(sample_rate);
                 let audio_buffer = js_sys::Float32Array::new_with_length(sample_count * 2);
 
@@ -208,8 +221,7 @@ impl GameBoyHandle {
                     }
 
                     let slice = audio_buffer.slice(0, (len * 2) as u32);
-
-                    let _ = stream_writer.write_with_chunk(&slice.into());
+                    let _ = audio_callback.call1(&JsValue::NULL, &slice);
                 })));
             }
             _ => {
