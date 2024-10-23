@@ -7,15 +7,15 @@
   }
 }
 
-.viewport > [data-state=open] {
+.viewport > [data-state="open"] {
   animation: slideInKeyFrames 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.viewport > [data-swipe=move] {
+.viewport > [data-swipe="move"] {
   transform: translateX(var(--radix-toast-swipe-move-x));
 }
 
-.viewport > [data-swipe=cancle] {
+.viewport > [data-swipe="cancle"] {
   transform: translateX(0);
   transition: transform 0.25s ease-out;
 }

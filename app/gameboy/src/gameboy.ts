@@ -220,6 +220,7 @@ class GameBoyControl {
   }
 
   mute(muted?: boolean) {
+    // biome-ignore lint/style/noParameterAssign: <explanation>
     muted ??= !this.state.muted;
     this.store_.setState({ muted });
     this.handle_?.mute(muted);
