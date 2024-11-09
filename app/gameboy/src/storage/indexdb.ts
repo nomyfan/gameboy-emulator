@@ -3,7 +3,6 @@ import { Dexie } from "dexie";
 import type { IZipDataEntry } from "gameboy/fs/zip";
 import { unzip, zip } from "gameboy/fs/zip";
 import type { IGame, IGameBoyStorage, ISnapshot } from "gameboy/model";
-import type { RequiredSome } from "gameboy/types";
 import { crc32, flowAsync, freeableToDisposable, hash } from "gameboy/utils";
 import { obtainMetadata } from "gb_wasm";
 
@@ -107,7 +106,7 @@ class GameStore {
     this.db.games.add(game, game.id);
   }
 
-  async update(game: RequiredSome<IGame, "id">) {
+  async update(game: Partial<IGame> & Pick<IGame, "id">) {
     const entry = await this.db.games.get(game.id);
     if (!entry) {
       return false;
