@@ -83,7 +83,9 @@ class GameBoyControl {
     });
 
     const onAudioData = (data: Float32Array) => {
-      workletNode.port.postMessage({ type: "chunk", chunk: data });
+      workletNode.port.postMessage({ type: "chunk", chunk: data }, [
+        data.buffer,
+      ]);
     };
 
     const gainNode = this.audioContext_.createGain();
