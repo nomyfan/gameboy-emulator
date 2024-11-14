@@ -118,9 +118,9 @@ export function Play(props: IPagePlayProps) {
 
   return (
     <>
-      <div className="flex justify-end bg-bg" style={props.style}>
+      <div className="grid grid-cols-[1fr_auto_1fr] bg-bg" style={props.style}>
         <DebugCanvas ref={dbgCanvasRef} />
-        <div className="flex justify-end basis-0 grow shrink-0">
+        <div className="flex justify-end">
           {showActionButtons && (
             <div className="pt-5 pr-5">
               <DirectionButton
@@ -131,11 +131,11 @@ export function Play(props: IPagePlayProps) {
           )}
         </div>
 
-        <div className="flex items-center shrink-0">
+        <div className="flex items-center">
           <Screen ref={canvasRef} />
         </div>
 
-        <div className="basis-0 grow shrink-0">
+        <div>
           {showActionButtons && (
             <div className="pl-5 pt-5">
               <AbButton
