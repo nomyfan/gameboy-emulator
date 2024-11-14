@@ -104,9 +104,24 @@ export function Settings() {
             </label>
             <Switch
               id={`${id}coerceBW`}
+              className="mb-2"
               checked={!settings.coerceBwColors}
               onCheckedChange={(checked) => {
                 store.setState({ coerceBwColors: !checked });
+              }}
+            />
+
+            <label
+              className="font-semibold text-lg"
+              htmlFor={`${id}hideActionButtons`}
+            >
+              隐藏操控按钮
+            </label>
+            <Switch
+              id={`${id}hideActionButtons`}
+              checked={settings.hideActionButtons}
+              onCheckedChange={(checked) => {
+                store.setState({ hideActionButtons: checked });
               }}
             />
           </form>

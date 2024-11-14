@@ -12,6 +12,7 @@ import { loadGames } from "gameboy/store/game";
 import { settingsStore } from "gameboy/store/settings";
 import type { CSSProperties } from "react";
 import { forwardRef, useEffect, useRef } from "react";
+import { useStore } from "zustand";
 import { PlayOperationBar } from "./PlayOperationBar";
 import {
   deleteSnapshot,
@@ -48,6 +49,10 @@ export function Play(props: IPagePlayProps) {
   const dbgCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const exitGameModalRef = useRef<IExitGameModalRef>(null);
   const snapshotsModalRef = useRef<ISnapshotsModalRef>(null);
+  const showActionButtons = useStore(
+    settingsStore,
+    (st) => !st.hideActionButtons,
+  );
 
   const gameId = useAppStore((st) => st.selectedGameId);
 
@@ -116,9 +121,14 @@ export function Play(props: IPagePlayProps) {
       <div className="flex justify-end bg-bg" style={props.style}>
         <DebugCanvas ref={dbgCanvasRef} />
         <div className="flex justify-end basis-0 grow shrink-0">
-          <div className="pt-5 pr-5">
-            <DirectionButton onDown={handleButtonDown} onUp={handleButtonUp} />
-          </div>
+          {showActionButtons && (
+            <div className="pt-5 pr-5">
+              <DirectionButton
+                onDown={handleButtonDown}
+                onUp={handleButtonUp}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center shrink-0">
@@ -126,18 +136,20 @@ export function Play(props: IPagePlayProps) {
         </div>
 
         <div className="basis-0 grow shrink-0">
-          <div className="pl-5 pt-5">
-            <AbButton
-              style={{ transform: "rotate(-25deg)" }}
-              onDown={handleButtonDown}
-              onUp={handleButtonUp}
-            />
-            <FnButton
-              style={{ marginTop: 140 }}
-              onDown={handleButtonDown}
-              onUp={handleButtonUp}
-            />
-          </div>
+          {showActionButtons && (
+            <div className="pl-5 pt-5">
+              <AbButton
+                style={{ transform: "rotate(-25deg)" }}
+                onDown={handleButtonDown}
+                onUp={handleButtonUp}
+              />
+              <FnButton
+                style={{ marginTop: 140 }}
+                onDown={handleButtonDown}
+                onUp={handleButtonUp}
+              />
+            </div>
+          )}
         </div>
       </div>
 

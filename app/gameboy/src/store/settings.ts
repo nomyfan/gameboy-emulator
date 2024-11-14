@@ -1,5 +1,6 @@
 import { isPlainObject } from "@callcc/toolkit-js/isPlainObject";
 import { create } from "gameboy/store/utils";
+import { isMobile } from "is-mobile";
 
 export type ISettings = {
   volume: number;
@@ -11,6 +12,10 @@ export type ISettings = {
    * Ignore the compatibility colors for DMG games.
    */
   coerceBwColors: boolean;
+  /**
+   * Hide action buttons by default for non-mobile devices.
+   */
+  hideActionButtons: boolean;
 };
 
 function createStore() {
@@ -41,7 +46,12 @@ function createStore() {
   return create(() => {
     const settingsStr = localStorage.getItem("gbos-settings");
     return patch<ISettings>(
-      { volume: 100, autoPause: true, coerceBwColors: false },
+      {
+        volume: 100,
+        autoPause: true,
+        coerceBwColors: false,
+        hideActionButtons: !isMobile(),
+      },
       settingsStr ? JSON.parse(settingsStr) : null,
     );
   });
