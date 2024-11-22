@@ -1,24 +1,24 @@
 [workspace]
 members = [
-  "crates/cpu_sm83",
   "crates/gb",
-  "crates/cartridge",
-  "crates/shared",
-  "crates/ppu",
-  "crates/apu",
-  "crates/gb_wasm",
+  "crates/gb_apu",
+  "crates/gb_cartridge",
   "crates/gb_console_log",
+  "crates/gb_cpu_sm83",
+  "crates/gb_ppu",
+  "crates/gb_shared",
+  "crates/gb_wasm",
 ]
 resolver = "2"
 
 [workspace.dependencies]
-gb_cpu_sm83 = { path = "crates/cpu_sm83" }
-gb_cartridge = { path = "crates/cartridge" }
-gb_console_log = { path = "crates/gb_console_log" }
-gb_ppu = { path = "crates/ppu" }
-gb_apu = { path = "crates/apu" }
-gb_shared = { path = "crates/shared" }
 gb = { path = "crates/gb" }
+gb_apu = { path = "crates/gb_apu" }
+gb_cartridge = { path = "crates/gb_cartridge" }
+gb_console_log = { path = "crates/gb_console_log" }
+gb_cpu_sm83 = { path = "crates/gb_cpu_sm83" }
+gb_ppu = { path = "crates/gb_ppu" }
+gb_shared = { path = "crates/gb_shared" }
 log = { version = "0.4.21" }
 anyhow = "1.0.82"
 mockall = "0.12.1"
