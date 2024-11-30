@@ -54,7 +54,7 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
         URL.revokeObjectURL(url);
       };
     },
-    [cover],
+    [snapshot.id],
   );
 
   return (

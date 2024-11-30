@@ -35,7 +35,7 @@ function SnapshotCard(props: {
         URL.revokeObjectURL(url);
       };
     },
-    [data.cover],
+    [data.id],
   );
 
   return (
