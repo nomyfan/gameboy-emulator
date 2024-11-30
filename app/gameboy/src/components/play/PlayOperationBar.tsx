@@ -1,6 +1,6 @@
 import { OperationBar } from "gameboy/components/core/operation-bar";
 import type { IExitGameModalRef } from "gameboy/components/play/exit-game-modal";
-import type { ISnapshotsModalRef } from "gameboy/components/snapshots-modal";
+import type { ISnapshotsModalRef } from "gameboy/components/snapshots/SnapshotsModal";
 import { useToast } from "gameboy/components/toast/useToast";
 import { ModalCanceledError } from "gameboy/model/error";
 import { storage } from "gameboy/storage/indexdb";
