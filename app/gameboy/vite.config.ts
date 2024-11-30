@@ -94,8 +94,8 @@ export default defineConfig(({ mode }) => ({
               name: "rx",
             },
             {
-              reg: /\/swr\//,
-              name: "swr",
+              reg: /\/react-query\//,
+              name: "query",
             },
           ];
           for (const matcher of matchers) {

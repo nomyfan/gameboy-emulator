@@ -1,6 +1,7 @@
 import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
+import { useQuery } from "@tanstack/react-query";
 import { cva } from "class-variance-authority";
 import { ScaleLoader } from "gameboy/components/core/Spin";
 import type { ISnapshot } from "gameboy/model";
@@ -8,7 +9,6 @@ import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store/app";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-import useSWR from "swr";
 
 const actionItemVariants = cva(
   "min-w-150px bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
@@ -108,17 +108,20 @@ export interface ISnapshotsProps {
 export function Snapshots(props: ISnapshotsProps) {
   const gameId = useAppStore((st) => st.selectedGameId);
 
-  const { data, isLoading, mutate } = useSWR([gameId], async ([gameId]) => {
-    if (!gameId) {
-      return [];
-    }
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: [gameId],
+    queryFn: async () => {
+      if (!gameId) {
+        return [];
+      }
 
-    const data = await storage.snapshotStore.queryByGameId(gameId);
-    data.sort((x, y) => {
-      return y.time - x.time;
-    });
+      const data = await storage.snapshotStore.queryByGameId(gameId);
+      data.sort((x, y) => {
+        return y.time - x.time;
+      });
 
-    return data;
+      return data;
+    },
   });
 
   const renderItems = () => {
@@ -143,10 +146,10 @@ export function Snapshots(props: ISnapshotsProps) {
   const contextValue = useMemo(
     () => ({
       refresh: async () => {
-        await mutate();
+        await refetch();
       },
     }),
-    [mutate],
+    [refetch],
   );
 
   return (

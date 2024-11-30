@@ -5,6 +5,7 @@ import {
   PopoverPortal,
   PopoverTrigger,
 } from "@radix-ui/react-popover";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import dayjs from "dayjs";
 import { ScaleLoader } from "gameboy/components/core/Spin";
@@ -17,8 +18,6 @@ import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { after } from "gameboy/utils";
 import { useId, useState } from "react";
-import useSWR from "swr";
-import useSWRMutation from "swr/mutation";
 import styles from "./Popover.module.css";
 
 function SnapshotCard(props: {
@@ -94,9 +93,9 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
   const id = useId();
   const { addToast } = useToast();
 
-  const { data: snapshots, isLoading: isSnapshotsLoading } = useSWR(
-    [gameId],
-    async ([gameId]) => {
+  const { data: snapshots, isLoading: isSnapshotsLoading } = useQuery({
+    queryKey: [gameId],
+    queryFn: async () => {
       return await after(500, async () => {
         if (!gameId) {
           return [];
@@ -110,23 +109,20 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
         return data;
       });
     },
-  );
+  });
 
-  const { trigger: exportGame, isMutating } = useSWRMutation(
-    `${id}/export`,
-    async (
-      _,
-      {
-        arg: { gameId, sav, rom, snapshots },
-      }: {
-        arg: {
-          gameId: string;
-          sav?: boolean;
-          rom?: boolean;
-          snapshots: number[];
-        };
-      },
-    ) => {
+  const { mutateAsync: exportGame, isPending } = useMutation({
+    mutationFn: async ({
+      gameId,
+      sav,
+      rom,
+      snapshots,
+    }: {
+      gameId: string;
+      sav?: boolean;
+      rom?: boolean;
+      snapshots: number[];
+    }) => {
       if (!sav && !rom && snapshots.length === 0) {
         addToast("请选择导出内容");
         return;
@@ -146,7 +142,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
         addToast("导出成功");
       });
     },
-  );
+  });
 
   const [selectedSnapshotIds, setSelectedSnapshotsIds] = useState<
     ISnapshot["id"][]
@@ -238,7 +234,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
         <div className="row-start-4 row-end-5 col-span-2 flex flex-row-reverse gap-2">
           <Button
             variant="primary"
-            loading={isMutating}
+            loading={isPending}
             onClick={async () => {
               await exportGame({
                 gameId,
@@ -251,7 +247,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
           >
             导出
           </Button>
-          <Button disabled={isMutating} onClick={props.onCancel}>
+          <Button disabled={isPending} onClick={props.onCancel}>
             取消
           </Button>
         </div>

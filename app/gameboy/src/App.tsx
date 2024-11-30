@@ -1,7 +1,9 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "gameboy/components/toast/ToastProvider";
 import { openConfirmModal, useAppStore } from "gameboy/store/app";
 import { Suspense, lazy } from "react";
+import { queryClient } from "./query";
 
 const LazyHome = lazy(() => import("./components/home"));
 const LazyPlayModel = lazy(() => import("./components/play/PlayModal"));
@@ -66,13 +68,15 @@ export function App() {
   });
 
   return (
-    <ToastProvider>
-      <Suspense>
-        <LazyHome />
-      </Suspense>
-      <PlayModal />
-      <SettingsModal />
-      <ConfirmModal />
-    </ToastProvider>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <Suspense>
+          <LazyHome />
+        </Suspense>
+        <PlayModal />
+        <SettingsModal />
+        <ConfirmModal />
+      </ToastProvider>
+    </QueryClientProvider>
   );
 }
