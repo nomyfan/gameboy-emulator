@@ -144,8 +144,12 @@ class SnapshotStore {
     return this.db.snapshots.bulkAdd(snapshots as ISnapshot[]);
   }
 
-  async delete(id: number) {
-    return this.db.snapshots.delete(id);
+  async delete(id: number | number[]) {
+    if (Array.isArray(id)) {
+      await this.db.snapshots.bulkDelete(id);
+    } else {
+      await this.db.snapshots.delete(id);
+    }
   }
 }
 

@@ -64,7 +64,7 @@ export function Home() {
         },
         {
           id: "export-backup",
-          icon: <i className="i-ic:outline-file-download" />,
+          icon: <i className="i-ic:baseline-file-present" />,
           onClick: async () => {
             await exportModalRef.current?.open();
           },

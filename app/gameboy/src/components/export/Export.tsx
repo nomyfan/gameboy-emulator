@@ -5,7 +5,7 @@ import {
   PopoverPortal,
   PopoverTrigger,
 } from "@radix-ui/react-popover";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import dayjs from "dayjs";
 import { ScaleLoader } from "gameboy/components/core/Spin";
@@ -92,11 +92,16 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
   const { gameId } = props;
   const id = useId();
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: snapshots, isLoading: isSnapshotsLoading } = useQuery({
+  const {
+    data: snapshots,
+    isLoading: isSnapshotsLoading,
+    isPending: isSnapshotsPending,
+  } = useQuery({
     queryKey: [gameId],
     queryFn: async () => {
-      return await after(500, async () => {
+      return await after(300, async () => {
         if (!gameId) {
           return [];
         }
@@ -111,7 +116,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
     },
   });
 
-  const { mutateAsync: exportGame, isPending } = useMutation({
+  const { mutateAsync: exportGame, isPending: isExportingGame } = useMutation({
     mutationFn: async ({
       gameId,
       sav,
@@ -143,6 +148,16 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
       });
     },
   });
+
+  const { mutate: deleteSnapshots, isPending: isDeletingSnapshots } =
+    useMutation({
+      mutationFn: async (ids: number[]) => {
+        await storage.snapshotStore.delete(ids);
+      },
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: [gameId] });
+      },
+    });
 
   const [selectedSnapshotIds, setSelectedSnapshotsIds] = useState<
     ISnapshot["id"][]
@@ -232,9 +247,24 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
         )}
 
         <div className="row-start-4 row-end-5 col-span-2 flex flex-row-reverse gap-2">
+          {selectedSnapshotIds.length ? (
+            <Button
+              key="button-delete-snapshots"
+              loading={isDeletingSnapshots}
+              disabled={isExportingGame || isDeletingSnapshots}
+              variant="danger"
+              onClick={() => {
+                deleteSnapshots(selectedSnapshotIds);
+              }}
+            >
+              删除快照
+            </Button>
+          ) : null}
           <Button
+            key="button-export"
             variant="primary"
-            loading={isPending}
+            loading={isExportingGame}
+            disabled={isExportingGame || isDeletingSnapshots}
             onClick={async () => {
               await exportGame({
                 gameId,
@@ -247,7 +277,11 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
           >
             导出
           </Button>
-          <Button disabled={isPending} onClick={props.onCancel}>
+          <Button
+            key="button-cancel"
+            disabled={isExportingGame}
+            onClick={props.onCancel}
+          >
             取消
           </Button>
         </div>

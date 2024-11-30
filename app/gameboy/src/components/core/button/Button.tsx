@@ -9,6 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: "text-white bg-primary",
+        danger: "text-white bg-alert",
         default: "text-text bg-white",
       },
     },
