@@ -1,5 +1,5 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import { Separator } from "@radix-ui/react-separator";
-import { clsx } from "clsx";
 import { join } from "gameboy/utils";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -26,7 +26,7 @@ export function OperationBar(props: IOperationBarProps) {
           return (
             <li
               key={item.id}
-              className={clsx(
+              className={cn(
                 "bg-white rounded-full p6px inline-flex justify-center items-center mx-1",
                 item.alert ? "text-alert" : "text-text",
               )}
@@ -51,7 +51,7 @@ export function OperationBar(props: IOperationBarProps) {
     ));
   };
   return (
-    <ul className={clsx("flex-center", props.className)} style={props.style}>
+    <ul className={cn("flex-center", props.className)} style={props.style}>
       {renderItems()}
     </ul>
   );

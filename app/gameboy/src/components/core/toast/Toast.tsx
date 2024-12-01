@@ -1,6 +1,6 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import * as PrimitiveToast from "@radix-ui/react-toast";
 import { ToastViewport } from "@radix-ui/react-toast";
-import { clsx } from "clsx";
 
 import styles from "./Toast.module.css";
 
@@ -39,7 +39,7 @@ export function Toast(props: {
         );
       })}
       <ToastViewport
-        className={clsx(
+        className={cn(
           "fixed left-0 text-sm top-0 right-0 m-a w-fit list-none outline-0 z-36 py-2 px-4 flex flex-col-reverse gap-2",
           "[&>[data-state=open]]:(bg-white flex items-center py-1 pl-3 rounded shadow-[0_0_2px_rgba(0,0,0,0.25)])",
           styles.viewport,

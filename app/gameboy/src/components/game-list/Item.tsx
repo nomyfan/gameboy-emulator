@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { cn } from "@callcc/toolkit-js/cn";
 import { useObjectURL } from "gameboy/hooks/useObjectURL";
 import type { CSSProperties, PropsWithChildren } from "react";
 
@@ -25,7 +25,7 @@ export function Item(props: IListItemProps) {
 
   return (
     <div
-      className={clsx(
+      className={cn(
         "flex-grow-0 flex-shrink-0 rounded-[1px] border-solid",
         props.placeholder
           ? "flex items-center justify-center w-fit text-primary"

@@ -1,3 +1,4 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import {
   Popover,
   PopoverContent,
@@ -5,7 +6,6 @@ import {
   PopoverTrigger,
 } from "@radix-ui/react-popover";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { clsx } from "clsx";
 import dayjs from "dayjs";
 import { ScaleLoader } from "gameboy/components/core/Spin";
 import { Button } from "gameboy/components/core/button";
@@ -65,7 +65,7 @@ function SnapshotCard(props: {
 
             <PopoverPortal>
               <PopoverContent
-                className={clsx(
+                className={cn(
                   styles.PopoverContent,
                   "bg-white shadow-lg rounded-md p-3 text-sm grid cols-[max-content_auto] gap-x-3",
                 )}

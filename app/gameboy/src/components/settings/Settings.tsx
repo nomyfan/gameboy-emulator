@@ -1,6 +1,6 @@
+import { cn } from "@callcc/toolkit-js/cn";
 import { useImmutableRef } from "@callcc/toolkit-js/react/useImmutableRef";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
-import { clsx } from "clsx";
 import { Button } from "gameboy/components/core/button";
 import { Slider } from "gameboy/components/core/slider";
 import { Switch } from "gameboy/components/core/switch";
@@ -38,7 +38,7 @@ export function Settings() {
         <TabsList>
           <TabsTrigger
             value={ETabs.Controller}
-            className={clsx(
+            className={cn(
               "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
               "[&[data-state=active]]:(border-primary font-medium)",
             )}
@@ -47,7 +47,7 @@ export function Settings() {
           </TabsTrigger>
           <TabsTrigger
             value={ETabs.Mics}
-            className={clsx(
+            className={cn(
               "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
               "[&[data-state=active]]:(border-primary font-medium)",
             )}
@@ -58,7 +58,7 @@ export function Settings() {
 
         <TabsContent
           value={ETabs.Controller}
-          className={clsx(
+          className={cn(
             "flex flex-col grow py-1.5 outline-0",
             "[&[data-state=inactive]]:hidden",
           )}
@@ -67,7 +67,7 @@ export function Settings() {
         </TabsContent>
         <TabsContent
           value={ETabs.Mics}
-          className={clsx(
+          className={cn(
             "flex flex-col grow py-1.5 outline-0",
             "[&[data-state=inactive]]:hidden",
           )}

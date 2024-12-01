@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { cn } from "@callcc/toolkit-js/cn";
 import { ScaleLoader } from "gameboy/components/core/Spin";
 import { selectCartridge, useAppStore } from "gameboy/store/app";
 import { gameStore, loadGames } from "gameboy/store/game";
@@ -57,7 +57,7 @@ export function GameList(props: IListProps) {
 
   return (
     <div
-      className={clsx(
+      className={cn(
         "flex items-center gap-2.5 px-2.5 overflow-x-auto",
         (!games || games.length === 0) && "justify-center",
         props.className,

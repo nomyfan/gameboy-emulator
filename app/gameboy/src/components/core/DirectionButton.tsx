@@ -1,4 +1,4 @@
-import { clsx } from "clsx";
+import { cn } from "@callcc/toolkit-js/cn";
 import type { IDirectionButton } from "gameboy/types";
 import type { CSSProperties } from "react";
 
@@ -10,7 +10,7 @@ function Button(props: {
 }) {
   return (
     <button
-      className={clsx("bg-black w-full h-full rounded-1", props.className)}
+      className={cn("bg-black w-full h-full rounded-1", props.className)}
       style={props.style}
       onMouseDown={() => props.onDown?.()}
       onTouchStart={() => props.onDown?.()}

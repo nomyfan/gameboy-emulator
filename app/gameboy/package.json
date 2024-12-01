@@ -28,7 +28,6 @@
     "@unocss/reset": "^0.63.6",
     "@zip.js/zip.js": "^2.7.52",
     "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.1",
     "crc-32": "^1.2.2",
     "dayjs": "^1.11.13",
     "dexie": "^4.0.8",
