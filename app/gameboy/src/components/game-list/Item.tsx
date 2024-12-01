@@ -1,5 +1,5 @@
-import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import { clsx } from "clsx";
+import { useObjectURL } from "gameboy/hooks/useObjectURL";
 import type { CSSProperties, PropsWithChildren } from "react";
 
 export type IListItemProps = PropsWithChildren<{
@@ -12,22 +12,11 @@ export type IListItemProps = PropsWithChildren<{
 }>;
 
 export function Item(props: IListItemProps) {
-  const refCallback = useRefCallback(
-    (element: HTMLImageElement) => {
-      if (props.cover) {
-        const url = URL.createObjectURL(props.cover);
-        element.src = url;
-        return () => {
-          URL.revokeObjectURL(url);
-        };
-      }
-    },
-    [props.cover],
-  );
+  const url = useObjectURL({ data: props.cover }, [props.cover]);
 
   const children = props.children ?? (
     <figure className="h-full w-full">
-      <img className="w-full object-cover" alt={props.name} ref={refCallback} />
+      <img className="w-full object-cover" alt={props.name} src={url} />
       <figcaption className="text-sm font-medium bg-primary text-white p-1 overflow-hidden whitespace-nowrap text-ellipsis">
         {props.name}
       </figcaption>

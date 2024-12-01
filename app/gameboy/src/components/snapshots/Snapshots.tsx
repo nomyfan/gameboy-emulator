@@ -1,9 +1,9 @@
-import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { Slot } from "@radix-ui/react-slot";
 import { useQuery } from "@tanstack/react-query";
 import { cva } from "class-variance-authority";
 import { ScaleLoader } from "gameboy/components/core/Spin";
+import { useObjectURL } from "gameboy/hooks/useObjectURL";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store/app";
@@ -46,23 +46,14 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
   const cover = snapshot.cover;
   const context = useContext(SnapshotsContext);
 
-  const refCallback = useRefCallback(
-    (element: HTMLImageElement) => {
-      const url = URL.createObjectURL(cover);
-      element.src = url;
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    },
-    [snapshot.id],
-  );
+  const url = useObjectURL({ data: cover }, [snapshot.id]);
 
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
         <div className="flex bg-primary w-full my-2 rounded">
           <img
-            ref={refCallback}
+            src={url}
             alt={snapshot.name}
             style={{ width: 160 * 0.6, height: 144 * 0.6 }}
             className="grow-0 shrink-0 rounded-l"

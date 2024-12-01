@@ -1,4 +1,3 @@
-import { useRefCallback } from "@callcc/toolkit-js/react/useRefCallback";
 import {
   Popover,
   PopoverContent,
@@ -14,6 +13,7 @@ import { Switch } from "gameboy/components/core/switch";
 import { IconCheck } from "gameboy/components/icons";
 import { useToast } from "gameboy/components/toast/useToast";
 import * as fs from "gameboy/fs";
+import { useObjectURL } from "gameboy/hooks/useObjectURL";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { after } from "gameboy/utils";
@@ -27,24 +27,20 @@ function SnapshotCard(props: {
 }) {
   const data = props.data;
 
-  const refCallback = useRefCallback(
-    (element: HTMLDivElement) => {
-      const url = URL.createObjectURL(data.cover);
-      element.style.backgroundImage = `url(${url})`;
-      return () => {
-        URL.revokeObjectURL(url);
-      };
+  const url = useObjectURL(
+    {
+      data: data.cover,
     },
     [data.id],
   );
 
   return (
     <div
-      ref={refCallback}
       className="h-35 bg-primary relative rounded-2"
       style={{
         backgroundSize: "cover",
         backgroundPosition: "center",
+        backgroundImage: `url(${url})`,
       }}
     >
       <div className="absolute left-0 right-0 top-0 bottom-0 flex flex-col justify-between">
@@ -94,11 +90,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
   const { addToast } = useToast();
   const queryClient = useQueryClient();
 
-  const {
-    data: snapshots,
-    isLoading: isSnapshotsLoading,
-    isPending: isSnapshotsPending,
-  } = useQuery({
+  const { data: snapshots, isLoading: isSnapshotsLoading } = useQuery({
     queryKey: [gameId],
     queryFn: async () => {
       return await after(300, async () => {
