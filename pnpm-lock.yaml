@@ -96,8 +96,8 @@ importers:
         specifier: ^7.8.1
         version: 7.8.1
       zustand:
-        specifier: ^4.5.5
-        version: 4.5.5(@types/react@18.3.12)(immer@10.1.1)(react@18.3.1)
+        specifier: ^5.0.2
+        version: 5.0.2(@types/react@18.3.12)(immer@10.1.1)(react@18.3.1)(use-sync-external-store@1.2.2(react@18.3.1))
     devDependencies:
       '@iconify-json/ic':
         specifier: ^1.2.1
@@ -3395,19 +3395,22 @@ packages:
     engines: {node: '>= 14'}
     hasBin: true
 
-  zustand@4.5.5:
-    resolution: {integrity: sha512-+0PALYNJNgK6hldkgDq2vLrw5f6g/jCInz52n9RTpropGgeAf/ioFUCdtsjCqu4gNhW9D01rUQBROoRjdzyn2Q==}
-    engines: {node: '>=12.7.0'}
+  zustand@5.0.2:
+    resolution: {integrity: sha512-8qNdnJVJlHlrKXi50LDqqUNmUbuBjoKLrYQBnoChIbVph7vni+sY+YpvdjXG9YLd/Bxr6scMcR+rm5H3aSqPaw==}
+    engines: {node: '>=12.20.0'}
     peerDependencies:
-      '@types/react': '>=16.8'
+      '@types/react': '>=18.0.0'
       immer: '>=9.0.6'
-      react: '>=16.8'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
     peerDependenciesMeta:
       '@types/react':
         optional: true
       immer:
         optional: true
       react:
+        optional: true
+      use-sync-external-store:
         optional: true
 
 snapshots:
@@ -6715,6 +6718,7 @@ snapshots:
   use-sync-external-store@1.2.2(react@18.3.1):
     dependencies:
       react: 18.3.1
+    optional: true
 
   vite-plugin-pwa@0.21.1(vite@5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
     dependencies:
@@ -6916,10 +6920,9 @@ snapshots:
 
   yaml@2.5.1: {}
 
-  zustand@4.5.5(@types/react@18.3.12)(immer@10.1.1)(react@18.3.1):
-    dependencies:
-      use-sync-external-store: 1.2.2(react@18.3.1)
+  zustand@5.0.2(@types/react@18.3.12)(immer@10.1.1)(react@18.3.1)(use-sync-external-store@1.2.2(react@18.3.1)):
     optionalDependencies:
       '@types/react': 18.3.12
       immer: 10.1.1
       react: 18.3.1
+      use-sync-external-store: 1.2.2(react@18.3.1)
