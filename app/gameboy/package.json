@@ -41,7 +41,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@iconify-json/ic": "^1.2.1",
+    "@iconify-json/ic": "^1.2.2",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/node": "^20.17.9",
     "@types/react": "^18.3.12",
