@@ -19,7 +19,7 @@ gb_console_log = { path = "crates/gb_console_log" }
 gb_cpu_sm83 = { path = "crates/gb_cpu_sm83" }
 gb_ppu = { path = "crates/gb_ppu" }
 gb_shared = { path = "crates/gb_shared" }
-log = { version = "0.4.21" }
+log = { version = "0.4.27" }
 anyhow = "1.0.94"
 mockall = "0.12.1"
 web-time = "1.1.0"
