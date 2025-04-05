@@ -145,8 +145,8 @@ importers:
         specifier: ^5.4.11
         version: 5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0)
       vite-plugin-pwa:
-        specifier: ^0.21.1
-        version: 0.21.1(vite@5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0)
+        specifier: ^0.21.2
+        version: 0.21.2(vite@5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0)
       vite-plugin-svgr:
         specifier: ^4.3.0
         version: 4.3.0(rollup@2.79.1)(typescript@5.6.2)(vite@5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0))
@@ -3252,8 +3252,8 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
 
-  vite-plugin-pwa@0.21.1:
-    resolution: {integrity: sha512-rkTbKFbd232WdiRJ9R3u+hZmf5SfQljX1b45NF6oLA6DSktEKpYllgTo1l2lkiZWMWV78pABJtFjNXfBef3/3Q==}
+  vite-plugin-pwa@0.21.2:
+    resolution: {integrity: sha512-vFhH6Waw8itNu37hWUJxL50q+CBbNcMVzsKaYHQVrfxTt3ihk3PeLO22SbiP1UNWzcEPaTQv+YVxe4G0KOjAkg==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@vite-pwa/assets-generator': ^0.2.6
@@ -6720,7 +6720,7 @@ snapshots:
       react: 18.3.1
     optional: true
 
-  vite-plugin-pwa@0.21.1(vite@5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
+  vite-plugin-pwa@0.21.2(vite@5.4.11(@types/node@20.17.9)(sass@1.79.3)(terser@5.33.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
     dependencies:
       debug: 4.3.7
       pretty-bytes: 6.1.1
