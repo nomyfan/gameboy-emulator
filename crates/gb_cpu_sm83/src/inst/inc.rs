@@ -1,4 +1,4 @@
-pub(crate) fn alu_inc_8(value: u8) -> (u8, bool, bool) {
+pub(crate) fn inc_8(value: u8) -> (u8, bool, bool) {
     let ret = value.wrapping_add(1);
 
     let z = ret == 0;
@@ -7,7 +7,7 @@ pub(crate) fn alu_inc_8(value: u8) -> (u8, bool, bool) {
 }
 
 #[inline]
-pub(crate) fn alu_inc_16(value: u16) -> u16 {
+pub(crate) fn inc_16(value: u16) -> u16 {
     value.wrapping_add(1)
 }
 
@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn inc_rr() {
-        let ret = alu_inc_16(0xFFFF);
+        let ret = inc_16(0xFFFF);
 
         assert_eq!(ret, 0);
     }
@@ -27,7 +27,7 @@ mod tests {
         let cases = [(0xFFu8, (0, true, true)), (0xF, (0x10, false, true))];
 
         for (input, output) in cases.into_iter() {
-            assert_eq!(alu_inc_8(input), output);
+            assert_eq!(inc_8(input), output);
         }
     }
 }

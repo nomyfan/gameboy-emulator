@@ -1,4 +1,4 @@
-pub(crate) fn alu_sub(lhs: u8, rhs: u8) -> (u8, bool, bool, bool) {
+pub(crate) fn sub(lhs: u8, rhs: u8) -> (u8, bool, bool, bool) {
     let ret = lhs.wrapping_sub(rhs);
 
     let z = ret == 0;
@@ -10,8 +10,6 @@ pub(crate) fn alu_sub(lhs: u8, rhs: u8) -> (u8, bool, bool, bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn sub() {
         let cases = [
@@ -22,7 +20,7 @@ mod tests {
         ];
 
         for (a, v, output) in cases.into_iter() {
-            assert_eq!(alu_sub(a, v), output);
+            assert_eq!(super::sub(a, v), output);
         }
     }
 }

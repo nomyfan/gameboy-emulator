@@ -1,5 +1,5 @@
 #[inline]
-pub(crate) fn alu_cp(lhs: u8, rhs: u8) -> (bool, bool, bool) {
+pub(crate) fn cp(lhs: u8, rhs: u8) -> (bool, bool, bool) {
     let z = lhs == rhs;
     let h = (lhs & 0xF) < (rhs & 0xF);
     let c = lhs < rhs;
@@ -9,7 +9,6 @@ pub(crate) fn alu_cp(lhs: u8, rhs: u8) -> (bool, bool, bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn cp() {
@@ -21,7 +20,7 @@ mod tests {
         ];
 
         for (input, output) in cases.into_iter() {
-            assert_eq!(alu_cp(input.0, input.1), output);
+            assert_eq!(super::cp(input.0, input.1), output);
         }
     }
 }

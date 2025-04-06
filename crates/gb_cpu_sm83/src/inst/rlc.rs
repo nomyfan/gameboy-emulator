@@ -1,4 +1,4 @@
-pub(crate) fn alu_rlc(value: u8) -> (u8, bool) {
+pub(crate) fn rlc(value: u8) -> (u8, bool) {
     let msb = (value >> 7) & 1;
 
     // Move the MSB to LSB.
@@ -10,8 +10,6 @@ pub(crate) fn alu_rlc(value: u8) -> (u8, bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn rlc() {
         let cases = [
@@ -21,7 +19,7 @@ mod tests {
         ];
 
         for (in_a, output) in cases.into_iter() {
-            assert_eq!(alu_rlc(in_a), output);
+            assert_eq!(super::rlc(in_a), output);
         }
     }
 }

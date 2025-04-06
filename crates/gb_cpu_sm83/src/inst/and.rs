@@ -1,4 +1,4 @@
-pub(crate) fn alu_and(lhs: u8, rhs: u8) -> (u8, bool) {
+pub(crate) fn and(lhs: u8, rhs: u8) -> (u8, bool) {
     let ret = lhs & rhs;
 
     let z = ret == 0;
@@ -7,7 +7,6 @@ pub(crate) fn alu_and(lhs: u8, rhs: u8) -> (u8, bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn and() {
@@ -19,7 +18,7 @@ mod tests {
         ];
 
         for (input, output) in cases.into_iter() {
-            assert_eq!(alu_and(input.0, input.1), output);
+            assert_eq!(super::and(input.0, input.1), output);
         }
     }
 }

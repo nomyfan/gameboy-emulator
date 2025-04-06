@@ -1,4 +1,4 @@
-pub(crate) fn alu_sbc(lhs: u8, rhs: u8, flag_c: bool) -> (u8, bool, bool, bool) {
+pub(crate) fn sbc(lhs: u8, rhs: u8, flag_c: bool) -> (u8, bool, bool, bool) {
     let ret = lhs.wrapping_sub(rhs).wrapping_sub(flag_c as u8);
 
     let z = ret == 0;
@@ -18,7 +18,7 @@ mod tests {
             [((2, 1, true), (0, true, false, false)), ((2, 1, false), (1, false, false, false))];
 
         for ((a, v, cv), output) in cases.into_iter() {
-            let ret = alu_sbc(a, v, cv);
+            let ret = sbc(a, v, cv);
 
             assert_eq!(ret, output);
         }
@@ -36,7 +36,7 @@ mod tests {
         ];
 
         for ((a, v, cv), output) in cases.into_iter() {
-            let ret = alu_sbc(a, v, cv);
+            let ret = sbc(a, v, cv);
 
             assert_eq!(ret, output);
         }

@@ -1,6 +1,5 @@
-mod alu;
+mod inst;
 mod interrupt;
-mod proc;
 
 use gb_shared::{is_bit_set, set_bits, unset_bits, MachineModel, Snapshot};
 use interrupt::INTERRUPTS;
@@ -453,19 +452,19 @@ where
             }
             0x03 => {
                 // INC BC
-                self.set_bc(alu::inc::alu_inc_16(self.bc()));
+                self.set_bc(inst::inc_16(self.bc()));
 
                 self.adv_clocks(4);
             }
             0x04 => {
                 // INC B
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_b);
+                let (value, z, h) = inst::inc_8(self.reg_b);
                 self.reg_b = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x05 => {
                 // DEC B
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_b);
+                let (value, z, h) = inst::dec_8(self.reg_b);
                 self.reg_b = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -475,7 +474,7 @@ where
             }
             0x07 => {
                 // RLCA
-                let (value, c) = alu::rlc::alu_rlc(self.reg_a);
+                let (value, c) = inst::rlc(self.reg_a);
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -486,7 +485,7 @@ where
             }
             0x09 => {
                 // ADD HL,BC
-                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.bc());
+                let (value, h, c) = inst::add_16(self.hl(), self.bc());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
 
@@ -498,19 +497,19 @@ where
             }
             0x0B => {
                 // DEC BC
-                self.set_bc(alu::dec::alu_dec_16(self.bc()));
+                self.set_bc(inst::dec_16(self.bc()));
 
                 self.adv_clocks(4);
             }
             0x0C => {
                 // INC C
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_c);
+                let (value, z, h) = inst::inc_8(self.reg_c);
                 self.reg_c = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x0D => {
                 // DEC C
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_c);
+                let (value, z, h) = inst::dec_8(self.reg_c);
                 self.reg_c = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -520,7 +519,7 @@ where
             }
             0x0F => {
                 // RRCA
-                let (value, c) = alu::rrc::alu_rrc(self.reg_a);
+                let (value, c) = inst::rrc(self.reg_a);
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -539,18 +538,18 @@ where
             }
             0x13 => {
                 // INC DE
-                self.set_de(alu::inc::alu_inc_16(self.de()));
+                self.set_de(inst::inc_16(self.de()));
                 self.adv_clocks(4);
             }
             0x14 => {
                 // INC D
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_d);
+                let (value, z, h) = inst::inc_8(self.reg_d);
                 self.reg_d = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x15 => {
                 // DEC D
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_d);
+                let (value, z, h) = inst::dec_8(self.reg_d);
                 self.reg_d = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -560,7 +559,7 @@ where
             }
             0x17 => {
                 // RLA
-                let (value, c) = alu::rl::alu_rl(self.reg_a, self.flag_c());
+                let (value, c) = inst::rl(self.reg_a, self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -572,7 +571,7 @@ where
             }
             0x19 => {
                 // ADD HL,DE
-                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.de());
+                let (value, h, c) = inst::add_16(self.hl(), self.de());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
                 self.adv_clocks(4);
@@ -583,18 +582,18 @@ where
             }
             0x1B => {
                 // DEC DE
-                self.set_de(alu::dec::alu_dec_16(self.de()));
+                self.set_de(inst::dec_16(self.de()));
                 self.adv_clocks(4);
             }
             0x1C => {
                 // INC E
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_e);
+                let (value, z, h) = inst::inc_8(self.reg_e);
                 self.reg_e = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x1D => {
                 // DEC E
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_e);
+                let (value, z, h) = inst::dec_8(self.reg_e);
                 self.reg_e = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -604,7 +603,7 @@ where
             }
             0x1F => {
                 // RRA
-                let (value, c) = alu::rr::alu_rr(self.reg_a, self.flag_c());
+                let (value, c) = inst::rr(self.reg_a, self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(false), Some(false), Some(false), Some(c));
             }
@@ -628,18 +627,18 @@ where
             }
             0x23 => {
                 // INC HL
-                self.set_hl(alu::inc::alu_inc_16(self.hl()));
+                self.set_hl(inst::inc_16(self.hl()));
                 self.adv_clocks(4);
             }
             0x24 => {
                 // INC H
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_h);
+                let (value, z, h) = inst::inc_8(self.reg_h);
                 self.reg_h = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x25 => {
                 // DEC H
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_h);
+                let (value, z, h) = inst::dec_8(self.reg_h);
                 self.reg_h = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -650,7 +649,7 @@ where
             0x27 => {
                 // DAA
                 let (value, z, c) =
-                    alu::daa::alu_daa(self.reg_a, self.flag_n(), self.flag_h(), self.flag_c());
+                    inst::daa(self.reg_a, self.flag_n(), self.flag_h(), self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(z), None, Some(false), Some(c));
             }
@@ -664,7 +663,7 @@ where
             }
             0x29 => {
                 // ADD HL,HL
-                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.hl());
+                let (value, h, c) = inst::add_16(self.hl(), self.hl());
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
                 self.adv_clocks(4);
@@ -676,18 +675,18 @@ where
             }
             0x2B => {
                 // DEC HL
-                self.set_hl(alu::dec::alu_dec_16(self.hl()));
+                self.set_hl(inst::dec_16(self.hl()));
                 self.adv_clocks(4);
             }
             0x2C => {
                 // INC L
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_l);
+                let (value, z, h) = inst::inc_8(self.reg_l);
                 self.reg_l = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x2D => {
                 // DEC L
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_l);
+                let (value, z, h) = inst::dec_8(self.reg_l);
                 self.reg_l = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -719,18 +718,18 @@ where
             }
             0x33 => {
                 // INC SP
-                self.sp = alu::inc::alu_inc_16(self.sp);
+                self.sp = inst::inc_16(self.sp);
                 self.adv_clocks(4);
             }
             0x34 => {
                 // INC (HL)
-                let (value, z, h) = alu::inc::alu_inc_8(self.bus_read(self.hl()));
+                let (value, z, h) = inst::inc_8(self.bus_read(self.hl()));
                 self.bus_write(self.hl(), value);
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x35 => {
                 // DEC (HL)
-                let (value, z, h) = alu::dec::alu_dec_8(self.bus_read(self.hl()));
+                let (value, z, h) = inst::dec_8(self.bus_read(self.hl()));
                 self.bus_write(self.hl(), value);
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -753,7 +752,7 @@ where
             }
             0x39 => {
                 // ADD HL,SP
-                let (value, h, c) = alu::add::alu_add_16(self.hl(), self.sp);
+                let (value, h, c) = inst::add_16(self.hl(), self.sp);
                 self.set_hl(value);
                 self.set_flags(None, Some(false), Some(h), Some(c));
                 self.adv_clocks(4);
@@ -765,18 +764,18 @@ where
             }
             0x3B => {
                 // DEC SP
-                self.sp = alu::dec::alu_dec_16(self.sp);
+                self.sp = inst::dec_16(self.sp);
                 self.adv_clocks(4);
             }
             0x3C => {
                 // INC A
-                let (value, z, h) = alu::inc::alu_inc_8(self.reg_a);
+                let (value, z, h) = inst::inc_8(self.reg_a);
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(h), None);
             }
             0x3D => {
                 // DEC A
-                let (value, z, h) = alu::dec::alu_dec_8(self.reg_a);
+                let (value, z, h) = inst::dec_8(self.reg_a);
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(true), Some(h), None);
             }
@@ -838,52 +837,51 @@ where
             }
             0x80..=0x87 => {
                 // ADD A,B..ADD A,A
-                let (value, z, h, c) =
-                    alu::add::alu_add_8(self.reg_a, self.read_reg(opcode & 0x07));
+                let (value, z, h, c) = inst::add_8(self.reg_a, self.read_reg(opcode & 0x07));
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(h), Some(c));
             }
             0x88..=0x8F => {
                 // ADC A,B..ADC A,A
                 let (value, z, h, c) =
-                    alu::adc::alu_adc(self.reg_a, self.read_reg(opcode & 0x07), self.flag_c());
+                    inst::adc(self.reg_a, self.read_reg(opcode & 0x07), self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(h), Some(c));
             }
             0x90..=0x97 => {
                 // SUB A,B..SUB A,A
-                let (value, z, h, c) = alu::sub::alu_sub(self.reg_a, self.read_reg(opcode & 0x07));
+                let (value, z, h, c) = inst::sub(self.reg_a, self.read_reg(opcode & 0x07));
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(true), Some(h), Some(c));
             }
             0x98..=0x9F => {
                 // SBC A,B..SBC A,A
                 let (value, z, h, c) =
-                    alu::sbc::alu_sbc(self.reg_a, self.read_reg(opcode & 0x07), self.flag_c());
+                    inst::sbc(self.reg_a, self.read_reg(opcode & 0x07), self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(true), Some(h), Some(c));
             }
             0xA0..=0xA7 => {
                 // AND A,B..AND A,A
-                let (value, z) = alu::and::alu_and(self.reg_a, self.read_reg(opcode & 0x07));
+                let (value, z) = inst::and(self.reg_a, self.read_reg(opcode & 0x07));
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(true), Some(false));
             }
             0xA8..=0xAF => {
                 // XOR A,B..XOR A,A
-                let (value, z) = alu::xor::alu_xor(self.reg_a, self.read_reg(opcode & 0x07));
+                let (value, z) = inst::xor(self.reg_a, self.read_reg(opcode & 0x07));
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(false), Some(false));
             }
             0xB0..=0xB7 => {
                 // OR A,B..OR A,A
-                let (value, z) = alu::or::alu_or(self.reg_a, self.read_reg(opcode & 0x07));
+                let (value, z) = inst::or(self.reg_a, self.read_reg(opcode & 0x07));
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(false), Some(false));
             }
             0xB8..=0xBF => {
                 // CP A,B..CP A,A
-                let (z, h, c) = alu::cp::alu_cp(self.reg_a, self.read_reg(opcode & 0x07));
+                let (z, h, c) = inst::cp(self.reg_a, self.read_reg(opcode & 0x07));
                 self.set_flags(Some(z), Some(true), Some(h), Some(c));
             }
             0xC0 => {
@@ -929,7 +927,7 @@ where
             }
             0xC6 => {
                 // ADD A,d8
-                let (value, z, h, c) = alu::add::alu_add_8(self.reg_a, self.read_pc());
+                let (value, z, h, c) = inst::add_8(self.reg_a, self.read_pc());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(h), Some(c));
             }
@@ -964,7 +962,7 @@ where
             }
             0xCB => {
                 // CB
-                proc::proc_cb(self);
+                inst::cb(self);
             }
             0xCC => {
                 // CALL Z,a16
@@ -984,7 +982,7 @@ where
             }
             0xCE => {
                 // ADC A,d8
-                let (value, z, h, c) = alu::adc::alu_adc(self.reg_a, self.read_pc(), self.flag_c());
+                let (value, z, h, c) = inst::adc(self.reg_a, self.read_pc(), self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(h), Some(c));
             }
@@ -1032,7 +1030,7 @@ where
             }
             0xD6 => {
                 // SUB A,d8
-                let (value, z, h, c) = alu::sub::alu_sub(self.reg_a, self.read_pc());
+                let (value, z, h, c) = inst::sub(self.reg_a, self.read_pc());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(true), Some(h), Some(c));
             }
@@ -1077,7 +1075,7 @@ where
             }
             0xDE => {
                 // SBC A,d8
-                let (value, z, h, c) = alu::sbc::alu_sbc(self.reg_a, self.read_pc(), self.flag_c());
+                let (value, z, h, c) = inst::sbc(self.reg_a, self.read_pc(), self.flag_c());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(true), Some(h), Some(c));
             }
@@ -1108,7 +1106,7 @@ where
             }
             0xE6 => {
                 // AND A,d8
-                let (value, z) = alu::and::alu_and(self.reg_a, self.read_pc());
+                let (value, z) = inst::and(self.reg_a, self.read_pc());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(true), Some(false));
             }
@@ -1120,7 +1118,7 @@ where
             }
             0xE8 => {
                 // ADD SP,r8
-                let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
+                let (value, h, c) = inst::add_r8(self.sp, self.read_pc() as i8);
                 self.sp = value;
                 self.set_flags(Some(false), Some(false), Some(h), Some(c));
                 self.adv_clocks(8);
@@ -1136,7 +1134,7 @@ where
             }
             0xEE => {
                 // XOR A,d8
-                let (value, z) = alu::xor::alu_xor(self.reg_a, self.read_pc());
+                let (value, z) = inst::xor(self.reg_a, self.read_pc());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(false), Some(false));
             }
@@ -1171,7 +1169,7 @@ where
             }
             0xF6 => {
                 // OR A,d8
-                let (value, z) = alu::or::alu_or(self.reg_a, self.read_pc());
+                let (value, z) = inst::or(self.reg_a, self.read_pc());
                 self.reg_a = value;
                 self.set_flags(Some(z), Some(false), Some(false), Some(false));
             }
@@ -1183,7 +1181,7 @@ where
             }
             0xF8 => {
                 // LD HL,SP+r8
-                let (value, h, c) = alu::add::alu_add_r8(self.sp, self.read_pc() as i8);
+                let (value, h, c) = inst::add_r8(self.sp, self.read_pc() as i8);
                 self.set_hl(value);
                 self.set_flags(Some(false), Some(false), Some(h), Some(c));
                 self.adv_clocks(4);
@@ -1204,7 +1202,7 @@ where
             }
             0xFE => {
                 // CP A,d8
-                let (z, h, c) = alu::cp::alu_cp(self.reg_a, self.read_pc());
+                let (z, h, c) = inst::cp(self.reg_a, self.read_pc());
                 self.set_flags(Some(z), Some(true), Some(h), Some(c));
             }
             0xFF => {

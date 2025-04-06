@@ -1,4 +1,4 @@
-pub(crate) fn alu_rr(value: u8, flag_c: bool) -> (u8, bool) {
+pub(crate) fn rr(value: u8, flag_c: bool) -> (u8, bool) {
     let mlb = value & 1;
     let msb = flag_c as u8;
 
@@ -10,8 +10,6 @@ pub(crate) fn alu_rr(value: u8, flag_c: bool) -> (u8, bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn rr() {
         let cases = [
@@ -22,7 +20,7 @@ mod tests {
         ];
 
         for ((in_a, in_flag_c), output) in cases.into_iter() {
-            assert_eq!(alu_rr(in_a, in_flag_c), output);
+            assert_eq!(super::rr(in_a, in_flag_c), output);
         }
     }
 }

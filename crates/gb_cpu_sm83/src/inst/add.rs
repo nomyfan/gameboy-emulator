@@ -1,4 +1,4 @@
-pub(crate) fn alu_add_8(lhs: u8, rhs: u8) -> (u8, bool, bool, bool) {
+pub(crate) fn add_8(lhs: u8, rhs: u8) -> (u8, bool, bool, bool) {
     let ret = lhs.wrapping_add(rhs);
 
     let z = ret == 0;
@@ -8,7 +8,7 @@ pub(crate) fn alu_add_8(lhs: u8, rhs: u8) -> (u8, bool, bool, bool) {
     (ret, z, h, c)
 }
 
-pub(crate) fn alu_add_16(lhs: u16, rhs: u16) -> (u16, bool, bool) {
+pub(crate) fn add_16(lhs: u16, rhs: u16) -> (u16, bool, bool) {
     let ret = lhs.wrapping_add(rhs);
     let h = (lhs & 0xFFF) + (rhs & 0xFFF) > 0xFFF;
     let c = (lhs as u32) + (rhs as u32) > 0xFFFF;
@@ -16,7 +16,7 @@ pub(crate) fn alu_add_16(lhs: u16, rhs: u16) -> (u16, bool, bool) {
     (ret, h, c)
 }
 
-pub(crate) fn alu_add_r8(lhs: u16, rhs: i8) -> (u16, bool, bool) {
+pub(crate) fn add_r8(lhs: u16, rhs: i8) -> (u16, bool, bool) {
     let ret = lhs.wrapping_add_signed(rhs as i16);
     let h = (lhs & 0xF) + (rhs as u8 as u16 & 0xF) > 0xF;
     let c = (lhs & 0xFF) + rhs as u8 as u16 > 0xFF;
@@ -30,21 +30,21 @@ mod tests {
 
     #[test]
     fn add_sp_r8() {
-        let ret = alu_add_r8(1, -1);
+        let ret = add_r8(1, -1);
 
         assert_eq!(ret, (0, true, true));
     }
 
     #[test]
     fn add_r() {
-        let ret = alu_add_8(1, 2);
+        let ret = add_8(1, 2);
 
         assert_eq!(ret, (3, false, false, false));
     }
 
     #[test]
     fn add_rr() {
-        let ret = alu_add_16(1, 2);
+        let ret = add_16(1, 2);
 
         assert_eq!(ret, (3, false, false));
     }
@@ -61,7 +61,7 @@ mod tests {
         ];
 
         for (input, output) in cases.into_iter() {
-            let ret = alu_add_16(input.0, input.1);
+            let ret = add_16(input.0, input.1);
 
             assert_eq!(ret, output)
         }
@@ -79,7 +79,7 @@ mod tests {
         ];
 
         for (input, output) in cases.into_iter() {
-            let ret = alu_add_8(input.0, input.1);
+            let ret = add_8(input.0, input.1);
 
             assert_eq!(ret, output)
         }

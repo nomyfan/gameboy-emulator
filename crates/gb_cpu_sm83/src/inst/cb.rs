@@ -1,14 +1,13 @@
-use crate::alu::bit::alu_bit;
-use crate::alu::res::alu_res;
-use crate::alu::rl::alu_rl;
-use crate::alu::rlc::alu_rlc;
-use crate::alu::rr::alu_rr;
-use crate::alu::rrc::alu_rrc;
-use crate::alu::set::alu_set;
-use crate::alu::sla::alu_sla;
-use crate::alu::sra::alu_sra;
-use crate::alu::srl::alu_srl;
-use crate::alu::swap::alu_swap;
+use super::res;
+use super::rl;
+use super::rlc;
+use super::rr;
+use super::rrc;
+use super::set;
+use super::sla;
+use super::sra;
+use super::srl;
+use super::swap;
 use crate::Cpu;
 
 #[allow(clippy::upper_case_acronyms)]
@@ -37,7 +36,7 @@ pub(crate) enum CbInstruction {
     SET,
 }
 
-pub(crate) fn proc_cb<BUS: gb_shared::Bus>(cpu: &mut Cpu<BUS>) {
+pub(crate) fn cb<BUS: gb_shared::Bus>(cpu: &mut Cpu<BUS>) {
     fn decode_inst(opcode: u8) -> CbInstruction {
         match opcode {
             0x00..=0x07 => CbInstruction::RLC,
@@ -81,66 +80,66 @@ pub(crate) fn proc_cb<BUS: gb_shared::Bus>(cpu: &mut Cpu<BUS>) {
 
     match decode_inst(cb_opcode) {
         CbInstruction::RLC => {
-            let (new_value, c) = alu_rlc(value);
+            let (new_value, c) = rlc(value);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RRC => {
-            let (new_value, c) = alu_rrc(value);
+            let (new_value, c) = rrc(value);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RL => {
-            let (new_value, c) = alu_rl(value, cpu.flags().3);
+            let (new_value, c) = rl(value, cpu.flags().3);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::RR => {
-            let (new_value, c) = alu_rr(value, cpu.flags().3);
+            let (new_value, c) = rr(value, cpu.flags().3);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SLA => {
-            let (new_value, c) = alu_sla(value);
+            let (new_value, c) = sla(value);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SRA => {
-            let (new_value, c) = alu_sra(value);
+            let (new_value, c) = sra(value);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::SWAP => {
-            let new_value = alu_swap(value);
+            let new_value = swap(value);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(false));
         }
         CbInstruction::SRL => {
-            let (new_value, c) = alu_srl(value);
+            let (new_value, c) = srl(value);
 
             write_data(cpu, new_value);
             cpu.set_flags(Some(new_value == 0), Some(false), Some(false), Some(c));
         }
         CbInstruction::BIT => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            cpu.set_flags(Some(!alu_bit(value, bit)), Some(false), Some(true), None);
+            cpu.set_flags(Some(!super::bit(value, bit)), Some(false), Some(true), None);
         }
         CbInstruction::RES => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            let new_value = alu_res(value, bit);
+            let new_value = res(value, bit);
 
             write_data(cpu, new_value);
         }
         CbInstruction::SET => {
             let bit = (cb_opcode & 0b111000) >> 3;
-            let new_value = alu_set(value, bit);
+            let new_value = set(value, bit);
 
             write_data(cpu, new_value);
         }

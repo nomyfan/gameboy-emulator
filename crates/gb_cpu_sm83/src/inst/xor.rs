@@ -1,4 +1,4 @@
-pub(crate) fn alu_xor(lhs: u8, rhs: u8) -> (u8, bool) {
+pub(crate) fn xor(lhs: u8, rhs: u8) -> (u8, bool) {
     let ret = lhs ^ rhs;
     let z = ret == 0;
 
@@ -7,7 +7,6 @@ pub(crate) fn alu_xor(lhs: u8, rhs: u8) -> (u8, bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn xor() {
         let cases = [
@@ -19,7 +18,7 @@ mod tests {
         ];
 
         for ((a, v), output) in cases.into_iter() {
-            assert_eq!(alu_xor(a, v), output);
+            assert_eq!(super::xor(a, v), output);
         }
     }
 }
