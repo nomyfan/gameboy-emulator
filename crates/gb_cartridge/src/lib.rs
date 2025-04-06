@@ -390,7 +390,7 @@ impl TryFrom<Vec<u8>> for Cartridge {
 
         assert_eq!(checksum, header.checksum);
 
-        log::debug!("{}", &header);
+        log::trace!("{}", &header);
 
         let mbc: Box<dyn mbc::Mbc<Snapshot = Vec<u8>>> = match &header.cart_type {
             0x00 => Box::new(mbc::mbc_none::MbcNone::new()),

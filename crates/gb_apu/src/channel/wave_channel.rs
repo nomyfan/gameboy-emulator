@@ -49,7 +49,7 @@ impl Memory for WaveRam {
     #[inline]
     fn write(&mut self, addr: u16, value: u8) {
         // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
-        log::debug!("Wave RAM write: {:#X} = {:#X}", addr, value);
+        log::trace!("Wave RAM write: {:#X} = {:#X}", addr, value);
         self.ram[(addr - 0xFF30) as usize] = value;
     }
 
@@ -57,7 +57,7 @@ impl Memory for WaveRam {
     fn read(&self, addr: u16) -> u8 {
         // TODO: https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Frequency_Sweep:~:text=if%20the%20wave%20channel%20is%20enabled%2C%20accessing
         let value = self.ram[(addr - 0xFF30) as usize];
-        log::debug!("Wave RAM read: {:#X} = {:#X}", addr, value);
+        log::trace!("Wave RAM read: {:#X} = {:#X}", addr, value);
 
         value
     }

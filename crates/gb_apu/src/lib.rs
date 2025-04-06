@@ -78,7 +78,7 @@ impl Apu {
             fs,
         };
 
-        log::debug!("APU is created: {:?}", instance);
+        log::trace!("APU is created: {:?}", instance);
 
         instance
     }
@@ -93,7 +93,7 @@ impl Apu {
         self.nr50 = 0;
         self.nr51 = 0;
         self.nr52 = 0;
-        log::debug!("APU is turned off {:?}", self);
+        log::trace!("APU is turned off {:?}", self);
     }
 
     #[inline]
@@ -211,41 +211,41 @@ impl Memory for Apu {
 
         match addr {
             0xFF10..=0xFF14 => {
-                log::debug!("Write(B) NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, self);
+                log::trace!("Write(B) NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, self);
                 self.ch1.write(addr - 0xFF10, value);
-                log::debug!("Write(A) NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, self);
+                log::trace!("Write(A) NR1{} value: {:#X}, {:?}", addr - 0xFF10, value, self);
             }
             0xFF15 => {}
             0xFF16..=0xFF19 => {
-                log::debug!("Write(B) NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, self);
+                log::trace!("Write(B) NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, self);
                 self.ch2.write(addr - 0xFF15, value);
-                log::debug!("Write(A) NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, self);
+                log::trace!("Write(A) NR2{} value: {:#X}, {:?}", addr - 0xFF15, value, self);
             }
 
             0xFF1A..=0xFF1E => {
-                log::debug!("Write(B) NR3{} value: {:#X}, {:?}", addr - 0xFF1A, value, self);
+                log::trace!("Write(B) NR3{} value: {:#X}, {:?}", addr - 0xFF1A, value, self);
                 self.ch3.write(addr - 0xFF1A, value);
-                log::debug!("Write(A) NR3{} value: {:#X}, {:?}", addr - 0xFF1A, value, self);
+                log::trace!("Write(A) NR3{} value: {:#X}, {:?}", addr - 0xFF1A, value, self);
             }
             0xFF1F => {}
             0xFF20..=0xFF23 => {
-                log::debug!("Write(B) NR4{} value: {:#X}, {:?}", addr - 0xFF1F, value, self);
+                log::trace!("Write(B) NR4{} value: {:#X}, {:?}", addr - 0xFF1F, value, self);
                 self.ch4.write(addr - 0xFF1F, value);
-                log::debug!("Write(A) NR4{} value: {:#X}, {:?}", addr - 0xFF1F, value, self);
+                log::trace!("Write(A) NR4{} value: {:#X}, {:?}", addr - 0xFF1F, value, self);
             }
 
             0xFF24 => self.nr50 = value,
             0xFF25 => self.nr51 = value,
             0xFF26 => {
-                log::debug!("Write(B) NR52 value: {:#X}, {:?}", value, self);
+                log::trace!("Write(B) NR52 value: {:#X}, {:?}", value, self);
                 let was_power_on = self.audio_on();
                 self.nr52 = value & 0x80;
                 if !self.audio_on() {
                     self.power_off();
                 } else if !was_power_on {
-                    log::debug!("APU is turned on, {:?}", self);
+                    log::trace!("APU is turned on, {:?}", self);
                 }
-                log::debug!("Write(A) NR52 value: {:#X}, {:?}", value, self);
+                log::trace!("Write(A) NR52 value: {:#X}, {:?}", value, self);
             }
             0xFF27..=0xFF2F => {}
             0xFF30..=0xFF3F => {

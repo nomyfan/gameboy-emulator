@@ -536,7 +536,7 @@ impl Memory for Ppu {
 
                 if old_object_size != new_object_size && self.work_state.scanline_objects.len() < 10
                 {
-                    log::debug!(
+                    log::trace!(
                         "Object size changes from {} to {} at scanline dots {}, ly {}. Scanned object count {}",
                         old_object_size, new_object_size,
                         self.work_state.scanline_dots,
