@@ -1,6 +1,6 @@
 use super::{real_ram_size, Mbc, RamBank};
 use crate::CartridgeHeader;
-use gb_shared::{boxed_array, kib, Snapshot};
+use gb_shared::{boxed_array, kib, ByteView, Snapshot};
 use serde::{Deserialize, Serialize};
 use web_time::SystemTime;
 
@@ -244,8 +244,8 @@ impl RealTimeClock {
         self.m = ((duration / 60) % 60) as u8;
         self.h = ((duration / 3600) % 24) as u8;
         let days = (duration / 3600 / 24) as u16;
-        self.dl = days as u8;
-        self.dh |= ((days >> 8) as u8) & 1;
+        self.dl = days.lsb();
+        self.dh |= days.msb() & 1;
         if days > 0x01FF {
             self.dh |= 0x80;
         }

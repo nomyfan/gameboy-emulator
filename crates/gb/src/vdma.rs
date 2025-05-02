@@ -191,6 +191,8 @@ impl Snapshot for Vdma {
 
 #[cfg(test)]
 mod tests {
+    use gb_shared::ByteView;
+
     use super::*;
 
     const HDMA1: u16 = 0xFF51;
@@ -209,10 +211,10 @@ mod tests {
         }
 
         fn start(&mut self, hdma: bool, src_addr: u16, dst_addr: u16, length: u8) {
-            self.dma.write(HDMA1, (src_addr >> 8) as u8);
-            self.dma.write(HDMA2, src_addr as u8);
-            self.dma.write(HDMA3, (dst_addr >> 8) as u8);
-            self.dma.write(HDMA4, dst_addr as u8);
+            self.dma.write(HDMA1, src_addr.msb());
+            self.dma.write(HDMA2, src_addr.lsb());
+            self.dma.write(HDMA3, dst_addr.msb());
+            self.dma.write(HDMA4, dst_addr.lsb());
             self.dma.write(HDMA5, length | if hdma { 0x80 } else { 0 });
         }
 

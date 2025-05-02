@@ -1,7 +1,7 @@
 mod inst;
 mod interrupt;
 
-use gb_shared::{is_bit_set, set_bits, unset_bits, MachineModel, Snapshot};
+use gb_shared::{is_bit_set, set_bits, unset_bits, ByteView, MachineModel, Snapshot};
 use interrupt::INTERRUPTS;
 
 impl<BUS> Cpu<BUS>
@@ -52,8 +52,8 @@ where
     }
 
     fn stack_push2(&mut self, value: u16) {
-        self.stack_push((value >> 8) as u8);
-        self.stack_push(value as u8);
+        self.stack_push(value.msb());
+        self.stack_push(value.lsb());
     }
 
     fn stack_pop(&mut self) -> u8 {
@@ -177,14 +177,6 @@ where
 }
 
 #[inline]
-fn convert_u16_to_u8_tuple(value: u16) -> (u8, u8) {
-    let hi = (value & 0xFF00) >> 8;
-    let lo = value & 0x00FF;
-
-    (hi as u8, lo as u8)
-}
-
-#[inline]
 fn convert_u8_tuple_to_u16(hi: u8, lo: u8) -> u16 {
     ((hi as u16) << 8) | (lo as u16)
 }
@@ -247,10 +239,8 @@ where
 
     #[inline]
     fn set_af(&mut self, value: u16) {
-        let (hi, lo) = convert_u16_to_u8_tuple(value);
-
-        self.reg_a = hi;
-        self.reg_f = lo & 0xF0;
+        self.reg_a = value.msb();
+        self.reg_f = value.lsb() & 0xF0;
     }
 
     #[inline]
@@ -259,10 +249,8 @@ where
     }
 
     fn set_bc(&mut self, value: u16) {
-        let (hi, lo) = convert_u16_to_u8_tuple(value);
-
-        self.reg_b = hi;
-        self.reg_c = lo;
+        self.reg_b = value.msb();
+        self.reg_c = value.lsb();
     }
 
     #[inline]
@@ -271,10 +259,8 @@ where
     }
 
     fn set_de(&mut self, value: u16) {
-        let (hi, lo) = convert_u16_to_u8_tuple(value);
-
-        self.reg_d = hi;
-        self.reg_e = lo;
+        self.reg_d = value.msb();
+        self.reg_e = value.lsb();
     }
 
     #[inline]
@@ -283,10 +269,8 @@ where
     }
 
     fn set_hl(&mut self, value: u16) {
-        let (hi, lo) = convert_u16_to_u8_tuple(value);
-
-        self.reg_h = hi;
-        self.reg_l = lo;
+        self.reg_h = value.msb();
+        self.reg_l = value.lsb();
     }
 
     #[inline]
@@ -319,8 +303,8 @@ where
 
     #[inline]
     fn bus_write_16(&mut self, addr: u16, value: u16) {
-        self.bus_write(addr, value as u8);
-        self.bus_write(addr.wrapping_add(1), (value >> 8) as u8);
+        self.bus_write(addr, value.lsb());
+        self.bus_write(addr.wrapping_add(1), value.msb());
     }
 
     pub fn take_clocks(&mut self) -> u8 {

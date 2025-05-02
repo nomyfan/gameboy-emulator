@@ -110,3 +110,47 @@ pub enum MachineModel {
     DMG,
     CGB,
 }
+
+pub trait ByteView {
+    /// Most significant byte
+    fn msb(self) -> u8;
+    /// Least significant byte
+    fn lsb(self) -> u8;
+    /// N-th byte
+    #[allow(dead_code)]
+    fn at(self, nth: u8) -> u8;
+}
+
+impl ByteView for u16 {
+    #[inline]
+    fn msb(self) -> u8 {
+        (self >> 8) as u8
+    }
+
+    #[inline]
+    fn lsb(self) -> u8 {
+        self as u8
+    }
+
+    fn at(self, nth: u8) -> u8 {
+        match nth {
+            0 => self.lsb(),
+            1 => self.msb(),
+            _ => unreachable!("Invalid nth for u16: {}", nth),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_byte_view_for_u16() {
+        let value: u16 = 0x1234;
+        assert_eq!(value.msb(), 0x12);
+        assert_eq!(value.lsb(), 0x34);
+        assert_eq!(value.at(0), 0x34);
+        assert_eq!(value.at(1), 0x12);
+    }
+}

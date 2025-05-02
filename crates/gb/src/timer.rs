@@ -1,4 +1,4 @@
-use gb_shared::{is_bit_set, Interrupt, InterruptRequest, Memory, Snapshot};
+use gb_shared::{is_bit_set, ByteView, Interrupt, InterruptRequest, Memory, Snapshot};
 
 enum CounterIncCycles {
     Cycles1024,
@@ -64,7 +64,7 @@ impl Memory for Timer {
 
     fn read(&self, addr: u16) -> u8 {
         if addr == 0xFF04 {
-            (self.div >> 8) as u8
+            self.div.msb()
         } else if addr == 0xFF05 {
             self.tima
         } else if addr == 0xFF06 {
