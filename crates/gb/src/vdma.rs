@@ -52,7 +52,7 @@ impl Vdma {
         let mut active = self.active && !self.terminated;
         if self.hdma {
             active &= hblank;
-            active &= self.hblank_scanline.map_or(true, |x| {
+            active &= self.hblank_scanline.is_none_or(|x| {
                 if x.0 == ly {
                     x.1 > 0
                 } else {

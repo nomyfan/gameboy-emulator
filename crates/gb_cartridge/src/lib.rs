@@ -490,7 +490,7 @@ impl Cartridge {
                 let bytes = LETTERS.as_bytes();
                 for x in (offset..bytes.len()).step_by(14) {
                     if bytes[x] == the_4th_letter {
-                        return Some((checksum as u16) << 8 | (the_4th_letter as u16));
+                        return Some(((checksum as u16) << 8) | (the_4th_letter as u16));
                     }
                 }
 
