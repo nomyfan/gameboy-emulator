@@ -1,36 +1,16 @@
 pub mod bitwise;
-pub mod boxed;
 pub mod command;
 
-pub fn boxed_array<T: Copy, const SIZE: usize>(val: T) -> Box<[T; SIZE]> {
-    let boxed_slice = vec![val; SIZE].into_boxed_slice();
-    let ptr = Box::into_raw(boxed_slice) as *mut [T; SIZE];
-
-    unsafe { Box::from_raw(ptr) }
-}
-
-pub fn boxed_array_fn<T, F: Fn(usize) -> T, const SIZE: usize>(init_fn: F) -> Box<[T; SIZE]> {
-    let mut vector = Vec::with_capacity(SIZE);
-    for x in 0..SIZE {
-        vector.push(init_fn(x));
-    }
-    let boxed_slice = vector.into_boxed_slice();
-    let ptr = Box::into_raw(boxed_slice) as *mut [T; SIZE];
-
-    unsafe { Box::from_raw(ptr) }
-}
-
-pub fn boxed_array_try_from_vec<T, const SIZE: usize>(
-    vec: Vec<T>,
-) -> Result<Box<[T; SIZE]>, Vec<T>> {
-    if vec.len() == SIZE {
-        let boxed_slice = vec.into_boxed_slice();
-        let ptr = Box::into_raw(boxed_slice) as *mut [T; SIZE];
-
-        Ok(unsafe { Box::from_raw(ptr) })
-    } else {
-        Err(vec)
-    }
+#[macro_export]
+macro_rules! box_array {
+    ($t:ty; $elem:expr; $n:expr) => {{
+        let boxed_slice = vec![$elem; $n].into_boxed_slice();
+        let ptr = std::boxed::Box::into_raw(boxed_slice) as *mut [$t; $n];
+        unsafe { std::boxed::Box::from_raw(ptr) }
+    }};
+    ($t:ty; $n:expr) => {{
+        box_array![$t; <$t as std::default::Default>::default(); $n]
+    }};
 }
 
 pub trait Memory {

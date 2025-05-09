@@ -8,15 +8,15 @@ mod vram;
 use crate::config::{DOTS_PER_SCANLINE, RESOLUTION_X, RESOLUTION_Y, SCANLINES_PER_FRAME};
 use crate::lcd::{LCDMode, LCD};
 use crate::object::Object;
-use gb_shared::boxed::BoxedArray;
 use gb_shared::{
-    is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, MachineModel, Memory, Snapshot,
+    box_array, is_bit_set, set_bits, unset_bits, Interrupt, InterruptRequest, MachineModel, Memory,
+    Snapshot,
 };
 use object::ObjectSnapshot;
 use palette::{Palette, PaletteSnapshot};
 use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 
-pub type VideoFrame = BoxedArray<u8, 69120>; // 160 * 144 * 3
+pub type VideoFrame = Box<[u8; 69120]>; // 160 * 144 * 3
 
 #[cfg(feature = "debug_frame")]
 pub type FrameHandle = dyn FnMut(&VideoFrame, &[u8]);
@@ -74,7 +74,7 @@ pub struct Ppu {
 
 impl Default for Ppu {
     fn default() -> Self {
-        let mut video_buffer: VideoFrame = Default::default();
+        let mut video_buffer: VideoFrame = box_array![u8; 69120];
         video_buffer.fill(0xFF);
 
         let machine_model = MachineModel::DMG;

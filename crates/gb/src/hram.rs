@@ -1,4 +1,4 @@
-use gb_shared::{boxed_array, boxed_array_try_from_vec, Memory, Snapshot};
+use gb_shared::{box_array, Memory, Snapshot};
 
 pub(crate) struct HighRam {
     /// [FF80, FFFF)
@@ -7,7 +7,7 @@ pub(crate) struct HighRam {
 
 impl HighRam {
     pub(crate) fn new() -> Self {
-        Self { ram: boxed_array(0) }
+        Self { ram: box_array![u8; 0x80] }
     }
 }
 
@@ -40,6 +40,9 @@ impl Snapshot for HighRam {
     }
 
     fn restore_snapshot(&mut self, snapshot: Self::Snapshot) {
-        self.ram = boxed_array_try_from_vec(snapshot.ram).unwrap();
+        assert_eq!(snapshot.ram.len(), 0x80);
+        let boxed_slice = snapshot.ram.into_boxed_slice();
+        let ptr = Box::into_raw(boxed_slice) as *mut [u8; 0x80];
+        self.ram = unsafe { Box::from_raw(ptr) };
     }
 }

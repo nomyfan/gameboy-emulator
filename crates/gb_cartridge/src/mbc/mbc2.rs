@@ -1,6 +1,6 @@
 use super::Mbc;
 use crate::CartridgeHeader;
-use gb_shared::{boxed::BoxedArray, is_bit_set, kib, Snapshot};
+use gb_shared::{box_array, is_bit_set, kib, Snapshot};
 use serde::{Deserialize, Serialize};
 
 /// Max 256 KiB ROM, 512x4 bits RAM
@@ -8,14 +8,14 @@ pub(crate) struct Mbc2 {
     ram_enabled: bool,
     /// Value range 0x01..=0x0F
     rom_bank_num: u8,
-    ram: BoxedArray<u8, 0x200>,
+    ram: Box<[u8; 0x200]>,
     with_battery: bool,
 }
 
 impl Mbc2 {
     pub(crate) fn new(header: &CartridgeHeader) -> Self {
         let with_battery = header.cart_type == 0x06;
-        let ram = Default::default();
+        let ram = box_array![u8; 0x200];
 
         Self { ram_enabled: false, rom_bank_num: 0x01, ram, with_battery }
     }

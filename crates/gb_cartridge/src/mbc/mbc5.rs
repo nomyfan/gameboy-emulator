@@ -1,4 +1,4 @@
-use gb_shared::{boxed_array, kib, Snapshot};
+use gb_shared::{box_array, kib, Snapshot};
 use serde::{Deserialize, Serialize};
 
 use super::{real_ram_size, Mbc, RamBank};
@@ -30,7 +30,7 @@ impl Mbc5 {
         let ram_banks_len = real_ram_size(header.ram_size) / kib(8);
         let mut ram_banks: Vec<Box<RamBank>> = Vec::with_capacity(ram_banks_len);
         for _ in 0..ram_banks_len {
-            ram_banks.push(boxed_array(0));
+            ram_banks.push(box_array![u8; 0x2000]);
         }
 
         let cart_type = header.cart_type;

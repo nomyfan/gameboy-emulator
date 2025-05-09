@@ -1,6 +1,5 @@
 use gb::{buffer_size_from_sample_rate, Cartridge, GameBoy, Manifest};
 use gb::{AudioHandle, GameBoySnapshot};
-use gb_shared::boxed::BoxedArray;
 use gb_shared::command::{Command, JoypadButton};
 use gb_shared::Snapshot;
 use js_sys::Uint8ClampedArray;
@@ -166,7 +165,7 @@ impl GameBoyHandle {
 
         let mut frame = Frame::new(160, 144);
         let frame_handle = Box::new(
-            move |data: &BoxedArray<u8, 69120>, #[cfg(feature = "debug_frame")] dbg_data: &[u8]| {
+            move |data: &Box<[u8; 69120]>, #[cfg(feature = "debug_frame")] dbg_data: &[u8]| {
                 let width = canvas.width() as f64;
                 let height = canvas.height() as f64;
                 frame.render_canvas_with_rgb(data.as_ref(), &canvas_context, width, height);
