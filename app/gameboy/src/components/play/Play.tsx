@@ -10,8 +10,8 @@ import { storage } from "gameboy/storage/indexdb";
 import { appStore, useAppStore } from "gameboy/store/app";
 import { loadGames } from "gameboy/store/game";
 import { settingsStore } from "gameboy/store/settings";
-import type { CSSProperties } from "react";
-import { forwardRef, useEffect, useRef } from "react";
+import type { CSSProperties, Ref } from "react";
+import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { PlayOperationBar } from "./PlayOperationBar";
 import {
@@ -28,21 +28,19 @@ export interface IPagePlayProps {
   style?: CSSProperties;
 }
 
-const DebugCanvas = forwardRef<HTMLCanvasElement, unknown>(
-  function DebugCanvas(_, ref) {
-    const showDebugCanvas =
-      new URLSearchParams(window.location.search).get("dbg") === "+";
+function DebugCanvas({ ref }: { ref: Ref<HTMLCanvasElement> }) {
+  const showDebugCanvas =
+    new URLSearchParams(window.location.search).get("dbg") === "+";
 
-    return showDebugCanvas ? (
-      <canvas
-        ref={ref}
-        style={{ position: "absolute", left: 10, bottom: 10 }}
-        height={256 + 10 + 256}
-        width={256 + 10 + 40}
-      />
-    ) : null;
-  },
-);
+  return showDebugCanvas ? (
+    <canvas
+      ref={ref}
+      style={{ position: "absolute", left: 10, bottom: 10 }}
+      height={256 + 10 + 256}
+      width={256 + 10 + 40}
+    />
+  ) : null;
+}
 
 export function Play(props: IPagePlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

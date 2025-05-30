@@ -1,18 +1,18 @@
-import type { CSSProperties, ReactNode } from "react";
-import { forwardRef } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 
 export const SCALE = 2;
 const RESOLUTION_X = 160;
 const RESOLUTION_Y = 144;
 
-const Screen = forwardRef<
-  HTMLCanvasElement,
-  {
-    style?: CSSProperties;
-    left?: ReactNode;
-    right?: ReactNode;
-  }
->(function Screen(props, ref) {
+export function Screen({
+  ref,
+  ...props
+}: {
+  ref?: Ref<HTMLCanvasElement>;
+  style?: CSSProperties;
+  left?: ReactNode;
+  right?: ReactNode;
+}) {
   return (
     <div className="flex-center" style={props.style}>
       {props.left}
@@ -25,6 +25,4 @@ const Screen = forwardRef<
       {props.right}
     </div>
   );
-});
-
-export { Screen };
+}

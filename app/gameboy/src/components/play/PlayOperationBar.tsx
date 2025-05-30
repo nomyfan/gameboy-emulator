@@ -16,9 +16,9 @@ import { useStore } from "zustand";
 import { gameboy, takeSnapshot } from "./actions";
 
 export function PlayOperationBar(props: {
-  canvasRef: RefObject<HTMLCanvasElement>;
-  snapshotsModalRef: RefObject<ISnapshotsModalRef>;
-  exitGameModalRef: RefObject<IExitGameModalRef>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+  snapshotsModalRef: RefObject<ISnapshotsModalRef | null>;
+  exitGameModalRef: RefObject<IExitGameModalRef | null>;
 }) {
   const canvasRef = props.canvasRef;
   const snapshotsModalRef = props.snapshotsModalRef;
