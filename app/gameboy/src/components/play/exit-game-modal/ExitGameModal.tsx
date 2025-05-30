@@ -12,7 +12,7 @@ export interface IExitGameModalRef {
 
 export function ExitGameModal({ ref }: { ref: Ref<IExitGameModalRef> }) {
   const [open, setOpen] = useState(false);
-  const onClose = useRef<(action: IAction) => void>();
+  const onClose = useRef<(action: IAction) => void>(undefined);
 
   useImperativeHandle(ref, () => ({
     open: () => {

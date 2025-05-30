@@ -26,7 +26,7 @@ export interface ISnapshotsModalRef {
 
 export function SnapshotsModal({ ref, ...props }: ISnapshotsModalProps) {
   const [open, setOpen] = useState(false);
-  const onClose = useRef<() => void>();
+  const onClose = useRef<() => void>(undefined);
 
   useImperativeHandle(ref, () => ({
     open: () => {

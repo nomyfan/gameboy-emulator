@@ -12,7 +12,7 @@ export interface IExportModalRef {
 
 export function ExportModal({ ref }: { ref: Ref<IExportModalRef> }) {
   const [open, setOpen] = useState(false);
-  const onClose = useRef<() => void>();
+  const onClose = useRef<() => void>(undefined);
 
   useImperativeHandle(ref, () => ({
     open: () => {
