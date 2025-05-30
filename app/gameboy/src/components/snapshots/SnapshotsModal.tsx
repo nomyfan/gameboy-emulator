@@ -8,7 +8,8 @@ import {
 } from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ModalOpenedError } from "gameboy/model/error";
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
+import type { Ref } from "react";
 
 import styles from "./SnapshotModal.module.css";
 import type { ISnapshotsProps } from "./Snapshots";
@@ -16,16 +17,14 @@ import { Snapshots } from "./Snapshots";
 
 export interface ISnapshotsModalProps {
   snapshotsProps: ISnapshotsProps;
+  ref: Ref<ISnapshotsModalRef>;
 }
 
 export interface ISnapshotsModalRef {
   open: () => Promise<void>;
 }
 
-export const SnapshotsModal = forwardRef<
-  ISnapshotsModalRef,
-  ISnapshotsModalProps
->(function SnapshotsModal(props, ref) {
+export function SnapshotsModal({ ref, ...props }: ISnapshotsModalProps) {
   const [open, setOpen] = useState(false);
   const onClose = useRef<() => void>();
 
@@ -81,4 +80,4 @@ export const SnapshotsModal = forwardRef<
       </DialogPortal>
     </Dialog>
   );
-});
+}
