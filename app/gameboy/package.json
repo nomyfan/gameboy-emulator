@@ -25,7 +25,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-visually-hidden": "^1.2.3",
     "@tanstack/react-query": "^5.62.0",
-    "@zip.js/zip.js": "^2.7.53",
+    "@zip.js/zip.js": "^2.7.62",
     "class-variance-authority": "^0.7.1",
     "crc-32": "^1.2.2",
     "dayjs": "^1.11.13",
