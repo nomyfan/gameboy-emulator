@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-oxc";
 import UnoCSS from "unocss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       allow: ["../.."],
     },
   },
-  esbuild: {
+  oxc: {
     target: "es2017",
   },
   resolve: {
