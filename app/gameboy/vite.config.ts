@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-oxc";
 import UnoCSS from "unocss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       allow: ["../.."],
     },
   },
-  esbuild: {
+  oxc: {
     target: "es2017",
   },
   resolve: {
@@ -71,38 +71,33 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          const matchers = [
+        advancedChunks: {
+          groups: [
             {
-              reg: /\/(react-dom)|(react)\//,
               name: "react",
+              test: /\/(react-dom)|(react)\//,
             },
             {
-              reg: /\/(zustand)|(immer)\//,
               name: "store",
+              test: /\/(zustand)|(immer)\//,
             },
             {
-              reg: /\/(dexie)\//,
               name: "storage",
+              test: /\/(dexie)\//,
             },
             {
-              reg: /\/@radix-ui\//,
               name: "ui",
+              test: /\/@radix-ui\//,
             },
             {
-              reg: /\/rxjs\//,
-              name: "rx",
+              name: "rxjs",
+              test: /\/rxjs\//,
             },
             {
-              reg: /\/react-query\//,
-              name: "query",
+              name: "react-query",
+              test: /\/react-query\//,
             },
-          ];
-          for (const matcher of matchers) {
-            if (matcher.reg.test(id)) {
-              return matcher.name;
-            }
-          }
+          ],
         },
       },
     },

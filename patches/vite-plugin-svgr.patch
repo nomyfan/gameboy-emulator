@@ -1,0 +1,72 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 9c46d71583fa9d98795d01610fa267e4e0089402..de9eea377e5275b45d2fc4949f002153b76386c6 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -30,7 +30,7 @@ exports.default = vitePluginSvgr;
+ const pluginutils_1 = require("@rollup/pluginutils");
+ const fs_1 = __importDefault(require("fs"));
+ const vite_1 = require("vite");
+-function vitePluginSvgr({ svgrOptions, esbuildOptions, include = "**/*.svg?react", exclude, } = {}) {
++function vitePluginSvgr({ svgrOptions, oxcOptions, include = "**/*.svg?react", exclude, } = {}) {
+     const filter = (0, pluginutils_1.createFilter)(include, exclude);
+     const postfixRE = /[?#].*$/s;
+     return {
+@@ -48,9 +48,9 @@ function vitePluginSvgr({ svgrOptions, esbuildOptions, include = "**/*.svg?react
+                         defaultPlugins: [jsx],
+                     },
+                 });
+-                const res = await (0, vite_1.transformWithEsbuild)(componentCode, id, {
+-                    loader: "jsx",
+-                    ...esbuildOptions,
++                const res = await (0, vite_1.transformWithOxc)(componentCode, id, {
++                    lang: "jsx",
++                    ...oxcOptions,
+                 });
+                 return {
+                     code: res.code,
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index b41823344dfde16f304eb215d8b4d7f15670dd6c..2bfff3d9e6b845dac3d18d2c2856df8eef77058a 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1,11 +1,11 @@
+ import { FilterPattern } from "@rollup/pluginutils";
+ import type { Config } from "@svgr/core";
+ import type { Plugin } from "vite";
+-import { transformWithEsbuild } from "vite";
++import { transformWithOxc } from "vite";
+ export interface VitePluginSvgrOptions {
+     svgrOptions?: Config;
+-    esbuildOptions?: Parameters<typeof transformWithEsbuild>[2];
++    oxcOptions?: Parameters<typeof transformWithOxc>[2];
+     exclude?: FilterPattern;
+     include?: FilterPattern;
+ }
+-export default function vitePluginSvgr({ svgrOptions, esbuildOptions, include, exclude, }?: VitePluginSvgrOptions): Plugin;
++export default function vitePluginSvgr({ svgrOptions, oxcOptions, include, exclude, }?: VitePluginSvgrOptions): Plugin;
+diff --git a/dist/index.js b/dist/index.js
+index 82a639574f71b4fadb66e770baf26eab2cf7ba1b..521988c5e4d580ef9800612a6b57739ed85ec69a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1,7 +1,7 @@
+ import { createFilter } from "@rollup/pluginutils";
+ import fs from "fs";
+-import { transformWithEsbuild } from "vite";
+-export default function vitePluginSvgr({ svgrOptions, esbuildOptions, include = "**/*.svg?react", exclude, } = {}) {
++import { transformWithOxc } from "vite";
++export default function vitePluginSvgr({ svgrOptions, oxcOptions, include = "**/*.svg?react", exclude, } = {}) {
+     const filter = createFilter(include, exclude);
+     const postfixRE = /[?#].*$/s;
+     return {
+@@ -19,9 +19,9 @@ export default function vitePluginSvgr({ svgrOptions, esbuildOptions, include =
+                         defaultPlugins: [jsx],
+                     },
+                 });
+-                const res = await transformWithEsbuild(componentCode, id, {
+-                    loader: "jsx",
+-                    ...esbuildOptions,
++                const res = await transformWithOxc(componentCode, id, {
++                    lang: "jsx",
++                    ...oxcOptions,
+                 });
+                 return {
+                     code: res.code,
