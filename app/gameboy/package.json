@@ -43,7 +43,7 @@
   "devDependencies": {
     "@iconify-json/ic": "^1.2.2",
     "@types/lodash.clonedeep": "^4.5.9",
-    "@types/node": "^20.17.57",
+    "@types/node": "^20.19.0",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "@unocss/preset-icons": "^66.1.3",
