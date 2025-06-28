@@ -15,24 +15,9 @@
     "indentStyle": "space"
   },
   "organizeImports": {
-    "enabled": true
+    "enabled": false
   },
   "linter": {
-    "enabled": true,
-    "ignore": ["postcss.config.js", "uno.config.ts", "vite.config.ts"],
-    "rules": {
-      "recommended": true,
-      "style": {
-        "noDefaultExport": "error",
-        "noParameterAssign": "warn"
-      },
-      "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedImports": "error"
-      },
-      "a11y": {
-        "all": false
-      }
-    }
+    "enabled": false
   }
 }

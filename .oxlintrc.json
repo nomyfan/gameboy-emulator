@@ -1,0 +1,7 @@
+{
+  "rules": {
+    "no-unused-vars": "warn",
+    "import/no-default-export": "error"
+  },
+  "ignorePatterns": ["postcss.config.js", "uno.config.ts", "vite.config.ts"]
+}
