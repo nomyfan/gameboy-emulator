@@ -19,13 +19,13 @@ gb_console_log = { path = "crates/gb_console_log" }
 gb_cpu_sm83 = { path = "crates/gb_cpu_sm83" }
 gb_ppu = { path = "crates/gb_ppu" }
 gb_shared = { path = "crates/gb_shared" }
-log = { version = "0.4.27" }
+log = { version = "0.4.28" }
 anyhow = "1.0.100"
-mockall = "0.12.1"
+mockall = "0.13.1"
 web-time = "1.1.0"
 wasm-bindgen = "=0.2.100"
 bincode = "1.3.3"
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.227", features = ["derive"] }
 web-sys = { version = "0.3.69" }
 
 [profile.release]
