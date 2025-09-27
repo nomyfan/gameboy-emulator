@@ -10,8 +10,6 @@
     "husky": "^9.1.7"
   },
   "pnpm": {
-    "patchedDependencies": {
-      "vite-plugin-svgr": "patches/vite-plugin-svgr.patch"
-    }
+    "patchedDependencies": {}
   }
 }
