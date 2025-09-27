@@ -61,18 +61,6 @@ export function join<T>(
   return newArray;
 }
 
-export function freeableToDisposable<T extends { free: () => void }>(
-  obj: T,
-): Omit<T, "free"> & Disposable {
-  return Object.create(obj, {
-    [Symbol.dispose]: {
-      value: () => {
-        obj.free();
-      },
-    },
-  });
-}
-
 export function flowAsync<Args extends unknown[], R, U>(
   f: (...args: Args) => Promise<R>,
   g: (arg: R) => Promise<U>,
