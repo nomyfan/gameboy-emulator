@@ -3,7 +3,7 @@ import { Dexie } from "dexie";
 import type { IZipDataEntry } from "gameboy/fs/zip";
 import { unzip, zip } from "gameboy/fs/zip";
 import type { IGame, IGameBoyStorage, ISnapshot } from "gameboy/model";
-import { crc32, flowAsync, freeableToDisposable, hash } from "gameboy/utils";
+import { crc32, flowAsync, hash } from "gameboy/utils";
 import { obtainMetadata } from "gb_wasm";
 
 type IPackManifest = {
@@ -165,10 +165,8 @@ class GameBoyStorage implements IGameBoyStorage {
   }
 
   async installGame(rom: Blob): Promise<boolean> {
-    using metadata = await rom
-      .arrayBuffer()
-      .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90))
-      .then((o) => freeableToDisposable(o));
+    const romBuf = await rom.arrayBuffer();
+    const metadata = await obtainMetadata(new Uint8ClampedArray(romBuf), 90);
 
     const id = await hash(rom);
 
@@ -276,11 +274,8 @@ class GameBoyStorage implements IGameBoyStorage {
     if (manifest.game.rom) {
       // biome-ignore lint/style/noNonNullAssertion: It must exist in the pack if it's exported by us.
       const rom = (await reader.getBlob("game/rom"))!;
-      using metadata = await rom
-        .arrayBuffer()
-        .then((buf) => obtainMetadata(new Uint8ClampedArray(buf), 90))
-        .then((o) => freeableToDisposable(o));
-
+      const romBuf = await rom.arrayBuffer();
+      const metadata = await obtainMetadata(new Uint8ClampedArray(romBuf), 90);
       const sav = await reader.getUint8Array("game/sav");
       txAction = async () => {
         if (!game) {

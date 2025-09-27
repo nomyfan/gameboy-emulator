@@ -60,15 +60,30 @@ export class ZipKvReader {
   }
 
   async getBlob(name: string) {
-    return this.entries.get(name)?.getData?.(new BlobWriter());
+    const entry = this.entries.get(name);
+    if (!entry) return undefined;
+    if (entry.directory) {
+      throw new Error(`Entry ${name} is a directory`);
+    }
+    return entry.getData(new BlobWriter());
   }
 
   async getUint8Array(name: string) {
-    return this.entries.get(name)?.getData?.(new Uint8ArrayWriter());
+    const entry = this.entries.get(name);
+    if (!entry) return undefined;
+    if (entry.directory) {
+      throw new Error(`Entry ${name} is a directory`);
+    }
+    return entry.getData(new Uint8ArrayWriter());
   }
 
   async getText(name: string) {
-    return this.entries.get(name)?.getData?.(new TextWriter());
+    const entry = this.entries.get(name);
+    if (!entry) return undefined;
+    if (entry.directory) {
+      throw new Error(`Entry ${name} is a directory`);
+    }
+    return entry.getData(new TextWriter());
   }
 
   async getObject<T extends IZipDataObject>(name: string) {
