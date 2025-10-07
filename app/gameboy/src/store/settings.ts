@@ -16,6 +16,10 @@ export type ISettings = {
    * Hide action buttons by default for non-mobile devices.
    */
   hideActionButtons: boolean;
+  /**
+   * Game speed multiplier. 1 for normal speed, 2 for double speed, etc.
+   */
+  speed: number;
 };
 
 function createStore() {
@@ -51,6 +55,7 @@ function createStore() {
         autoPause: true,
         coerceBwColors: false,
         hideActionButtons: !isMobile(),
+        speed: 1,
       },
       settingsStr ? JSON.parse(settingsStr) : null,
     );
