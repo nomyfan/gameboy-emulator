@@ -34,7 +34,7 @@ impl WaveRam {
 
     fn next_position(&mut self) -> u8 {
         let value = self.ram[self.index as usize / 2];
-        let value = if self.index % 2 == 0 { value >> 4 } else { value & 0x0F };
+        let value = if self.index.is_multiple_of(2) { value >> 4 } else { value & 0x0F };
 
         self.index = (self.index + 1) % 32;
         value

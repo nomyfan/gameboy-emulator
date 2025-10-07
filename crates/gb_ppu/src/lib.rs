@@ -16,7 +16,7 @@ use object::ObjectSnapshot;
 use palette::{Palette, PaletteSnapshot};
 use vram::{BackgroundAttrs, VideoRam, VideoRamSnapshot};
 
-pub type VideoFrame = Box<[u8; 69120]>; // 160 * 144 * 3
+pub type VideoFrame = [u8; 69120]; // 160 * 144 * 3
 
 #[cfg(feature = "debug_frame")]
 pub type FrameHandle = dyn FnMut(&VideoFrame, &[u8]);
@@ -61,7 +61,7 @@ pub struct Ppu {
     /// PPU work state.
     work_state: PpuWorkState,
     /// Storing palettes.
-    video_buffer: VideoFrame,
+    video_buffer: Box<VideoFrame>,
     #[cfg(feature = "debug_frame")]
     dbg_video_buffer: Vec<u8>,
 
@@ -74,7 +74,7 @@ pub struct Ppu {
 
 impl Default for Ppu {
     fn default() -> Self {
-        let mut video_buffer: VideoFrame = box_array![u8; 69120];
+        let mut video_buffer: Box<VideoFrame> = box_array![u8; 69120];
         video_buffer.fill(0xFF);
 
         let machine_model = MachineModel::DMG;
@@ -280,7 +280,9 @@ impl Ppu {
         }
 
         // https://gbdev.io/pandocs/OAM.html#:~:text=up%20to%2010%20objects%20to%20be%20drawn%20on%20that%20line
-        if self.work_state.scanline_dots % 2 == 0 && self.work_state.scanline_objects.len() < 10 {
+        if self.work_state.scanline_dots.is_multiple_of(2)
+            && self.work_state.scanline_objects.len() < 10
+        {
             let obj_size = self.lcd.object_size();
             let object_index = (self.work_state.scanline_dots as usize - 1) / 2;
             let object = unsafe {

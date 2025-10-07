@@ -45,10 +45,10 @@ pub(crate) struct LCD {
     /// - Bit 3 - Mode 0 HBlank STAT Interrupt source  (1=Enable) (Read/Write)
     /// - Bit 2 - LYC=LY Flag                          (0=Different, 1=Equal) (Read Only)
     /// - Bit 1-0 - Mode Flag                          (Mode 0-3, see below) (Read Only)
-    ///           0: HBlank
-    ///           1: VBlank
-    ///           2: Searching OAM
-    ///           3: Transferring Data to LCD Controller
+    ///   0: HBlank
+    ///   1: VBlank
+    ///   2: Searching OAM
+    ///   3: Transferring Data to LCD Controller
     pub(crate) stat: u8,
     /// Read only, LCD Y coordinate, at 0xFF44, representing current scanline.
     ///
