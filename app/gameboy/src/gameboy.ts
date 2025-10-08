@@ -175,6 +175,7 @@ class GameBoyControl {
       this.handle_.free();
       this.handle_ = undefined;
     }
+    this.installManifest = undefined;
     this.store_.setState({ status: "uninstalled" });
   }
 
