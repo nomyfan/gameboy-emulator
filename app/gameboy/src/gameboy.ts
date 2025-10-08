@@ -64,6 +64,7 @@ class GameBoyControl {
       async (speed) => {
         if (!this.installManifest) return;
 
+        const isPlaying = this.state.status === "playing";
         const snapshot = this.takeSnapshot();
         this.uninstall();
 
@@ -71,7 +72,9 @@ class GameBoyControl {
         const { rom, canvas, dbgCanvas } = this.installManifest;
         await this.install(rom, canvas, undefined, dbgCanvas);
         this.restoreSnapshot(snapshot);
-        this.play();
+        if (isPlaying) {
+          this.play();
+        }
       },
     );
   }
