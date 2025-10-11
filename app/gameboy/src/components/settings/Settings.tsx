@@ -40,7 +40,7 @@ export function Settings() {
             value={ETabs.Controller}
             className={cn(
               "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
-              "[&[data-state=active]]:(border-primary font-medium)",
+              "data-[state=active]:border-primary data-[state=active]:font-medium",
             )}
           >
             控制器
@@ -49,7 +49,7 @@ export function Settings() {
             value={ETabs.Mics}
             className={cn(
               "block w-full text-left border-l-[3px] border-solid border-transparent px-3 py-1.5",
-              "[&[data-state=active]]:(border-primary font-medium)",
+              "data-[state=active]:border-primary data-[state=active]:font-medium",
             )}
           >
             其他
@@ -60,7 +60,7 @@ export function Settings() {
           value={ETabs.Controller}
           className={cn(
             "flex flex-col grow py-1.5 outline-0",
-            "[&[data-state=inactive]]:hidden",
+            "data-[state=inactive]:hidden",
           )}
         >
           (Coming soon...)
@@ -69,7 +69,7 @@ export function Settings() {
           value={ETabs.Mics}
           className={cn(
             "flex flex-col grow py-1.5 outline-0",
-            "[&[data-state=inactive]]:hidden",
+            "data-[state=inactive]:hidden",
           )}
         >
           <form style={{ flexGrow: 1 }}>

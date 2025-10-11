@@ -27,7 +27,7 @@ export function OperationBar(props: IOperationBarProps) {
             <li
               key={item.id}
               className={cn(
-                "bg-white rounded-full p6px inline-flex justify-center items-center mx-1",
+                "bg-white rounded-full p-[6px] inline-flex justify-center items-center mx-1",
                 item.alert ? "text-alert" : "text-text",
               )}
               onClick={(evt) => {
@@ -46,7 +46,7 @@ export function OperationBar(props: IOperationBarProps) {
       <Separator
         key={`${item.key}-separator`}
         orientation="vertical"
-        className="w-2px h-18px bg-white mx-5px"
+        className="w-[2px] h-[18px] bg-white mx-[5px]"
       />
     ));
   };

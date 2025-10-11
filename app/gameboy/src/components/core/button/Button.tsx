@@ -4,7 +4,7 @@ import type { ExcludeNullValue } from "gameboy/types";
 import type { ButtonHTMLAttributes } from "react";
 
 const buttonVariants = cva(
-  "py-2 px-4 font-medium text-sm rounded-md flex items-center gap-1 disabled:op-50 disabled:pointer-events-none",
+  "py-2 px-4 font-medium text-sm rounded-md flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none",
   {
     variants: {
       variant: {

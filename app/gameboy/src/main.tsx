@@ -2,8 +2,7 @@ import init, { init_panic_hook, init_log } from "gb_wasm";
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import "@unocss/reset/tailwind.css";
-import "virtual:uno.css";
+import "./index.css";
 import { App } from "./App";
 
 function initLog() {

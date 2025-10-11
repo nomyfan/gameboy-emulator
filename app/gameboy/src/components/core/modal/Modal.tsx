@@ -62,8 +62,8 @@ export function Modal(props: {
           {props.fullscreen ? (
             props.children
           ) : (
-            <div className="max-w-lg min-w-xs absolute-center bg-bg py-5 px-6 rounded">
-              <h1 className="mb-6 mt-0 text-6 font-bold">{props.title}</h1>
+            <div className="max-w-lg min-w-xs absolute-center bg-bg py-5 px-6 rounded-sm">
+              <h1 className="mb-6 mt-0 text-2xl font-bold">{props.title}</h1>
               <div className="my-6 text-sm font-medium">{props.children}</div>
 
               <div className="mt-6">{renderFooter()}</div>

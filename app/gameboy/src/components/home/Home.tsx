@@ -38,21 +38,21 @@ export function Home() {
       items.push([
         {
           id: "play",
-          icon: <i className="i-ic:outline-play-arrow" />,
+          icon: <i className="iconify ic--outline-play-arrow" />,
           onClick: async () => {
             await openPlayModal();
           },
         },
         {
           id: "snapshots",
-          icon: <i className="i-ic:baseline-manage-history" />,
+          icon: <i className="iconify ic--baseline-manage-history" />,
           onClick: () => {
             snapshotsModalRef.current?.open();
           },
         },
         {
           id: "delete",
-          icon: <i className="i-ic:baseline-delete-forever" />,
+          icon: <i className="iconify ic--baseline-delete-forever" />,
           alert: true,
           onClick: async () => {
             await openConfirmModal({
@@ -64,7 +64,7 @@ export function Home() {
         },
         {
           id: "export-backup",
-          icon: <i className="i-ic:baseline-file-present" />,
+          icon: <i className="iconify ic--baseline-file-present" />,
           onClick: async () => {
             await exportModalRef.current?.open();
           },
@@ -75,7 +75,7 @@ export function Home() {
     items.push([
       {
         id: "add",
-        icon: <i className="i-ic:baseline-playlist-add" />,
+        icon: <i className="iconify ic--baseline-playlist-add" />,
         onClick: async () => {
           let files: File[] | null = null;
           try {
@@ -112,21 +112,21 @@ export function Home() {
       isFullscreen
         ? {
             id: "exit-fullscreen",
-            icon: <i className="i-ic:baseline-fullscreen-exit" />,
+            icon: <i className="iconify ic--baseline-fullscreen-exit" />,
             onClick: async () => {
               await document.exitFullscreen();
             },
           }
         : {
             id: "fullscreen",
-            icon: <i className="i-ic:baseline-fullscreen" />,
+            icon: <i className="iconify ic--baseline-fullscreen" />,
             onClick: async () => {
               await document.body.requestFullscreen();
             },
           },
       {
         id: "settings",
-        icon: <i className="i-ic:outline-settings" />,
+        icon: <i className="iconify ic--outline-settings" />,
         onClick: async () => {
           await openSettingsModal();
         },
@@ -154,7 +154,7 @@ export function Home() {
           selectCartridge();
         }}
       >
-        <OperationBar className="text-6 py-3" items={items} />
+        <OperationBar className="text-2xl py-3" items={items} />
       </section>
 
       <SnapshotsModal
@@ -190,7 +190,7 @@ export function Home() {
               },
             },
             {
-              icon: <i className="i-ic:baseline-delete-forever" />,
+              icon: <i className="iconify ic--baseline-delete-forever" />,
               label: "删除",
               alert: true,
               onClick: async (snapshot, { refresh }) => {
