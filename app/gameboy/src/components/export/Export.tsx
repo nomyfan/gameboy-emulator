@@ -174,10 +174,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
   return (
     <div className="w-screen h-screen bg-bg p-2">
       <div className="grid grid-cols-[max-content_1fr] grid-rows-[auto_auto_1fr_auto] gap-2 h-full">
-        <label
-          className="font-semibold text-lg mb-2.5 mr-2"
-          htmlFor={`${id}ROM`}
-        >
+        <label className="font-semibold text-lg mr-2" htmlFor={`${id}ROM`}>
           ROM
         </label>
         <Switch
@@ -187,7 +184,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
         />
 
         <label
-          className="font-semibold text-lg mb-2.5 mr-2 row-start-2"
+          className="font-semibold text-lg mr-2 row-start-2"
           htmlFor={`${id}SAV`}
         >
           游戏存档
@@ -201,7 +198,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
 
         {snapshots?.length !== 0 && (
           <div className="row-start-3 row-end-3 col-start-1 col-end-3 flex flex-col">
-            <label className="font-semibold text-lg mb-2.5 flex items-center">
+            <label className="font-semibold text-lg flex items-center">
               快照存档
               <IconCheck
                 checked={selectedAll}
