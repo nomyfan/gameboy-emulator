@@ -16,9 +16,7 @@ function Button(props: {
         onMouseUp={() => props.onUp?.()}
         onTouchEnd={() => props.onUp?.()}
       />
-      <label
-        className="font-bold text-[12px] block w-full text-center text-shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),2px_2px_4px_rgba(0,0,0,0.25)]"
-      >
+      <label className="font-bold text-[12px] block w-full text-center text-shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),2px_2px_4px_rgba(0,0,0,0.25)]">
         {props.label}
       </label>
     </div>

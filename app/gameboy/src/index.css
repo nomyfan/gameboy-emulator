@@ -22,7 +22,8 @@
   --animate-scale: scale 1s ease-in-out infinite;
 
   @keyframes scale {
-    0%, 100% {
+    0%,
+    100% {
       transform: scaleY(0.4);
       opacity: 0.75;
     }
