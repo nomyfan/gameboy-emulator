@@ -8,15 +8,15 @@ function Button(props: {
   onUp?: () => void;
 }) {
   return (
-    <div className="w-fit transform-rotate--25deg" style={props.style}>
+    <div className="w-fit -rotate-[25deg]" style={props.style}>
       <button
-        className="h-15px w-65px bg-#9f9aaf block rounded-1 shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),2px_2px_4px_rgba(0,0,0,0.25)]"
+        className="h-[15px] w-[65px] bg-[#9f9aaf] block rounded-sm shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),2px_2px_4px_rgba(0,0,0,0.25)]"
         onMouseDown={() => props.onDown?.()}
         onTouchStart={() => props.onDown?.()}
         onMouseUp={() => props.onUp?.()}
         onTouchEnd={() => props.onUp?.()}
       />
-      <label className="font-bold text-12px block w-full text-center text-shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),2px_2px_4px_rgba(0,0,0,0.25)]">
+      <label className="font-bold text-[12px] block w-full text-center text-shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),2px_2px_4px_rgba(0,0,0,0.25)]">
         {props.label}
       </label>
     </div>

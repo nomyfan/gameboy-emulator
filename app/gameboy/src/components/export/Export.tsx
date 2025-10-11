@@ -36,7 +36,7 @@ function SnapshotCard(props: {
 
   return (
     <div
-      className="h-35 bg-primary relative rounded-2"
+      className="h-35 bg-primary relative rounded-lg"
       style={{
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -44,7 +44,7 @@ function SnapshotCard(props: {
       }}
     >
       <div className="absolute left-0 right-0 top-0 bottom-0 flex flex-col justify-between">
-        <div className="flex bg-bg/40 backdrop-blur-sm p-0.5 text-white rounded-t-2">
+        <div className="flex bg-bg/40 backdrop-blur-sm p-0.5 text-white rounded-t-lg">
           <IconCheck
             checked={props.selected}
             onClick={() => {
@@ -53,21 +53,21 @@ function SnapshotCard(props: {
           />
         </div>
 
-        <div className="text-xs font-medium bg-bg/40 backdrop-blur-sm p-1 flex items-end rounded-b-2">
-          <div className="of-hidden whitespace-nowrap text-ellipsis shrink grow">
+        <div className="text-xs font-medium bg-bg/40 backdrop-blur-sm p-1 flex items-end rounded-b-lg">
+          <div className="overflow-hidden whitespace-nowrap text-ellipsis shrink grow">
             {data.name}
           </div>
 
           <Popover>
             <PopoverTrigger>
-              <div className="i-ic-baseline-info text-5" />
+              <i className="iconify ic--baseline-info text-xl" />
             </PopoverTrigger>
 
             <PopoverPortal>
               <PopoverContent
                 className={cn(
                   styles.PopoverContent,
-                  "bg-white shadow-lg rounded-md p-3 text-sm grid cols-[max-content_auto] gap-x-3",
+                  "bg-white shadow-lg rounded-md p-3 text-sm grid grid-cols-[max-content_auto] gap-x-3",
                 )}
               >
                 <label>名称</label>
@@ -173,11 +173,8 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
 
   return (
     <div className="w-screen h-screen bg-bg p-2">
-      <div className="grid cols-[max-content_1fr] rows-[auto_auto_1fr_auto] gap-2 h-full">
-        <label
-          className="font-semibold text-lg md-2.5 mr-2"
-          htmlFor={`${id}ROM`}
-        >
+      <div className="grid grid-cols-[max-content_1fr] grid-rows-[auto_auto_1fr_auto] gap-2 h-full">
+        <label className="font-semibold text-lg mr-2" htmlFor={`${id}ROM`}>
           ROM
         </label>
         <Switch
@@ -187,7 +184,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
         />
 
         <label
-          className="font-semibold text-lg md-2.5 mr-2 row-start-2"
+          className="font-semibold text-lg mr-2 row-start-2"
           htmlFor={`${id}SAV`}
         >
           游戏存档
@@ -201,7 +198,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
 
         {snapshots?.length !== 0 && (
           <div className="row-start-3 row-end-3 col-start-1 col-end-3 flex flex-col">
-            <label className="font-semibold text-lg md-2.5 flex items-center">
+            <label className="font-semibold text-lg flex items-center">
               快照存档
               <IconCheck
                 checked={selectedAll}
@@ -216,7 +213,7 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
               />
             </label>
 
-            <div className="basis-0 grow grid cols-[repeat(auto-fill,minmax(8.75rem,1fr))] auto-rows-max gap-2 of-y-auto">
+            <div className="basis-0 grow grid grid-cols-[repeat(auto-fill,minmax(8.75rem,1fr))] auto-rows-max gap-2 overflow-y-auto">
               {snapshots?.map((s) => {
                 return (
                   <SnapshotCard

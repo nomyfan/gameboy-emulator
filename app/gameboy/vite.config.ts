@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
 import react from "@vitejs/plugin-react";
-import UnoCSS from "unocss/vite";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
     "process.env.NODE_ENV": JSON.stringify(mode),
   },
   plugins: [
-    UnoCSS(),
+    tailwindcss(),
     svgr(),
     react(),
     VitePWA({

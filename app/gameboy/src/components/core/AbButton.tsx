@@ -8,7 +8,7 @@ function Button(props: {
 }) {
   return (
     <button
-      className="rounded-full bg-#9B0757 w-50px h-50px shadow-[3px_3px_4px_rgba(0,0,0,0.25)]"
+      className="rounded-full bg-[#9B0757] w-[50px] h-[50px] shadow-[3px_3px_4px_rgba(0,0,0,0.25)]"
       style={props.style}
       onMouseDown={() => props.onDown?.()}
       onTouchStart={() => props.onDown?.()}
@@ -21,7 +21,7 @@ function Button(props: {
 function ButtonLabel(props: { children?: ReactNode; style?: CSSProperties }) {
   return (
     <label
-      className="w-45px text-shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),3px_3px_4px_rgba(0,0,0,0.25)]"
+      className="w-[45px] text-shadow-[-2px_-2px_4px_rgba(255,255,255,0.25),3px_3px_4px_rgba(0,0,0,0.25)]"
       style={props.style}
     >
       {props.children}
@@ -50,7 +50,7 @@ function AbButton(props: {
           onUp={() => props.onUp?.("A")}
         />
 
-        <div className="flex justify-between text-center w-full absolute bottom--30px">
+        <div className="flex justify-between text-center w-full absolute -bottom-[30px]">
           <ButtonLabel style={{ width: LABEL_WIDTH }}>B</ButtonLabel>
           <ButtonLabel style={{ width: LABEL_WIDTH }}>A</ButtonLabel>
         </div>

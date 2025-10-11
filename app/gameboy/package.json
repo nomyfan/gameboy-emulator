@@ -42,19 +42,18 @@
   },
   "devDependencies": {
     "@iconify-json/ic": "^1.2.4",
+    "@iconify/tailwind4": "^1.0.6",
+    "@tailwindcss/vite": "^4.1.14",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/node": "^20.17.57",
     "@types/react": "^19.1.14",
     "@types/react-dom": "^19.1.9",
-    "@unocss/preset-icons": "^66.5.2",
-    "@unocss/reset": "^66.5.2",
-    "@unocss/transformer-variant-group": "^66.5.2",
     "@vitejs/plugin-react": "^5.0.3",
     "autoprefixer": "^10.4.21",
     "lint-staged": "^15.5.2",
     "postcss": "^8.5.4",
+    "tailwindcss": "^4.1.14",
     "typescript": "^5.8.3",
-    "unocss": "^66.5.2",
     "vite": "npm:rolldown-vite@6.3.14",
     "vite-plugin-pwa": "^1.0.3",
     "vite-plugin-svgr": "^4.5.0",
@@ -62,6 +61,8 @@
     "workbox-window": "^7.3.0"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": ["biome check --fix"]
+    "src/**/*.{ts,tsx}": [
+      "biome check --fix"
+    ]
   }
 }

@@ -35,9 +35,9 @@ export function PlayOperationBar(props: {
         {
           id: "mute-unmute",
           icon: muted ? (
-            <i className="i-ic:outline-volume-up" />
+            <i className="iconify ic--outline-volume-up" />
           ) : (
-            <i className="i-ic:outline-volume-off" />
+            <i className="iconify ic--outline-volume-off" />
           ),
           onClick: () => {
             gameboy.mute();
@@ -45,7 +45,7 @@ export function PlayOperationBar(props: {
         },
         {
           id: "take-snapshot",
-          icon: <i className="i-ic:outline-save" />,
+          icon: <i className="iconify ic--outline-save" />,
           onClick: async () => {
             await takeSnapshot(canvasRef.current, gameId);
             addToast("已创建存档");
@@ -53,7 +53,7 @@ export function PlayOperationBar(props: {
         },
         {
           id: "snapshots",
-          icon: <i className="i-ic:baseline-manage-history" />,
+          icon: <i className="iconify ic--baseline-manage-history" />,
           onClick: () => {
             snapshotsModalRef.current?.open();
           },
@@ -61,9 +61,9 @@ export function PlayOperationBar(props: {
         {
           id: "play-pause",
           icon: playing ? (
-            <i className="i-ic:outline-pause" />
+            <i className="iconify ic--outline-pause" />
           ) : (
-            <i className="i-ic:outline-play-arrow" />
+            <i className="iconify ic--outline-play-arrow" />
           ),
           onClick: () => {
             if (playing) {
@@ -75,7 +75,7 @@ export function PlayOperationBar(props: {
         },
         {
           id: "exit",
-          icon: <i className="i-ic:outline-exit-to-app rotate-180" />,
+          icon: <i className="iconify ic--outline-exit-to-app rotate-180" />,
           alert: true,
           onClick: async () => {
             gameboy.pause();
@@ -113,7 +113,7 @@ export function PlayOperationBar(props: {
         },
         {
           id: "settings",
-          icon: <i className="i-ic:outline-settings" />,
+          icon: <i className="iconify ic--outline-settings" />,
           onClick: async () => {
             gameboy.pause();
             await openSettingsModal();
@@ -136,15 +136,15 @@ export function PlayOperationBar(props: {
   return (
     <>
       <div
-        className="fixed bottom-10px w-full flex justify-center"
+        className="fixed bottom-[10px] w-full flex justify-center"
         style={{
           visibility: expanded ? "visible" : "hidden",
         }}
       >
-        <div className="bg-white/30 backdrop-blur-md py-2 pr-30px pl-3 rounded-10px relative">
-          <OperationBar items={items} className="text-6" />
+        <div className="bg-white/30 backdrop-blur-md py-2 pr-[30px] pl-3 rounded-[10px] relative">
+          <OperationBar items={items} className="text-2xl" />
           <i
-            className="i-ic:outline-expand-more absolute top-50% right-6px -transform-translate-y-50% text-6"
+            className="iconify ic--outline-expand-more absolute top-1/2 right-[6px] -translate-y-1/2 text-2xl"
             onClick={() => {
               setExpanded(false);
             }}
@@ -153,7 +153,7 @@ export function PlayOperationBar(props: {
       </div>
 
       <i
-        className="i-ic:outline-expand-more fixed bottom-0 left-0 right-0 m-auto transform-rotate-180 text-6"
+        className="iconify ic--outline-expand-more fixed bottom-0 left-0 right-0 m-auto rotate-180 text-2xl"
         style={{
           visibility: expanded ? "hidden" : "visible",
         }}

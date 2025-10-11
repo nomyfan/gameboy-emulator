@@ -10,7 +10,7 @@ function Button(props: {
 }) {
   return (
     <button
-      className={cn("bg-black w-full h-full rounded-1", props.className)}
+      className={cn("bg-black w-full h-full rounded-sm", props.className)}
       style={props.style}
       onMouseDown={() => props.onDown?.()}
       onTouchStart={() => props.onDown?.()}
@@ -25,7 +25,7 @@ function DirectionButton(props: {
   onUp?: (button: IDirectionButton) => void;
 }) {
   return (
-    <div className="grid rows-[44px_40px_44px] cols-[44px_40px_44px]">
+    <div className="grid grid-rows-[44px_40px_44px] grid-cols-[44px_40px_44px]">
       <Button
         key="top"
         className="col-start-2 shadow-[-4px_-4px_4px] shadow-white/25"
@@ -52,7 +52,7 @@ function DirectionButton(props: {
       >
         <div
           key="circle"
-          className="h-30px w-30px rounded-full bg-#e3e1dd shadow-[inset_-4px_-4px_4px_rgba(255,255,255,.25),inset_4px_4px_4px_rgba(0,0,0,.25)]"
+          className="h-[30px] w-[30px] rounded-full bg-[#e3e1dd] shadow-[inset_-4px_-4px_4px_rgba(255,255,255,.25),inset_4px_4px_4px_rgba(0,0,0,.25)]"
         />
       </div>
       <Button

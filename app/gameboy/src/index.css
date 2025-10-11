@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@plugin "@iconify/tailwind4" {
+  prefixes: ic;
+}
+
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
+
+@utility absolute-center {
+  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+}
+
+@theme {
+  --color-primary: #2c2c2c;
+  --color-text: #4b4b4b;
+  --color-alert: #dc3545;
+  --color-bg: #ebebeb;
+  --color-accent: #00ffff;
+
+  --animate-scale: scale 1s ease-in-out infinite;
+
+  @keyframes scale {
+    0%,
+    100% {
+      transform: scaleY(0.4);
+      opacity: 0.75;
+    }
+    50% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+}

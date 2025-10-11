@@ -169,7 +169,7 @@ export function Play(props: IPagePlayProps) {
               },
             },
             {
-              icon: <i className="i-ic:baseline-delete-forever" />,
+              icon: <i className="iconify ic--baseline-delete-forever" />,
               label: "删除",
               alert: true,
               onClick: async (snapshot, { refresh }) => {

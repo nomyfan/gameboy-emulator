@@ -11,12 +11,12 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 
 const actionItemVariants = cva(
-  "min-w-150px bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
+  "min-w-[150px] bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
   {
     variants: {
       alert: {
-        false: "[&[data-highlighted]]:(bg-primary text-white)",
-        true: "text-alert [&[data-highlighted]]:(bg-alert text-white)",
+        false: "data-highlighted:bg-primary data-highlighted:text-white",
+        true: "text-alert data-highlighted:bg-alert data-highlighted:text-white",
       },
     },
     defaultVariants: {
@@ -147,7 +147,7 @@ export function Snapshots(props: ISnapshotsProps) {
     <div className="pt-2 px-2 flex flex-col h-full">
       <h1 className="text-lg font-bold">快照存档</h1>
 
-      <div className="grow shrink-0 basis-0 of-y-auto">
+      <div className="grow shrink-0 basis-0 overflow-y-auto">
         <SnapshotsContext.Provider value={contextValue}>
           {renderItems()}
         </SnapshotsContext.Provider>
