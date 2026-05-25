@@ -131,7 +131,7 @@ impl super::Mbc for Mbc1 {
 struct Mbc1Snapshot {
     bank_mode: u8,
     ram_enabled: bool,
-    bank_num: usize,
+    bank_num: u32,
     ram_banks: Vec<u8>,
     with_battery: bool,
 }
@@ -148,7 +148,7 @@ impl Snapshot for Mbc1 {
         bincode::serialize(&Mbc1Snapshot {
             bank_mode: self.bank_mode,
             ram_enabled: self.ram_enabled,
-            bank_num: self.bank_num,
+            bank_num: self.bank_num as u32,
             ram_banks: ram_banks_snapshot,
             with_battery: self.with_battery,
         })
@@ -162,7 +162,7 @@ impl Snapshot for Mbc1 {
 
         self.bank_mode = bank_mode;
         self.ram_enabled = ram_enabled;
-        self.bank_num = bank_num;
+        self.bank_num = bank_num as usize;
         self.with_battery = with_battery;
 
         ram_banks.chunks(kib(8)).zip(&mut self.ram_banks).for_each(|(src, dst)| {
