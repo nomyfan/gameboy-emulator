@@ -9,10 +9,12 @@ function createGameBoyStore() {
     status: "playing" | "paused" | "installed" | "uninstalled";
     muted: boolean;
     volume: number;
+    speed: number;
   }>(() => ({
     status: "uninstalled",
     muted: false,
     volume: 1,
+    speed: 1,
   }));
 }
 
@@ -31,10 +33,17 @@ class GameBoyControl {
   private changeAudioVolume_: (volume: number) => void = noop;
   private nextTickTime_ = 0;
 
+  private installManifest?: {
+    rom: Uint8ClampedArray;
+    canvas: HTMLCanvasElement;
+    dbgCanvas?: HTMLCanvasElement;
+  };
+
   constructor() {
     this.store_ = createGameBoyStore();
     this.store_.setState({
       volume: settingsStore.getState().volume,
+      speed: settingsStore.getState().speed,
     });
     // Subscribe to settings store changes
     settingsStore.subscribe(
@@ -50,6 +59,24 @@ class GameBoyControl {
         this.handle_?.coerceBwColorsOnDMG(coerce, false);
       },
     );
+    settingsStore.subscribe(
+      (settings) => settings.speed,
+      async (speed) => {
+        if (!this.installManifest) return;
+
+        const isPlaying = this.state.status === "playing";
+        const snapshot = this.takeSnapshot();
+        this.uninstall();
+
+        this.store.setState({ speed });
+        const { rom, canvas, dbgCanvas } = this.installManifest;
+        await this.install(rom, canvas, undefined, dbgCanvas);
+        this.restoreSnapshot(snapshot);
+        if (isPlaying) {
+          this.play();
+        }
+      },
+    );
   }
 
   get state() {
@@ -61,7 +88,7 @@ class GameBoyControl {
     return this.store_;
   }
 
-  private async setupAudio() {
+  private async setupAudio(speed: number) {
     this.audioContext_ = this.audioContext_ ?? new AudioContext();
     if (!this.audioWorkletModuleAdded_) {
       await this.audioContext_.audioWorklet.addModule(
@@ -69,7 +96,7 @@ class GameBoyControl {
       );
       this.audioWorkletModuleAdded_ = true;
     }
-    const sampleRate = this.audioContext_.sampleRate;
+    const sampleRate = Math.floor(this.audioContext_.sampleRate / speed);
     const workletNode = new AudioWorkletNode(
       this.audioContext_,
       "gameboy-audio-processor",
@@ -119,7 +146,8 @@ class GameBoyControl {
     sav?: Uint8Array,
     dbgCanvas?: HTMLCanvasElement,
   ) {
-    const { onAudioData, sampleRate } = await this.setupAudio();
+    this.installManifest = { rom, canvas, dbgCanvas };
+    const { onAudioData, sampleRate } = await this.setupAudio(this.state.speed);
     this.handle_ = GameBoyHandle.create(
       rom,
       canvas,
@@ -147,6 +175,7 @@ class GameBoyControl {
       this.handle_.free();
       this.handle_ = undefined;
     }
+    this.installManifest = undefined;
     this.store_.setState({ status: "uninstalled" });
   }
 
@@ -165,7 +194,7 @@ class GameBoyControl {
 
       const start = performance.now();
       const delayed = this.nextTickTime_ === 0 ? 0 : start - this.nextTickTime_;
-      this.handle_.continue();
+      this.handle_.continue(Math.floor(70224 * this.state.speed));
       const nextTickTime = start + 17 - delayed;
       this.nextTickTime_ = nextTickTime;
 
