@@ -6,7 +6,7 @@
     "genicons": "node genicons.mjs"
   },
   "dependencies": {
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.0",
     "sharp-ico": "^0.1.5"
   }
 }
