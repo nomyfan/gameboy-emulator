@@ -43,7 +43,7 @@
   "devDependencies": {
     "@iconify-json/ic": "^1.2.4",
     "@iconify/tailwind4": "^1.0.6",
-    "@tailwindcss/vite": "^4.1.14",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/node": "^20.17.57",
     "@types/react": "^19.1.14",
@@ -52,7 +52,7 @@
     "autoprefixer": "^10.4.21",
     "lint-staged": "^15.5.2",
     "postcss": "^8.5.4",
-    "tailwindcss": "^4.1.14",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.8.3",
     "vite": "npm:rolldown-vite@6.3.14",
     "vite-plugin-pwa": "^1.0.3",
