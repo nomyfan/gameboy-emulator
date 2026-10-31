@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Comment deploy start
         if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' }}
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@v3
         with:
           message-id: cloudflare-deploy
           message: |
@@ -53,7 +53,7 @@ jobs:
             |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
             ---
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -69,12 +69,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         name: Setup Node.js
         with:
           node-version: "22"
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           run_install: false
@@ -84,7 +84,7 @@ jobs:
         run: |
           echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         name: Setup pnpm cache
         with:
           path: ${{ env.PNPM_STORE_PATH }}
@@ -124,7 +124,7 @@ jobs:
           command: pages deploy dist --project-name=gbplay --branch=${{ env.NORMALIZED_BRANCH_NAME }}
 
       - name: Comment deploy URL
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@v3
         if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' }}
         with:
           message-id: cloudflare-deploy
