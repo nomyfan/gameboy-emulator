@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Comment deploy start
         if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' }}
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@v3
         with:
           message-id: cloudflare-deploy
           message: |
@@ -53,7 +53,7 @@ jobs:
             |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
             ---
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -69,12 +69,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         name: Setup Node.js
         with:
-          node-version: "20"
+          node-version: "22"
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           run_install: false
@@ -84,7 +84,7 @@ jobs:
         run: |
           echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         name: Setup pnpm cache
         with:
           path: ${{ env.PNPM_STORE_PATH }}
@@ -113,20 +113,18 @@ jobs:
         run: pnpm run build
 
       - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v4
         if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') }}
         id: cloudflare-publish
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: gbplay
-          directory: dist
-          branch: ${{ env.NORMALIZED_BRANCH_NAME }}
+          packageManager: pnpm
           workingDirectory: app/gameboy
-          wranglerVersion: "3"
+          command: pages deploy dist --project-name=gbplay --branch=${{ env.NORMALIZED_BRANCH_NAME }}
 
       - name: Comment deploy URL
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@v3
         if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') && github.event_name == 'pull_request' }}
         with:
           message-id: cloudflare-deploy
@@ -138,7 +136,7 @@ jobs:
             |---------------------------------|------------------------|
             |Latest commit | ${{ github.event.pull_request.head.sha }} |
             |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
-            |Preview URL | [${{ steps.cloudflare-publish.outputs.url }}](${{ steps.cloudflare-publish.outputs.url }}) |
-            |Branch Preview URL | [${{ env.NORMALIZED_BRANCH_NAME }}.gbplay.pages.dev](https://${{ env.NORMALIZED_BRANCH_NAME }}.gbplay.pages.dev) |
-            |Environment | ${{ steps.cloudflare-publish.outputs.environment }} |
+            |Preview URL | [${{ steps.cloudflare-publish.outputs.deployment-url }}](${{ steps.cloudflare-publish.outputs.deployment-url }}) |
+            |Branch Preview URL | [${{ steps.cloudflare-publish.outputs.pages-deployment-alias-url }}](${{ steps.cloudflare-publish.outputs.pages-deployment-alias-url }}) |
+            |Environment | ${{ steps.cloudflare-publish.outputs.pages-environment }} |
             ---
