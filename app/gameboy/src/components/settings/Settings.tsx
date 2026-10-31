@@ -20,6 +20,8 @@ enum ETabs {
   Mics = "misc",
 }
 
+const speedOptions = [0.5, 1, 1.5, 2, 3];
+
 const tabsTriggerClassName =
   "justify-start rounded-none border-0 border-l-[3px] border-transparent px-3 py-1.5 text-base font-normal text-foreground after:hidden data-[state=active]:border-primary data-[state=active]:font-medium";
 
@@ -77,6 +79,23 @@ export function Settings() {
               }}
               id={`${id}-volume`}
             />
+
+            <label className="font-semibold text-lg">游戏速度</label>
+            <div className="mb-2 flex gap-1.5">
+              {speedOptions.map((speed) => (
+                <Button
+                  key={speed}
+                  type="button"
+                  size="sm"
+                  variant={settings.speed === speed ? "default" : "outline"}
+                  onClick={() => {
+                    store.setState({ speed });
+                  }}
+                >
+                  {speed}x
+                </Button>
+              ))}
+            </div>
 
             <label className="font-semibold text-lg" htmlFor={`${id}autoPause`}>
               自动暂停
