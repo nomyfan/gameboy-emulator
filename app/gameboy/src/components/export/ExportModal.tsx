@@ -41,5 +41,5 @@ export function ExportModal({ ref }: { ref: Ref<IExportModalRef> }) {
     </Modal>
   );
 }
-// biome-ignore lint/style/noDefaultExport: <explanation>
+// oxlint-disable-next-line import/no-default-export
 export default ExportModal;

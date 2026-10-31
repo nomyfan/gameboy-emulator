@@ -40,7 +40,7 @@ export async function loadGames(beforeSetState?: () => Promise<void>) {
 
 export async function exportSnapshot(id: number, snapshot?: ISnapshot) {
   if (!snapshot) {
-    // biome-ignore lint/style/noParameterAssign: await expressions cannot be used in a parameter initializer.
+    // oxlint-disable-next-line no-param-reassign -- await expressions cannot be used in a parameter initializer.
     snapshot = await storage.snapshotStore.queryById(id);
     if (!snapshot) {
       throw new Error("Snapshot not found");

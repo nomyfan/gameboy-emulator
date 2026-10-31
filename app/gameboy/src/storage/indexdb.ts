@@ -264,7 +264,7 @@ class GameBoyStorage implements IGameBoyStorage {
 
   async importPack(pack: Blob) {
     const reader = await unpack(pack);
-    // biome-ignore lint/style/noNonNullAssertion: It must exist in the pack if it's exported by us.
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- It must exist in the pack if it's exported by us.
     const manifest = (await reader.getObject<IPackManifest>("manifest.json"))!;
 
     const game = await this.gameStore.queryById(manifest.gameId);
@@ -272,7 +272,7 @@ class GameBoyStorage implements IGameBoyStorage {
     let txAction = async () => {};
 
     if (manifest.game.rom) {
-      // biome-ignore lint/style/noNonNullAssertion: It must exist in the pack if it's exported by us.
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- It must exist in the pack if it's exported by us.
       const rom = (await reader.getBlob("game/rom"))!;
       const romBuf = await rom.arrayBuffer();
       const metadata = await obtainMetadata(new Uint8ClampedArray(romBuf), 90);
@@ -309,11 +309,11 @@ class GameBoyStorage implements IGameBoyStorage {
       await Promise.all(
         manifest.snapshots.map(async (snapshot) => {
           if (!hashSet.has(snapshot.hash)) {
-            // biome-ignore lint/style/noNonNullAssertion: It must exist in the pack if it's exported by us.
+            // oxlint-disable-next-line typescript/no-non-null-assertion -- It must exist in the pack if it's exported by us.
             const ss = (await reader.getUint8Array(
               `snapshots/${snapshot.hash}.ss`,
             ))!;
-            // biome-ignore lint/style/noNonNullAssertion: It must exist in the pack if it's exported by us.
+            // oxlint-disable-next-line typescript/no-non-null-assertion -- It must exist in the pack if it's exported by us.
             const cover = (await reader.getBlob(
               `snapshots/${snapshot.hash}.jpg`,
             ))!;

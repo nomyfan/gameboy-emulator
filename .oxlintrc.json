@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "ignorePatterns": ["postcss.config.js", "vite.config.ts"],
+  "rules": {
+    "import/no-default-export": "error",
+    "eslint/no-param-reassign": "warn",
+    "eslint/no-unused-vars": "warn",
+    "react/exhaustive-deps": "warn",
+    "react/rules-of-hooks": "error",
+    "react/no-array-index-key": "warn",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-non-null-assertion": "warn"
+  }
+}

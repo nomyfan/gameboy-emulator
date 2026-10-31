@@ -13,7 +13,7 @@ import { settingsStore } from "gameboy/store/settings";
 import type { CSSProperties, Ref } from "react";
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { PlayOperationBar } from "./PlayOperationBar";
+
 import {
   deleteSnapshot,
   gameboy,
@@ -23,6 +23,7 @@ import {
 } from "./actions";
 import type { IExitGameModalRef } from "./exit-game-modal";
 import { ExitGameModal } from "./exit-game-modal";
+import { PlayOperationBar } from "./PlayOperationBar";
 
 export interface IPagePlayProps {
   style?: CSSProperties;

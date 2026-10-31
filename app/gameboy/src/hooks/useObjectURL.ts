@@ -28,7 +28,7 @@ export function useObjectURL(
 ): string | undefined {
   const [url, setUrl] = useState<string | undefined>();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies:
+  /* oxlint-disable react/exhaustive-deps, react/set-state-in-effect -- deps are provided by the caller */
   useLayoutEffect(() => {
     if (!props.data) return;
 
@@ -44,6 +44,7 @@ export function useObjectURL(
       }
     };
   }, deps);
+  /* oxlint-enable react/exhaustive-deps, react/set-state-in-effect */
 
   return url;
 }

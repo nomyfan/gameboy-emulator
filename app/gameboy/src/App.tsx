@@ -1,8 +1,9 @@
-import { useRegisterSW } from "virtual:pwa-register/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "gameboy/components/ui/sonner";
 import { openConfirmModal, useAppStore } from "gameboy/store/app";
 import { Suspense, lazy } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
+
 import { queryClient } from "./query";
 
 const LazyHome = lazy(() => import("./components/home"));

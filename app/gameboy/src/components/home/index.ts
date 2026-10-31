@@ -1,4 +1,4 @@
 export * from "./Home";
 
-// biome-ignore lint/style/noDefaultExport: <explanation>
+// oxlint-disable-next-line import/no-default-export
 export { Home as default } from "./Home";

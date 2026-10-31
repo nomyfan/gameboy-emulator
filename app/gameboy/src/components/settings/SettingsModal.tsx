@@ -12,5 +12,5 @@ export function SettingsModal() {
   );
 }
 
-// biome-ignore lint/style/noDefaultExport: <explanation>
+// oxlint-disable-next-line import/no-default-export
 export default SettingsModal;

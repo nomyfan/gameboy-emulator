@@ -21,7 +21,7 @@ export function ScaleLoader({
     return Array.from({ length: 5 }).map((_, index) => {
       return (
         <div
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          // oxlint-disable-next-line react/no-array-index-key
           key={index}
           className="animate-scale"
           style={{

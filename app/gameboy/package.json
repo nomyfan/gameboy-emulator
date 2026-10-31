@@ -8,8 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "precommit": "npx lint-staged",
-    "fmt": "biome format src",
-    "lint": "biome lint src"
+    "fmt": "oxfmt src",
+    "lint": "oxlint src"
   },
   "dependencies": {
     "@callcc/toolkit-js": "^0.1.6",
@@ -58,7 +58,8 @@
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
-      "biome check --fix"
+      "oxlint --fix",
+      "oxfmt"
     ]
   }
 }
