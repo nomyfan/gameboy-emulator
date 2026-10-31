@@ -6,8 +6,9 @@
   },
   "packageManager": "pnpm@9.14.4+sha256.26a726b633b629a3fabda006f696ae4260954a3632c8054112d7ae89779e5f9a",
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0"
   },
   "pnpm": {
     "patchedDependencies": {}

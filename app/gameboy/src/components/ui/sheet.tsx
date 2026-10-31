@@ -1,11 +1,10 @@
 "use client";
 
 import { cn } from "cn";
-import { Dialog as SheetPrimitive } from "radix-ui";
-import type * as React from "react";
-
 import { Button } from "gameboy/components/ui/button";
 import { XIcon } from "lucide-react";
+import { Dialog as SheetPrimitive } from "radix-ui";
+import type * as React from "react";
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;

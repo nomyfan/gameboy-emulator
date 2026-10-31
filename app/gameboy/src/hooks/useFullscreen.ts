@@ -3,9 +3,9 @@ import { useLayoutEffect, useState } from "react";
 function detectFullscreen() {
   return (
     !!document.fullscreenElement ||
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // oxlint-disable-next-line typescript/no-explicit-any
     !!(document as any).mozFullScreenElement ||
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // oxlint-disable-next-line typescript/no-explicit-any
     !!(document as any).msFullscreenElement
   );
 }

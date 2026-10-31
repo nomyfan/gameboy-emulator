@@ -1,5 +1,6 @@
 import { ModalCanceledError } from "gameboy/model/error";
 import { useStore } from "zustand";
+
 import { deleteGame } from "./game";
 import { create } from "./utils";
 
@@ -93,7 +94,11 @@ export function openConfirmModal(options: {
       });
 
       const ignoreCancel = options.ignoreCancel ?? true;
-      ok ? resolve() : !ignoreCancel && reject(new ModalCanceledError());
+      if (ok) {
+        resolve();
+      } else if (!ignoreCancel) {
+        reject(new ModalCanceledError());
+      }
     };
 
     store.setState((st) => {

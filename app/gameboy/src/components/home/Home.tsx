@@ -35,6 +35,7 @@ export function Home() {
   const items = useMemo(() => {
     const items: IBarItem[][] = [];
     if (selected) {
+      // oxlint-disable-next-line react/refs -- refs are only read inside event handlers
       items.push([
         {
           id: "play",
