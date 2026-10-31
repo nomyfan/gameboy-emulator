@@ -72,7 +72,7 @@ jobs:
       - uses: actions/setup-node@v4
         name: Setup Node.js
         with:
-          node-version: "20"
+          node-version: "22"
 
       - uses: pnpm/action-setup@v3
         name: Install pnpm
@@ -113,17 +113,15 @@ jobs:
         run: pnpm run build
 
       - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v4
         if: ${{ !startsWith(env.BRANCH_NAME, 'renovate/') }}
         id: cloudflare-publish
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: gbplay
-          directory: dist
-          branch: ${{ env.NORMALIZED_BRANCH_NAME }}
+          packageManager: pnpm
           workingDirectory: app/gameboy
-          wranglerVersion: "3"
+          command: pages deploy dist --project-name=gbplay --branch=${{ env.NORMALIZED_BRANCH_NAME }}
 
       - name: Comment deploy URL
         uses: mshick/add-pr-comment@v2
@@ -138,7 +136,7 @@ jobs:
             |---------------------------------|------------------------|
             |Latest commit | ${{ github.event.pull_request.head.sha }} |
             |Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
-            |Preview URL | [${{ steps.cloudflare-publish.outputs.url }}](${{ steps.cloudflare-publish.outputs.url }}) |
-            |Branch Preview URL | [${{ env.NORMALIZED_BRANCH_NAME }}.gbplay.pages.dev](https://${{ env.NORMALIZED_BRANCH_NAME }}.gbplay.pages.dev) |
-            |Environment | ${{ steps.cloudflare-publish.outputs.environment }} |
+            |Preview URL | [${{ steps.cloudflare-publish.outputs.deployment-url }}](${{ steps.cloudflare-publish.outputs.deployment-url }}) |
+            |Branch Preview URL | [${{ steps.cloudflare-publish.outputs.pages-deployment-alias-url }}](${{ steps.cloudflare-publish.outputs.pages-deployment-alias-url }}) |
+            |Environment | ${{ steps.cloudflare-publish.outputs.pages-environment }} |
             ---
