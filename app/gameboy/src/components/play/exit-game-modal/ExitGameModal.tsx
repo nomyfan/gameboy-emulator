@@ -1,5 +1,5 @@
-import { Button } from "gameboy/components/core/button";
 import { Modal } from "gameboy/components/core/modal";
+import { Button } from "gameboy/components/ui/button";
 import { ModalCanceledError, ModalOpenedError } from "gameboy/model/error";
 import { useImperativeHandle, useRef, useState } from "react";
 import type { Ref } from "react";
@@ -41,6 +41,7 @@ export function ExitGameModal({ ref }: { ref: Ref<IExitGameModalRef> }) {
       footer={
         <div className="flex justify-end">
           <Button
+            variant="secondary"
             style={{ marginRight: 10 }}
             onClick={() => {
               onClose.current?.("cancel");
@@ -49,7 +50,6 @@ export function ExitGameModal({ ref }: { ref: Ref<IExitGameModalRef> }) {
             取消
           </Button>
           <Button
-            variant="primary"
             style={{ marginRight: 10 }}
             onClick={() => {
               onClose.current?.("no_snapshot");
@@ -58,7 +58,6 @@ export function ExitGameModal({ ref }: { ref: Ref<IExitGameModalRef> }) {
             不创建
           </Button>
           <Button
-            variant="primary"
             onClick={() => {
               onClose.current?.("snapshot");
             }}

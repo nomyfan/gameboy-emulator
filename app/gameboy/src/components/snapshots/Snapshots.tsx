@@ -1,29 +1,17 @@
-import * as ContextMenu from "@radix-ui/react-context-menu";
-import { Slot } from "@radix-ui/react-slot";
 import { useQuery } from "@tanstack/react-query";
-import { cva } from "class-variance-authority";
 import { ScaleLoader } from "gameboy/components/core/Spin";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "gameboy/components/ui/context-menu";
 import { useObjectURL } from "gameboy/hooks/useObjectURL";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { useAppStore } from "gameboy/store/app";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-
-const actionItemVariants = cva(
-  "min-w-[150px] bg-white flex items-center rounded outline-none py-1 px-3 cursor-pointer",
-  {
-    variants: {
-      alert: {
-        false: "data-highlighted:bg-primary data-highlighted:text-white",
-        true: "text-alert data-highlighted:bg-alert data-highlighted:text-white",
-      },
-    },
-    defaultVariants: {
-      alert: false,
-    },
-  },
-);
 
 export interface IActionItem {
   icon?: ReactNode;
@@ -49,8 +37,8 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
   const url = useObjectURL({ data: cover }, [snapshot.id]);
 
   return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger asChild>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
         <div className="flex bg-primary w-full my-2 rounded">
           <img
             src={url}
@@ -67,28 +55,25 @@ function Item(props: { snapshot: ISnapshot; menuItems: IActionItem[] }) {
             </span>
           </div>
         </div>
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Content className="bg-white rounded text-xs text-text p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)]">
-          {props.menuItems.map((it) => {
-            return (
-              <ContextMenu.Item
-                key={it.label}
-                className={actionItemVariants({
-                  alert: it.alert,
-                })}
-                onClick={() => {
-                  it.onClick(snapshot, context);
-                }}
-              >
-                <Slot className="w-4 h-4 mr-1">{it.icon ?? <i />}</Slot>
-                {it.label}
-              </ContextMenu.Item>
-            );
-          })}
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-0 rounded ring-0 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)]">
+        {props.menuItems.map((it) => {
+          return (
+            <ContextMenuItem
+              key={it.label}
+              variant={it.alert ? "destructive" : "default"}
+              className="min-w-[150px] cursor-pointer gap-1 rounded px-3 py-1 text-xs data-[variant=destructive]:focus:bg-destructive data-[variant=destructive]:focus:text-white"
+              onClick={() => {
+                it.onClick(snapshot, context);
+              }}
+            >
+              <span className="size-4 *:size-full">{it.icon}</span>
+              {it.label}
+            </ContextMenuItem>
+          );
+        })}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

@@ -1,5 +1,4 @@
 import dayjs from "dayjs";
-import { Avatar } from "gameboy/components/core/avatar";
 import type { IBarItem } from "gameboy/components/core/operation-bar";
 import { OperationBar } from "gameboy/components/core/operation-bar";
 import type { IExportModalRef } from "gameboy/components/export/ExportModal";
@@ -8,6 +7,7 @@ import { GameList } from "gameboy/components/game-list";
 import type { ISnapshotsModalRef } from "gameboy/components/snapshots/SnapshotsModal";
 import { SnapshotsModal } from "gameboy/components/snapshots/SnapshotsModal";
 import { useToast } from "gameboy/components/toast/useToast";
+import { Avatar, AvatarFallback } from "gameboy/components/ui/avatar";
 import * as fs from "gameboy/fs";
 import { useFullscreen } from "gameboy/hooks/useFullscreen";
 import { storage } from "gameboy/storage/indexdb";
@@ -137,14 +137,19 @@ export function Home() {
   }, [selected, isFullscreen, addToast]);
 
   return (
-    <main className="bg-bg h-screen w-screen flex flex-col">
+    <main className="bg-background h-screen w-screen flex flex-col">
       <section
         className="p-2"
         onClick={() => {
           selectCartridge();
         }}
       >
-        <Avatar fallback="O" />
+        <Avatar
+          size="lg"
+          className="border-2 border-white shadow-[0_4px_4px_rgba(0,0,0,.25)] after:hidden"
+        >
+          <AvatarFallback className="bg-primary text-white">O</AvatarFallback>
+        </Avatar>
       </section>
 
       <GameList className="grow shrink-0" />

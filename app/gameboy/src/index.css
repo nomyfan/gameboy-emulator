@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 @plugin "@iconify/tailwind4" {
   prefixes: ic;
@@ -8,16 +12,8 @@
   @apply flex items-center justify-center;
 }
 
-@utility absolute-center {
-  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
-}
-
 @theme {
-  --color-primary: #2c2c2c;
-  --color-text: #4b4b4b;
-  --color-alert: #dc3545;
-  --color-bg: #ebebeb;
-  --color-accent: #00ffff;
+  --color-highlight: #00ffff;
 
   --animate-scale: scale 1s ease-in-out infinite;
 
@@ -31,5 +27,57 @@
       transform: scaleY(1);
       opacity: 1;
     }
+  }
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+}
+
+:root {
+  --background: #ebebeb;
+  --foreground: #4b4b4b;
+  --card: #ffffff;
+  --card-foreground: #4b4b4b;
+  --popover: #ffffff;
+  --popover-foreground: #4b4b4b;
+  --primary: #2c2c2c;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #4b4b4b;
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: #2c2c2c;
+  --accent-foreground: #ffffff;
+  --destructive: #dc3545;
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

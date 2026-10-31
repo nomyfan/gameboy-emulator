@@ -1,5 +1,5 @@
-import { cn } from "@callcc/toolkit-js/cn";
-import { Separator } from "@radix-ui/react-separator";
+import { Separator } from "gameboy/components/ui/separator";
+import { cn } from "gameboy/lib/utils";
 import { join } from "gameboy/utils";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -28,7 +28,7 @@ export function OperationBar(props: IOperationBarProps) {
               key={item.id}
               className={cn(
                 "bg-white rounded-full p-[6px] inline-flex justify-center items-center mx-1",
-                item.alert ? "text-alert" : "text-text",
+                item.alert ? "text-destructive" : "text-foreground",
               )}
               onClick={(evt) => {
                 evt.stopPropagation();
@@ -46,7 +46,7 @@ export function OperationBar(props: IOperationBarProps) {
       <Separator
         key={`${item.key}-separator`}
         orientation="vertical"
-        className="w-[2px] h-[18px] bg-white mx-[5px]"
+        className="mx-[5px] bg-white data-vertical:h-[18px] data-vertical:w-[2px] data-vertical:self-center"
       />
     ));
   };

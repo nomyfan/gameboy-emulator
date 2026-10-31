@@ -87,7 +87,7 @@ export default defineConfig(({ mode }) => ({
             },
             {
               name: "ui",
-              test: /\/@radix-ui\//,
+              test: /\/(@?radix-ui|sonner)\//,
             },
             {
               name: "rxjs",

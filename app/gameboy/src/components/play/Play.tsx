@@ -116,7 +116,10 @@ export function Play(props: IPagePlayProps) {
 
   return (
     <>
-      <div className="grid grid-cols-[1fr_auto_1fr] bg-bg" style={props.style}>
+      <div
+        className="grid grid-cols-[1fr_auto_1fr] bg-background"
+        style={props.style}
+      >
         <DebugCanvas ref={dbgCanvasRef} />
         <div className="flex justify-end">
           {showActionButtons && (
