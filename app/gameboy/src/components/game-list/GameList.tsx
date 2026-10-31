@@ -1,5 +1,5 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import { ScaleLoader } from "gameboy/components/core/Spin";
+import { cn } from "gameboy/lib/utils";
 import { selectCartridge, useAppStore } from "gameboy/store/app";
 import { gameStore, loadGames } from "gameboy/store/game";
 import { useEffect } from "react";

@@ -1,24 +1,22 @@
-import { cn } from "@callcc/toolkit-js/cn";
-import {
-  Popover,
-  PopoverContent,
-  PopoverPortal,
-  PopoverTrigger,
-} from "@radix-ui/react-popover";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { ScaleLoader } from "gameboy/components/core/Spin";
-import { Button } from "gameboy/components/core/button";
-import { Switch } from "gameboy/components/core/switch";
 import { IconCheck } from "gameboy/components/icons";
 import { useToast } from "gameboy/components/toast/useToast";
+import { Button } from "gameboy/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "gameboy/components/ui/popover";
+import { Spinner } from "gameboy/components/ui/spinner";
+import { Switch } from "gameboy/components/ui/switch";
 import * as fs from "gameboy/fs";
 import { useObjectURL } from "gameboy/hooks/useObjectURL";
 import type { ISnapshot } from "gameboy/model";
 import { storage } from "gameboy/storage/indexdb";
 import { after } from "gameboy/utils";
 import { useId, useState } from "react";
-import styles from "./Popover.module.css";
 
 function SnapshotCard(props: {
   data: ISnapshot;
@@ -44,7 +42,7 @@ function SnapshotCard(props: {
       }}
     >
       <div className="absolute left-0 right-0 top-0 bottom-0 flex flex-col justify-between">
-        <div className="flex bg-bg/40 backdrop-blur-sm p-0.5 text-white rounded-t-lg">
+        <div className="flex bg-background/40 backdrop-blur-sm p-0.5 text-white rounded-t-lg">
           <IconCheck
             checked={props.selected}
             onClick={() => {
@@ -53,7 +51,7 @@ function SnapshotCard(props: {
           />
         </div>
 
-        <div className="text-xs font-medium bg-bg/40 backdrop-blur-sm p-1 flex items-end rounded-b-lg">
+        <div className="text-xs font-medium bg-background/40 backdrop-blur-sm p-1 flex items-end rounded-b-lg">
           <div className="overflow-hidden whitespace-nowrap text-ellipsis shrink grow">
             {data.name}
           </div>
@@ -63,20 +61,13 @@ function SnapshotCard(props: {
               <i className="iconify ic--baseline-info text-xl" />
             </PopoverTrigger>
 
-            <PopoverPortal>
-              <PopoverContent
-                className={cn(
-                  styles.PopoverContent,
-                  "bg-white shadow-lg rounded-md p-3 text-sm grid grid-cols-[max-content_auto] gap-x-3",
-                )}
-              >
-                <label>名称</label>
-                <span>{data.name}</span>
+            <PopoverContent className="grid w-auto grid-cols-[max-content_auto] gap-x-3 gap-y-0 rounded-md p-3 shadow-lg ring-0">
+              <label>名称</label>
+              <span>{data.name}</span>
 
-                <label>时间</label>
-                <span>{new Date(data.time).toLocaleString()}</span>
-              </PopoverContent>
-            </PopoverPortal>
+              <label>时间</label>
+              <span>{new Date(data.time).toLocaleString()}</span>
+            </PopoverContent>
           </Popover>
         </div>
       </div>
@@ -165,14 +156,14 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
 
   if (isSnapshotsLoading) {
     return (
-      <div className="w-screen h-screen bg-bg p-2 flex-center">
+      <div className="w-screen h-screen bg-background p-2 flex-center">
         <ScaleLoader />
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen bg-bg p-2">
+    <div className="w-screen h-screen bg-background p-2">
       <div className="grid grid-cols-[max-content_1fr] grid-rows-[auto_auto_1fr_auto] gap-2 h-full">
         <label className="font-semibold text-lg mr-2" htmlFor={`${id}ROM`}>
           ROM
@@ -239,20 +230,18 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
           {selectedSnapshotIds.length ? (
             <Button
               key="button-delete-snapshots"
-              loading={isDeletingSnapshots}
               disabled={isExportingGame || isDeletingSnapshots}
-              variant="danger"
+              variant="destructive"
               onClick={() => {
                 deleteSnapshots(selectedSnapshotIds);
               }}
             >
+              {isDeletingSnapshots && <Spinner />}
               删除快照
             </Button>
           ) : null}
           <Button
             key="button-export"
-            variant="primary"
-            loading={isExportingGame}
             disabled={isExportingGame || isDeletingSnapshots}
             onClick={async () => {
               await exportGame({
@@ -262,12 +251,13 @@ export function Export(props: { gameId: string; onCancel: () => void }) {
                 snapshots: selectedSnapshotIds ?? [],
               });
             }}
-            className="flex items-center gap-1"
           >
+            {isExportingGame && <Spinner />}
             导出
           </Button>
           <Button
             key="button-cancel"
+            variant="secondary"
             disabled={isExportingGame}
             onClick={props.onCancel}
           >

@@ -1,5 +1,5 @@
-import { cn } from "@callcc/toolkit-js/cn";
 import { useObjectURL } from "gameboy/hooks/useObjectURL";
+import { cn } from "gameboy/lib/utils";
 import type { CSSProperties, PropsWithChildren } from "react";
 
 export type IListItemProps = PropsWithChildren<{
@@ -30,7 +30,7 @@ export function Item(props: IListItemProps) {
         props.placeholder
           ? "flex items-center justify-center w-fit text-primary"
           : "w-48 shadow-[0_4px_4px_rgba(0,0,0,.25)] border-[3px]",
-        props.selected ? "border-accent" : "border-primary",
+        props.selected ? "border-highlight" : "border-primary",
       )}
       style={props.style}
       onClick={(evt) => {

@@ -1,4 +1,4 @@
-import { cn } from "@callcc/toolkit-js/cn";
+import { cn } from "gameboy/lib/utils";
 import type { IDirectionButton } from "gameboy/types";
 import type { CSSProperties } from "react";
 

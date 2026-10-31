@@ -1,9 +1,11 @@
-import { cn } from "@callcc/toolkit-js/cn";
-import * as Dialog from "@radix-ui/react-dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Button } from "gameboy/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "gameboy/components/ui/dialog";
 import type { ReactNode } from "react";
-
-import { Button } from "../button";
 
 export function Modal(props: {
   open?: boolean;
@@ -25,52 +27,51 @@ export function Modal(props: {
 
     return (
       <div className="flex justify-end">
-        <Button style={{ marginRight: 10 }} onClick={() => props.onCancel?.()}>
+        <Button
+          variant="secondary"
+          style={{ marginRight: 10 }}
+          onClick={() => props.onCancel?.()}
+        >
           {props.cancelText || "取消"}
         </Button>
-        <Button variant="primary" onClick={() => props.onOk?.()}>
-          {props.okText || "确定"}
-        </Button>
+        <Button onClick={() => props.onOk?.()}>{props.okText || "确定"}</Button>
       </div>
     );
   };
 
   return (
-    <Dialog.Root open={props.open} defaultOpen={props.defaultOpen}>
-      <Dialog.Portal>
-        {!props.fullscreen && (
-          <Dialog.Overlay
-            className={cn(
-              " fixed top-0 left-0 w-full h-full bg-black/75 backdrop-blur-lg animate-[fade-in_300ms_cubic-bezier(0.16,1,0.3,1)]",
-            )}
-            onClick={() => props.onClose?.()}
-          />
-        )}
-        <Dialog.Content
-          className={cn(
-            "fixed top-0 left-0 w-screen h-screen",
-            props.fullscreen &&
-              "animate-[fade-in_300ms_cubic-bezier(0.16,1,0.3,1)]",
-          )}
+    <Dialog
+      open={props.open}
+      defaultOpen={props.defaultOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          props.onClose?.();
+        }
+      }}
+    >
+      {props.fullscreen ? (
+        <DialogContent
+          showCloseButton={false}
+          showOverlay={false}
+          className="top-0 left-0 block h-screen w-screen max-w-none translate-x-0 translate-y-0 rounded-none bg-transparent p-0 text-base ring-0 sm:max-w-none"
         >
-          <VisuallyHidden>
-            <Dialog.Title />
-          </VisuallyHidden>
-          <VisuallyHidden>
-            <Dialog.Description />
-          </VisuallyHidden>
-          {props.fullscreen ? (
-            props.children
-          ) : (
-            <div className="max-w-lg min-w-xs absolute-center bg-bg py-5 px-6 rounded-sm">
-              <h1 className="mb-6 mt-0 text-2xl font-bold">{props.title}</h1>
-              <div className="my-6 text-sm font-medium">{props.children}</div>
-
-              <div className="mt-6">{renderFooter()}</div>
-            </div>
-          )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <DialogTitle className="sr-only" />
+          <DialogDescription className="sr-only" />
+          {props.children}
+        </DialogContent>
+      ) : (
+        <DialogContent
+          showCloseButton={false}
+          className="w-auto max-w-lg min-w-xs gap-6 rounded-sm bg-background px-6 py-5 text-base ring-0 sm:max-w-lg"
+        >
+          <DialogTitle className="text-2xl font-bold">
+            {props.title}
+          </DialogTitle>
+          <DialogDescription className="sr-only" />
+          <div className="text-sm font-medium">{props.children}</div>
+          {renderFooter()}
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }
