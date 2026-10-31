@@ -11,10 +11,7 @@ const root = path.resolve(
   "public"
 );
 
-const mainIcon = "icon.svg";
-// Same design shrunk into the central 80% safe zone, since platforms crop the
-// outer area of maskable icons before applying their own shape.
-const maskableIcon = "maskable-icon.svg";
+const mainIcon = "maskable-icon.svg";
 const mainIconData = fs.readFileSync(path.join(root, mainIcon)).toString("base64");
 
 // Follow the macOS app icon grid: an 824x824 rounded rect with a drop shadow
@@ -39,15 +36,15 @@ const roundedIcon = Buffer.from(`
 </svg>`);
 
 const options = [
-  { size: 64, name: "pwa-64x64.png", input: roundedIcon },
+  { size: 64, name: "pwa-64x64.png", rounded: true },
   { size: 180, name: "apple-touch-icon-180x180.png" },
-  { size: 192, name: "pwa-192x192.png", input: roundedIcon },
-  { size: 512, name: "pwa-512x512.png", input: roundedIcon },
-  { size: 512, name: "maskable-icon-512x512.png", input: path.join(root, maskableIcon) },
+  { size: 192, name: "pwa-192x192.png", rounded: true },
+  { size: 512, name: "pwa-512x512.png", rounded: true },
+  { size: 512, name: "maskable-icon-512x512.png" },
 ];
 
-for (const { size, name, input = path.join(root, mainIcon) } of options) {
-  await sharp(input)
+for (const { size, name, rounded } of options) {
+  await sharp(rounded ? roundedIcon : path.join(root, mainIcon))
     .resize(size)
     .toFile(path.join(root, name));
 }
