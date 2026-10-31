@@ -62,14 +62,16 @@ class GameBoyControl {
     settingsStore.subscribe(
       (settings) => settings.speed,
       async (speed) => {
-        if (!this.installManifest) return;
+        this.store_.setState({ speed });
+
+        const manifest = this.installManifest;
+        if (!manifest) return;
 
         const isPlaying = this.state.status === "playing";
         const snapshot = this.takeSnapshot();
         this.uninstall();
 
-        this.store.setState({ speed });
-        const { rom, canvas, dbgCanvas } = this.installManifest;
+        const { rom, canvas, dbgCanvas } = manifest;
         await this.install(rom, canvas, undefined, dbgCanvas);
         this.restoreSnapshot(snapshot);
         if (isPlaying) {
