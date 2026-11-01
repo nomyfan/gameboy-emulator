@@ -18,7 +18,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
     "crc-32": "^1.2.2",
-    "dayjs": "^1.11.18",
+    "dayjs": "^1.11.23",
     "dexie": "^4.2.0",
     "gb_wasm": "link:../../crates/gb_wasm/npm",
     "immer": "^10.1.3",
